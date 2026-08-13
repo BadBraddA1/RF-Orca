@@ -288,4 +288,5 @@ RF-Orca sits **after** Workbench: plan → share → deploy tracking.
 2. Scaffold Next.js with DB-backed shows: New Show + admin password + mark-view URL
 3. Implement Phase 1 import → Phase 2 deploy board
 
-No application code in this PR — plan only, so the team can approve scope and file format before build.
+**Demo status:** A working Next.js demo is in this repo. Without `DATABASE_URL` it uses in-memory storage (OK for local demo; add Neon/Postgres for durable multi-device on Vercel). Sample CSV at `fixtures/wwb/sample-inventory.csv`.
+

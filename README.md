@@ -1,21 +1,38 @@
 # RF-Orca
 
-Crew-facing RF board: import a Shure Wireless Workbench export, mark which channels are allowed, and track deployed frequencies by room.
+Crew-facing RF board: import a Shure Wireless Workbench CSV, mark which channels are allowed, and track deployed frequencies by room.
 
-## Status
+## Demo app
 
-Planning — see **[PLAN.md](./PLAN.md)** for product scope, WWB import approach, data model, and build phases.
+Next.js app on Vercel.
 
-**Decided:**
+**Access model**
 
-- Shows live in a **database** (provider TBD)
-- **No user accounts** — home is **New Show** only (no show list)
-- Create show → set an **admin password** for edits (import, allow/block)
-- Default show page is the **mark view** (deploy + room); crews use the link only
+- Home → **New Show** only (no show list)
+- Create with an **admin password**
+- Crews open the show link → **mark view** (deploy + room), no login
+- Admin password unlocks import + allow/block
 
-## Intended MVP flow
+**Storage**
 
-1. Home → **New Show** (name + admin password) → get a shareable show URL
-2. Unlock with admin password → upload WWB CSV → mark channels **allowed** / **blocked**
-3. Share the show link with crews (no password)
-4. Crew checks **I have deployed this frequency** and selects the **room**
+- With `DATABASE_URL` (Neon/Postgres): shared persistent shows
+- Without it: in-memory demo store (fine for local `next dev`; on Vercel data can reset on cold starts)
+
+## Develop
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Sample CSV: `fixtures/wwb/sample-inventory.csv`.
+
+## Env
+
+```bash
+DATABASE_URL=postgres://...   # optional for local; required for durable multi-device demo
+```
+
+## Plan
+
+See [PLAN.md](./PLAN.md).
