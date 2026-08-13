@@ -6,11 +6,16 @@ Crew-facing RF board: import a Shure Wireless Workbench export, mark which chann
 
 Planning — see **[PLAN.md](./PLAN.md)** for product scope, WWB import approach, data model, and build phases.
 
-**Decided:** shows (channels, allow/block, deploy + room) are stored in a **database** so crews share one live board. Database provider TBD.
+**Decided:**
+
+- Shows live in a **database** (provider TBD)
+- **No user accounts** — home is **New Show** only (no show list)
+- Create show → set an **admin password** for edits (import, allow/block)
+- Default show page is the **mark view** (deploy + room); crews use the link only
 
 ## Intended MVP flow
 
-1. Upload a WWB inventory / coordination CSV → saved as a show in the DB
-2. Mark channels **allowed** or **blocked**
-3. Share a show link with crews
+1. Home → **New Show** (name + admin password) → get a shareable show URL
+2. Unlock with admin password → upload WWB CSV → mark channels **allowed** / **blocked**
+3. Share the show link with crews (no password)
 4. Crew checks **I have deployed this frequency** and selects the **room**

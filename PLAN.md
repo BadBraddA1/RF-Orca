@@ -18,34 +18,49 @@ Today that usually lives in spreadsheets, radios, and verbal handoffs. RF-Orca i
 
 ## 2. Users & roles
 
-| Role | Needs |
-|------|--------|
-| **RF coordinator** | Upload WWB file, mark channels usable / not usable, share a live link with crews |
-| **Tech / A2 / RF tech** | See allowed channels, check “deployed”, set room, avoid double-booking |
-| **Lead / stage manager** (optional later) | Read-only overview of what’s live per room |
+| Role | How they get in | What they can do |
+|------|-----------------|------------------|
+| **Anyone with the show link (crew)** | Open shared URL | **Mark view only** — see allowed channels, check “deployed”, set room |
+| **Coordinator (admin)** | Same URL + **admin password** set at create time | Import WWB file, mark Allowed/Blocked, manage rooms, edit show settings |
 
-MVP: one shared “show” link (no heavy auth). Optional PIN or simple login can come later.
+**No accounts / no login system.** Access is the show link. Editing is gated by a per-show admin password chosen when the show is created. Crews never need a password.
+
+Home page does **not** list past shows (nothing to browse or leak). Only **New Show**. After create, you’re dropped into that show’s URL; bookmark/share the link to get back.
 
 ---
 
 ## 3. Core workflow (MVP)
 
 ```text
-Coordinator exports from WWB
+Home → New Show
         ↓
-Upload into RF-Orca (create Show)
+Name the show + set admin password
         ↓
-Review imported channels → mark Allowed / Blocked
+Land on show URL (mark view)
         ↓
-Share show URL with crews
+Unlock with admin password → import WWB CSV,
+mark Allowed / Blocked, set up rooms
         ↓
-Crew checks “I have deployed this frequency”
-        + enters / selects Room
+Share the same show URL with crews (no password)
         ↓
-Board updates live for everyone
+Crews use mark view: check “I have deployed this frequency”
+        + select Room
+        ↓
+Board updates for everyone on that link
 ```
 
-### Primary UI: channel board
+### Access model (decided)
+
+| Action | Needs |
+|--------|--------|
+| Create show | Home → New Show (public) |
+| See mark view / deploy + room | Show URL only |
+| Import, allow/block, rooms, admin edits | Show URL + admin password |
+| Browse / list all shows | **Not in product** — no show library on home |
+
+Show URLs use an unguessable `shareToken` (not a sequential id). Losing the link means losing easy access; coordinator should copy/save the URL after create. Admin password is stored hashed in the DB (never plaintext).
+
+### Primary UI: mark view (default)
 
 One row (or card) per imported channel, showing at least:
 
@@ -54,12 +69,14 @@ One row (or card) per imported channel, showing at least:
 - Band / type (if present in export)
 - Group & channel (if present)
 - Primary vs backup (if present)
-- **Allowed / Blocked** control (coordinator)
-- **Deployed** checkbox
+- Allowed vs blocked (read-only for crew; editable only when admin unlocked)
+- **Deployed** checkbox (crew — mark view)
 - **Room** (text or select from show room list)
 - Optional: who deployed / when (auto-stamped)
 
 Filters: All | Allowed | Blocked | Deployed | Not deployed | By room.
+
+**Admin unlock** (password): reveals import, Allowed/Blocked toggles, room management, and other edit controls. Without unlock, UI stays in mark view.
 
 ---
 
@@ -105,7 +122,8 @@ All of the below lives in the **database** (one shared store per deployment). Cr
 ```text
 Show
   id, name, venue?, createdAt, shareToken
-  rooms[]          // e.g. "Ballroom A", "Green Room", "Stage"
+  adminPasswordHash     // set at create; unlocks edit mode
+  rooms[]               // e.g. "Ballroom A", "Green Room", "Stage"
 
 Channel (from import)
   id, showId
@@ -132,13 +150,14 @@ ImportBatch
 
 ## 6. Product screens (MVP)
 
-1. **Home** — Create show / open recent show
-2. **Import** — Upload WWB CSV → preview → confirm
-3. **Rooms** — Manage room list for the show
-4. **Board** — Channel list with allowed/blocked + deployed + room (main crew view)
-5. **Share** — Copy link (and optional PIN later)
+1. **Home** — Brand + **New Show** only (no list of existing shows)
+2. **New Show** — Name + **admin password** (required) → creates DB row → redirect to show URL
+3. **Mark view** (default at `/s/[shareToken]`) — Deployed checkbox + room; crew-facing
+4. **Admin unlock** — Enter admin password on the show; then import, Allowed/Blocked, rooms
+5. **Import** (admin) — Upload WWB CSV → preview → confirm
+6. **Share** — Copy show link (crew needs link only, not the password)
 
-Mobile-first board: techs will use phones on the floor.
+Mobile-first mark view: techs will use phones on the floor.
 
 ---
 
@@ -151,7 +170,7 @@ Greenfield repo (`RF-Orca`). Suggested stack for a shareable multi-crew tool:
 | App | Next.js (App Router) + TypeScript | Fast UI, API routes, easy Vercel deploy |
 | **DB** | **Required — provider TBD** | Persist shows, imported channels, allowed/blocked, deploy + room state so crews share one live board |
 | Realtime | Optional later (poll / SSE / Ably) | Start with refresh / short poll; add live updates if crews collide |
-| Auth | None or share link + optional PIN for MVP | Low friction for crews |
+| **Access** | **Show link + per-show admin password** | No user accounts; home has New Show only; mark view is open on the link; password unlocks edits |
 | CSV parse | Papa Parse (or similar) in browser + server validation | Preview before save |
 | Deploy | Vercel | Matches crew “open a URL” workflow |
 
@@ -161,9 +180,16 @@ Shows are **not** local-only or file-only. Creating a show writes it to a databa
 
 - The WWB import, channel allow/block flags, and deploy/room state persist
 - Multiple crew devices open the same show URL and see the same board
-- Reopening a show later restores coordination + deploy progress
+- Reopening a show later restores coordination + deploy progress (via the saved link)
 
 **Database product/host is deferred** — wire the app to a generic data layer first; pick Postgres/Neon/Supabase/etc. when you’re ready and plug in connection details then.
+
+### Decided: no accounts — link + admin password
+
+- Home: **New Show** only (no show directory)
+- Crews: mark view on the show URL (deploy + room)
+- Coordinator: same URL, unlock with the admin password set at create time
+- Admin password stored hashed; edit APIs check an unlock session after password verify
 
 Local-only / offline-first is out of scope for MVP; MVP assumes an online shared board backed by the DB.
 
@@ -174,6 +200,7 @@ Local-only / offline-first is out of scope for MVP; MVP assumes an online shared
 ### Phase 0 — Spec lock (this plan)
 
 - [x] Shows stored in a database (shared across crews) — **provider TBD, decide later**
+- [x] No full auth — home is New Show only; mark view via link; admin password for edits
 - [ ] Confirm WWB export type crews will use (inventory CSV vs coordination CSV)
 - [ ] Collect sample files
 - [ ] Confirm default: import as Allowed vs Unreviewed
@@ -183,22 +210,24 @@ Local-only / offline-first is out of scope for MVP; MVP assumes an online shared
 ### Phase 1 — Skeleton + import
 
 - Next.js app scaffold
-- Show create / open (persisted to DB)
-- CSV upload + parse preview
+- Home → New Show (name + admin password) → DB create → redirect to show URL
+- Mark view as default show page (no show list anywhere)
+- Admin unlock session (cookie/token after password check)
+- CSV upload + parse preview (admin)
 - Persist channels + show metadata to DB
-- Basic channel table (read-only after import)
+- Basic channel table after import
 
 ### Phase 2 — Coordination controls
 
-- Allowed / Blocked toggles
+- Allowed / Blocked toggles (admin only)
 - Filters and counts (allowed / blocked / deployed)
-- Room list CRUD
-- Deployed checkbox + room field + timestamp
+- Room list CRUD (admin)
+- Deployed checkbox + room field + timestamp (mark view, no password)
 
 ### Phase 3 — Crew share
 
-- Public (or PIN) show board URL
-- Mobile layout polish
+- Copy show URL (unguessable shareToken)
+- Mobile layout polish for mark view
 - Prevent deploy on blocked channels
 - Simple “last updated” indicator
 
@@ -209,23 +238,28 @@ Local-only / offline-first is out of scope for MVP; MVP assumes an online shared
 - Audit log (who deployed what)
 - Export back to CSV for records
 - Optional `.shw` support
-- Auth / org multi-show library
+- Optional password reset / change admin password flow
+- Optional org multi-show library (only if needed later — not MVP)
 
 ---
 
 ## 9. Success criteria (MVP done when)
 
-1. Coordinator uploads a real WWB CSV and sees correct channel names + frequencies
-2. Coordinator can mark channels allowed or blocked
-3. Crew can check “I have deployed this frequency” and set a room
-4. Another device on the same show link sees those updates (refresh or live)
-5. Blocked channels cannot be deployed
-6. Board is usable on a phone
+1. Home only offers **New Show** (no show list)
+2. Creating a show requires an **admin password** and lands on the show’s mark view URL
+3. Coordinator uploads a real WWB CSV (after admin unlock) and sees correct channel names + frequencies
+4. Coordinator can mark channels allowed or blocked (admin only)
+5. Crew on the same link (no password) can check “I have deployed this frequency” and set a room
+6. Another device on the same show link sees those updates (refresh or live)
+7. Blocked channels cannot be deployed
+8. Board is usable on a phone
 
 ---
 
 ## 10. Out of scope for MVP
 
+- User accounts, SSO, or org login
+- A browsable library of all shows on the home page
 - Running WWB coordination / scanning inside RF-Orca
 - Talking to receivers over the network
 - Intermod calculation / spectrum analysis
@@ -244,13 +278,14 @@ RF-Orca sits **after** Workbench: plan → share → deploy tracking.
 4. Do you need multiple RF zones / shows per event day?
 5. Any branding / venue list that should ship baked in?
 6. **Which database?** (deferred — you’ll choose later; app will assume a DB-backed show store)
+7. Should **deployed** stay open to anyone with the link, or also require a light crew code later? (MVP: anyone with the link can mark deploy — decided unless you change it)
 
 ---
 
 ## 12. Immediate next step after plan approval
 
 1. Drop 1–2 anonymized WWB CSV samples into the repo (e.g. `fixtures/wwb/`)
-2. Scaffold Next.js with a DB-backed show model (provider plugged in when you decide)
+2. Scaffold Next.js with DB-backed shows: New Show + admin password + mark-view URL
 3. Implement Phase 1 import → Phase 2 deploy board
 
 No application code in this PR — plan only, so the team can approve scope and file format before build.
