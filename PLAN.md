@@ -100,6 +100,8 @@ Reports are often sectioned (e.g. Primary / Backup per RF zone). The importer sh
 
 ## 5. Data model (MVP)
 
+All of the below lives in the **database** (one shared store per deployment). Creating or updating a show writes here so any crew device with the show link sees the same state.
+
 ```text
 Show
   id, name, venue?, createdAt, shareToken
@@ -147,13 +149,23 @@ Greenfield repo (`RF-Orca`). Suggested stack for a shareable multi-crew tool:
 | Layer | Choice | Why |
 |-------|--------|-----|
 | App | Next.js (App Router) + TypeScript | Fast UI, API routes, easy Vercel deploy |
-| DB | Postgres (e.g. Neon) | Shows + channels + deploy state |
+| **DB** | **Required — provider TBD** | Persist shows, imported channels, allowed/blocked, deploy + room state so crews share one live board |
 | Realtime | Optional later (poll / SSE / Ably) | Start with refresh / short poll; add live updates if crews collide |
 | Auth | None or share link + optional PIN for MVP | Low friction for crews |
 | CSV parse | Papa Parse (or similar) in browser + server validation | Preview before save |
 | Deploy | Vercel | Matches crew “open a URL” workflow |
 
-Local-only / offline-first is possible later; MVP assumes online shared board.
+### Decided: shows live in a database
+
+Shows are **not** local-only or file-only. Creating a show writes it to a database so:
+
+- The WWB import, channel allow/block flags, and deploy/room state persist
+- Multiple crew devices open the same show URL and see the same board
+- Reopening a show later restores coordination + deploy progress
+
+**Database product/host is deferred** — wire the app to a generic data layer first; pick Postgres/Neon/Supabase/etc. when you’re ready and plug in connection details then.
+
+Local-only / offline-first is out of scope for MVP; MVP assumes an online shared board backed by the DB.
 
 ---
 
@@ -161,6 +173,7 @@ Local-only / offline-first is possible later; MVP assumes online shared board.
 
 ### Phase 0 — Spec lock (this plan)
 
+- [x] Shows stored in a database (shared across crews) — **provider TBD, decide later**
 - [ ] Confirm WWB export type crews will use (inventory CSV vs coordination CSV)
 - [ ] Collect sample files
 - [ ] Confirm default: import as Allowed vs Unreviewed
@@ -170,9 +183,9 @@ Local-only / offline-first is possible later; MVP assumes online shared board.
 ### Phase 1 — Skeleton + import
 
 - Next.js app scaffold
-- Show create / open
+- Show create / open (persisted to DB)
 - CSV upload + parse preview
-- Persist channels to DB
+- Persist channels + show metadata to DB
 - Basic channel table (read-only after import)
 
 ### Phase 2 — Coordination controls
@@ -230,13 +243,14 @@ RF-Orca sits **after** Workbench: plan → share → deploy tracking.
 3. One room per frequency, or allow “also used in Room B”?
 4. Do you need multiple RF zones / shows per event day?
 5. Any branding / venue list that should ship baked in?
+6. **Which database?** (deferred — you’ll choose later; app will assume a DB-backed show store)
 
 ---
 
 ## 12. Immediate next step after plan approval
 
 1. Drop 1–2 anonymized WWB CSV samples into the repo (e.g. `fixtures/wwb/`)
-2. Scaffold Next.js + DB
+2. Scaffold Next.js with a DB-backed show model (provider plugged in when you decide)
 3. Implement Phase 1 import → Phase 2 deploy board
 
 No application code in this PR — plan only, so the team can approve scope and file format before build.
