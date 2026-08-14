@@ -6,7 +6,9 @@ import {
 } from "./crypto";
 import type {
   Channel,
+  ChannelGroup,
   ChannelStatus,
+  ManualChannelInput,
   ParsedChannelRow,
   Room,
   Show,
@@ -33,6 +35,17 @@ function mode(): StoreMode {
   return tursoConfigured() ? "turso" : "memory";
 }
 
+async function ensureColumn(
+  table: string,
+  column: string,
+  ddl: string,
+): Promise<void> {
+  const db = getSql();
+  const rows = await db.query(`PRAGMA table_info(${table})`);
+  const exists = rows.some((r) => String(r.name) === column);
+  if (!exists) await db.query(ddl);
+}
+
 async function ensureSchema(): Promise<void> {
   if (mode() !== "turso") return;
   const mem = getMemory();
@@ -45,6 +58,7 @@ async function ensureSchema(): Promise<void> {
       share_token TEXT UNIQUE NOT NULL,
       admin_password_hash TEXT NOT NULL,
       rooms TEXT NOT NULL DEFAULT '[]',
+      groups TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
@@ -58,6 +72,7 @@ async function ensureSchema(): Promise<void> {
       type TEXT,
       group_channel TEXT,
       zone TEXT,
+      group_name TEXT,
       is_backup INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'unreviewed',
       deployed INTEGER NOT NULL DEFAULT 0,
@@ -67,18 +82,30 @@ async function ensureSchema(): Promise<void> {
       sort_order INTEGER NOT NULL DEFAULT 0
     )
   `);
+  await ensureColumn(
+    "shows",
+    "groups",
+    `ALTER TABLE shows ADD COLUMN groups TEXT NOT NULL DEFAULT '[]'`,
+  );
+  await ensureColumn(
+    "channels",
+    "group_name",
+    `ALTER TABLE channels ADD COLUMN group_name TEXT`,
+  );
   await db.query(
     `CREATE INDEX IF NOT EXISTS channels_show_id_idx ON channels(show_id)`,
   );
   mem.schemaReady = true;
 }
 
-function parseRooms(raw: unknown): Room[] {
-  if (Array.isArray(raw)) return raw as Room[];
+function parseJsonList<T extends { id: string; name: string }>(
+  raw: unknown,
+): T[] {
+  if (Array.isArray(raw)) return raw as T[];
   if (typeof raw === "string") {
     try {
       const parsed = JSON.parse(raw) as unknown;
-      return Array.isArray(parsed) ? (parsed as Room[]) : [];
+      return Array.isArray(parsed) ? (parsed as T[]) : [];
     } catch {
       return [];
     }
@@ -95,6 +122,29 @@ function toPublic(show: Show, channels: Channel[]): ShowPublic {
   };
 }
 
+function mapChannelRow(row: Record<string, unknown>): Channel {
+  return {
+    id: row.id as string,
+    showId: row.show_id as string,
+    name: row.name as string,
+    frequencyMhz: Number(row.frequency_mhz),
+    band: (row.band as string) ?? null,
+    type: (row.type as string) ?? null,
+    groupChannel: (row.group_channel as string) ?? null,
+    zone: (row.zone as string) ?? null,
+    groupName: (row.group_name as string) ?? null,
+    isBackup: Boolean(row.is_backup),
+    status: row.status as ChannelStatus,
+    deployed: Boolean(row.deployed),
+    roomName: (row.room_name as string) ?? null,
+    deployedAt: row.deployed_at
+      ? new Date(row.deployed_at as string).toISOString()
+      : null,
+    deployedBy: (row.deployed_by as string) ?? null,
+    sortOrder: Number(row.sort_order),
+  };
+}
+
 async function getShowByToken(shareToken: string): Promise<Show | null> {
   await ensureSchema();
   if (mode() === "memory") {
@@ -105,7 +155,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
   }
   const db = getSql();
   const rows = await db`
-    SELECT id, name, share_token, admin_password_hash, rooms, created_at
+    SELECT id, name, share_token, admin_password_hash, rooms, groups, created_at
     FROM shows WHERE share_token = ${shareToken} LIMIT 1
   `;
   const row = rows[0];
@@ -115,7 +165,8 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     name: row.name as string,
     shareToken: row.share_token as string,
     adminPasswordHash: row.admin_password_hash as string,
-    rooms: parseRooms(row.rooms),
+    rooms: parseJsonList<Room>(row.rooms),
+    groups: parseJsonList<ChannelGroup>(row.groups),
     createdAt: new Date(row.created_at as string).toISOString(),
   };
 }
@@ -129,25 +180,31 @@ async function getChannels(showId: string): Promise<Channel[]> {
   const rows = await db`
     SELECT * FROM channels WHERE show_id = ${showId} ORDER BY sort_order ASC
   `;
-  return rows.map((row) => ({
-    id: row.id as string,
-    showId: row.show_id as string,
-    name: row.name as string,
-    frequencyMhz: Number(row.frequency_mhz),
-    band: (row.band as string) ?? null,
-    type: (row.type as string) ?? null,
-    groupChannel: (row.group_channel as string) ?? null,
-    zone: (row.zone as string) ?? null,
-    isBackup: Boolean(row.is_backup),
-    status: row.status as ChannelStatus,
-    deployed: Boolean(row.deployed),
-    roomName: (row.room_name as string) ?? null,
-    deployedAt: row.deployed_at
-      ? new Date(row.deployed_at as string).toISOString()
-      : null,
-    deployedBy: (row.deployed_by as string) ?? null,
-    sortOrder: Number(row.sort_order),
-  }));
+  return rows.map((row) => mapChannelRow(row));
+}
+
+/** Keep show.groups in sync when a channel gets a new group label. */
+function withGroupCatalog(show: Show, groupName: string | null | undefined): Show {
+  const name = groupName?.trim();
+  if (!name) return show;
+  if (show.groups.some((g) => g.name.toLowerCase() === name.toLowerCase())) {
+    return show;
+  }
+  return {
+    ...show,
+    groups: [...show.groups, { id: createId("grp"), name }],
+  };
+}
+
+async function persistShowGroups(show: Show): Promise<void> {
+  if (mode() === "memory") {
+    getMemory().shows.set(show.id, show);
+    return;
+  }
+  const db = getSql();
+  await db`
+    UPDATE shows SET groups = ${JSON.stringify(show.groups)} WHERE id = ${show.id}
+  `;
 }
 
 export async function createShow(input: {
@@ -161,6 +218,7 @@ export async function createShow(input: {
     shareToken: createShareToken(),
     adminPasswordHash: hashPassword(input.adminPassword),
     rooms: [],
+    groups: [],
     createdAt: new Date().toISOString(),
   };
 
@@ -173,13 +231,14 @@ export async function createShow(input: {
 
   const db = getSql();
   await db`
-    INSERT INTO shows (id, name, share_token, admin_password_hash, rooms, created_at)
+    INSERT INTO shows (id, name, share_token, admin_password_hash, rooms, groups, created_at)
     VALUES (
       ${show.id},
       ${show.name},
       ${show.shareToken},
       ${show.adminPasswordHash},
       ${JSON.stringify(show.rooms)},
+      ${JSON.stringify(show.groups)},
       ${show.createdAt}
     )
   `;
@@ -217,6 +276,8 @@ export async function replaceChannelsFromImport(
     type: row.type,
     groupChannel: row.groupChannel,
     zone: row.zone,
+    // Prefer WWB zone as the channel group when present.
+    groupName: row.zone?.trim() || null,
     isBackup: row.isBackup,
     status: "unreviewed" as const,
     deployed: false,
@@ -226,26 +287,89 @@ export async function replaceChannelsFromImport(
     sortOrder: index,
   }));
 
+  let nextShow = show;
+  for (const ch of channels) {
+    nextShow = withGroupCatalog(nextShow, ch.groupName);
+  }
+
   if (mode() === "memory") {
+    getMemory().shows.set(nextShow.id, nextShow);
     getMemory().channels.set(show.id, channels);
-    return toPublic(show, channels);
+    return toPublic(nextShow, channels);
   }
 
   const db = getSql();
   await db`DELETE FROM channels WHERE show_id = ${show.id}`;
+  await persistShowGroups(nextShow);
   for (const ch of channels) {
     await db`
       INSERT INTO channels (
         id, show_id, name, frequency_mhz, band, type, group_channel, zone,
-        is_backup, status, deployed, room_name, deployed_at, deployed_by, sort_order
+        group_name, is_backup, status, deployed, room_name, deployed_at,
+        deployed_by, sort_order
       ) VALUES (
         ${ch.id}, ${ch.showId}, ${ch.name}, ${ch.frequencyMhz}, ${ch.band},
-        ${ch.type}, ${ch.groupChannel}, ${ch.zone}, ${ch.isBackup}, ${ch.status},
-        ${ch.deployed}, ${ch.roomName}, ${ch.deployedAt}, ${ch.deployedBy}, ${ch.sortOrder}
+        ${ch.type}, ${ch.groupChannel}, ${ch.zone}, ${ch.groupName},
+        ${ch.isBackup}, ${ch.status}, ${ch.deployed}, ${ch.roomName},
+        ${ch.deployedAt}, ${ch.deployedBy}, ${ch.sortOrder}
       )
     `;
   }
-  return toPublic(show, channels);
+  return toPublic(nextShow, channels);
+}
+
+export async function addManualChannel(
+  shareToken: string,
+  input: ManualChannelInput,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const existing = await getChannels(show.id);
+  const groupName = input.groupName?.trim() || null;
+  const channel: Channel = {
+    id: createId("ch"),
+    showId: show.id,
+    name: input.name.trim(),
+    frequencyMhz: input.frequencyMhz,
+    band: input.band?.trim() || null,
+    type: null,
+    groupChannel: null,
+    zone: null,
+    groupName,
+    isBackup: false,
+    status: "unreviewed",
+    deployed: false,
+    roomName: null,
+    deployedAt: null,
+    deployedBy: null,
+    sortOrder: existing.length,
+  };
+
+  const nextShow = withGroupCatalog(show, groupName);
+  const channels = [...existing, channel];
+
+  if (mode() === "memory") {
+    getMemory().shows.set(nextShow.id, nextShow);
+    getMemory().channels.set(show.id, channels);
+    return toPublic(nextShow, channels);
+  }
+
+  await persistShowGroups(nextShow);
+  const db = getSql();
+  await db`
+    INSERT INTO channels (
+      id, show_id, name, frequency_mhz, band, type, group_channel, zone,
+      group_name, is_backup, status, deployed, room_name, deployed_at,
+      deployed_by, sort_order
+    ) VALUES (
+      ${channel.id}, ${channel.showId}, ${channel.name}, ${channel.frequencyMhz},
+      ${channel.band}, ${channel.type}, ${channel.groupChannel}, ${channel.zone},
+      ${channel.groupName}, ${channel.isBackup}, ${channel.status},
+      ${channel.deployed}, ${channel.roomName}, ${channel.deployedAt},
+      ${channel.deployedBy}, ${channel.sortOrder}
+    )
+  `;
+  return toPublic(nextShow, channels);
 }
 
 export async function updateChannel(
@@ -255,6 +379,7 @@ export async function updateChannel(
     status: ChannelStatus;
     deployed: boolean;
     roomName: string | null;
+    groupName: string | null;
     deployedBy: string | null;
   }>,
 ): Promise<ShowPublic | null> {
@@ -266,6 +391,7 @@ export async function updateChannel(
 
   const current = channels[index];
   let next: Channel = { ...current };
+  let nextShow = show;
 
   if (patch.status) {
     next.status = patch.status;
@@ -295,24 +421,32 @@ export async function updateChannel(
     next.roomName = patch.roomName;
   }
 
+  if (patch.groupName !== undefined) {
+    next.groupName = patch.groupName?.trim() || null;
+    nextShow = withGroupCatalog(nextShow, next.groupName);
+  }
+
   channels[index] = next;
 
   if (mode() === "memory") {
+    getMemory().shows.set(nextShow.id, nextShow);
     getMemory().channels.set(show.id, channels);
-    return toPublic(show, channels);
+    return toPublic(nextShow, channels);
   }
 
+  if (nextShow !== show) await persistShowGroups(nextShow);
   const db = getSql();
   await db`
     UPDATE channels SET
       status = ${next.status},
       deployed = ${next.deployed},
       room_name = ${next.roomName},
+      group_name = ${next.groupName},
       deployed_at = ${next.deployedAt},
       deployed_by = ${next.deployedBy}
     WHERE id = ${next.id} AND show_id = ${show.id}
   `;
-  return toPublic(show, channels);
+  return toPublic(nextShow, channels);
 }
 
 export async function setRooms(
@@ -339,6 +473,35 @@ export async function setRooms(
     UPDATE shows SET rooms = ${JSON.stringify(rooms)}
     WHERE id = ${show.id}
   `;
+  const channels = await getChannels(show.id);
+  return toPublic(nextShow, channels);
+}
+
+export async function setGroups(
+  shareToken: string,
+  groupNames: string[],
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const groups: ChannelGroup[] = groupNames
+    .map((n) => n.trim())
+    .filter(Boolean)
+    .map((name) => {
+      const existing = show.groups.find(
+        (g) => g.name.toLowerCase() === name.toLowerCase(),
+      );
+      return existing ?? { id: createId("grp"), name };
+    });
+
+  const nextShow: Show = { ...show, groups };
+
+  if (mode() === "memory") {
+    getMemory().shows.set(show.id, nextShow);
+    const channels = await getChannels(show.id);
+    return toPublic(nextShow, channels);
+  }
+
+  await persistShowGroups(nextShow);
   const channels = await getChannels(show.id);
   return toPublic(nextShow, channels);
 }

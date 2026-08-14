@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { BrandLockup } from "@/components/BrandLockup";
 import type { Channel, ChannelStatus, ShowPublic } from "@/lib/types";
 
 type Filter = "all" | "allowed" | "blocked" | "deployed" | "open";
@@ -17,12 +18,20 @@ export function MarkBoard({
   const [show, setShow] = useState(initialShow);
   const [admin, setAdmin] = useState(initialAdmin);
   const [filter, setFilter] = useState<Filter>("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
   const [roomsText, setRoomsText] = useState(
     initialShow.rooms.map((r) => r.name).join("\n"),
   );
+  const [groupsText, setGroupsText] = useState(
+    initialShow.groups.map((g) => g.name).join("\n"),
+  );
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [manualName, setManualName] = useState("");
+  const [manualFreq, setManualFreq] = useState("");
+  const [manualGroup, setManualGroup] = useState("");
   const [copied, setCopied] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -32,6 +41,12 @@ export function MarkBoard({
     const data = await res.json();
     setShow(data.show);
     setAdmin(data.admin);
+    setRoomsText(
+      (data.show.rooms as { name: string }[]).map((r) => r.name).join("\n"),
+    );
+    setGroupsText(
+      (data.show.groups as { name: string }[]).map((g) => g.name).join("\n"),
+    );
   }, [token]);
 
   useEffect(() => {
@@ -42,6 +57,14 @@ export function MarkBoard({
     }, 8000);
     return () => window.clearInterval(id);
   }, [refresh]);
+
+  const groupNames = useMemo(() => {
+    const fromShow = show.groups.map((g) => g.name);
+    const fromChannels = show.channels
+      .map((c) => c.groupName)
+      .filter((n): n is string => Boolean(n));
+    return [...new Set([...fromShow, ...fromChannels])];
+  }, [show.groups, show.channels]);
 
   const counts = useMemo(() => {
     const channels = show.channels;
@@ -56,13 +79,39 @@ export function MarkBoard({
 
   const visible = useMemo(() => {
     return show.channels.filter((c) => {
+      if (groupFilter !== "all") {
+        if (groupFilter === "__ungrouped__") {
+          if (c.groupName) return false;
+        } else if (c.groupName !== groupFilter) {
+          return false;
+        }
+      }
       if (filter === "allowed") return c.status === "allowed";
       if (filter === "blocked") return c.status === "blocked";
       if (filter === "deployed") return c.deployed;
       if (filter === "open") return !c.deployed && c.status !== "blocked";
       return true;
     });
-  }, [show.channels, filter]);
+  }, [show.channels, filter, groupFilter]);
+
+  const sections = useMemo(() => {
+    const map = new Map<string, Channel[]>();
+    for (const ch of visible) {
+      const key = ch.groupName?.trim() || "Ungrouped";
+      const list = map.get(key) ?? [];
+      list.push(ch);
+      map.set(key, list);
+    }
+    const orderedKeys = [
+      ...groupNames.filter((g) => map.has(g)),
+      ...(map.has("Ungrouped") ? ["Ungrouped"] : []),
+    ];
+    // Any unexpected keys (shouldn't happen) last
+    for (const key of map.keys()) {
+      if (!orderedKeys.includes(key)) orderedKeys.push(key);
+    }
+    return orderedKeys.map((name) => ({ name, channels: map.get(name)! }));
+  }, [visible, groupNames]);
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -96,6 +145,7 @@ export function MarkBoard({
       status: ChannelStatus;
       deployed: boolean;
       roomName: string | null;
+      groupName: string | null;
     }>,
   ) {
     const res = await fetch(`/api/shows/${token}/channels/${channelId}`, {
@@ -109,6 +159,9 @@ export function MarkBoard({
       return;
     }
     setShow(data.show);
+    setGroupsText(
+      (data.show.groups as { name: string }[]).map((g) => g.name).join("\n"),
+    );
   }
 
   async function onImport(file: File | null) {
@@ -126,6 +179,9 @@ export function MarkBoard({
       return;
     }
     setShow(data.show);
+    setGroupsText(
+      (data.show.groups as { name: string }[]).map((g) => g.name).join("\n"),
+    );
     const warn =
       data.warnings?.length > 0 ? ` Warnings: ${data.warnings.join(" ")}` : "";
     setImportMsg(`Imported ${data.imported} channels.${warn}`);
@@ -147,7 +203,55 @@ export function MarkBoard({
       return;
     }
     setShow(data.show);
-    setRoomsText(data.show.rooms.map((r: { name: string }) => r.name).join("\n"));
+  }
+
+  async function saveGroups() {
+    const groups = groupsText
+      .split("\n")
+      .map((r) => r.trim())
+      .filter(Boolean);
+    const res = await fetch(`/api/shows/${token}/groups`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groups }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not save groups");
+      return;
+    }
+    setShow(data.show);
+  }
+
+  async function addManual(e: React.FormEvent) {
+    e.preventDefault();
+    setImportMsg(null);
+    const frequencyMhz = Number.parseFloat(manualFreq);
+    if (!manualName.trim() || !Number.isFinite(frequencyMhz)) {
+      setImportMsg("Enter a name and frequency in MHz.");
+      return;
+    }
+    const res = await fetch(`/api/shows/${token}/channels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: manualName.trim(),
+        frequencyMhz,
+        groupName: manualGroup.trim() || null,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setImportMsg(data.error || "Could not add channel");
+      return;
+    }
+    setShow(data.show);
+    setGroupsText(
+      (data.show.groups as { name: string }[]).map((g) => g.name).join("\n"),
+    );
+    setManualName("");
+    setManualFreq("");
+    setImportMsg(`Added ${manualName.trim()}.`);
   }
 
   async function copyLink() {
@@ -160,12 +264,12 @@ export function MarkBoard({
     <div className="board">
       <header className="board-header">
         <div>
-          <p className="brand-mark">RF-Orca</p>
+          <BrandLockup size="header" showTagline />
           <h1>{show.name}</h1>
           <p className="board-sub">
-            Mark view — check deployed frequencies and set the room.
+            Mark what’s deployed and which room.
             {show.storageMode === "memory" ? (
-              <span className="demo-pill"> Demo storage (resets on cold start)</span>
+              <span className="demo-pill"> Demo storage</span>
             ) : null}
           </p>
         </div>
@@ -173,59 +277,152 @@ export function MarkBoard({
           <button type="button" className="btn-ghost" onClick={() => void copyLink()}>
             {copied ? "Copied" : "Copy link"}
           </button>
-          {admin ? (
-            <button type="button" className="btn-ghost" onClick={() => void lock()}>
-              Lock admin
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className={`btn-quiet${toolsOpen ? " active" : ""}`}
+            onClick={() => setToolsOpen((v) => !v)}
+            aria-expanded={toolsOpen}
+          >
+            {admin ? "Tools" : "Coordinator"}
+          </button>
         </div>
       </header>
 
-      {!admin ? (
-        <form className="admin-unlock" onSubmit={(e) => void unlock(e)}>
-          <p>Coordinator? Unlock to import and set allowed / blocked.</p>
-          <div className="admin-row">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Admin password"
-              autoComplete="current-password"
-            />
-            <button type="submit" className="btn-secondary">
-              Unlock
+      {toolsOpen ? (
+        <aside className="tools-panel" aria-label="Coordinator tools">
+          {!admin ? (
+            <form className="tools-unlock" onSubmit={(e) => void unlock(e)}>
+              <p className="tools-whisper">Unlock coordinator tools</p>
+              <div className="admin-row">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Admin password"
+                  autoComplete="current-password"
+                />
+                <button type="submit" className="btn-secondary">
+                  Unlock
+                </button>
+              </div>
+              {adminError ? <p className="form-error">{adminError}</p> : null}
+            </form>
+          ) : (
+            <div className="tools-body">
+              <div className="tools-top">
+                <p className="tools-whisper">Coordinator tools</p>
+                <button type="button" className="btn-quiet" onClick={() => void lock()}>
+                  Lock
+                </button>
+              </div>
+
+              <div className="tools-grid">
+                <label className="field">
+                  <span>Import Workbench CSV</span>
+                  <input
+                    type="file"
+                    accept=".csv,text/csv,text/plain"
+                    onChange={(e) => void onImport(e.target.files?.[0] ?? null)}
+                  />
+                  <span className="field-note">
+                    Zones from WWB become channel groups when present.
+                  </span>
+                </label>
+
+                <form className="field manual-add" onSubmit={(e) => void addManual(e)}>
+                  <span>Add channel by hand</span>
+                  <div className="manual-row">
+                    <input
+                      value={manualName}
+                      onChange={(e) => setManualName(e.target.value)}
+                      placeholder="Name"
+                      required
+                    />
+                    <input
+                      value={manualFreq}
+                      onChange={(e) => setManualFreq(e.target.value)}
+                      placeholder="MHz"
+                      inputMode="decimal"
+                      required
+                    />
+                  </div>
+                  <input
+                    value={manualGroup}
+                    onChange={(e) => setManualGroup(e.target.value)}
+                    placeholder="Group (optional) — e.g. Vocals"
+                    list="channel-group-options"
+                  />
+                  <button type="submit" className="btn-secondary">
+                    Add channel
+                  </button>
+                </form>
+
+                <label className="field">
+                  <span>Channel groups (one per line)</span>
+                  <textarea
+                    rows={3}
+                    value={groupsText}
+                    onChange={(e) => setGroupsText(e.target.value)}
+                    placeholder={"Vocals\nIEMs\nComms"}
+                  />
+                  <button type="button" className="btn-secondary" onClick={() => void saveGroups()}>
+                    Save groups
+                  </button>
+                </label>
+
+                <label className="field">
+                  <span>Rooms (one per line)</span>
+                  <textarea
+                    rows={3}
+                    value={roomsText}
+                    onChange={(e) => setRoomsText(e.target.value)}
+                    placeholder={"Ballroom A\nGreen Room"}
+                  />
+                  <button type="button" className="btn-secondary" onClick={() => void saveRooms()}>
+                    Save rooms
+                  </button>
+                </label>
+              </div>
+              {importMsg ? <p className="form-hint">{importMsg}</p> : null}
+            </div>
+          )}
+        </aside>
+      ) : null}
+
+      <datalist id="channel-group-options">
+        {groupNames.map((g) => (
+          <option key={g} value={g} />
+        ))}
+      </datalist>
+
+      {groupNames.length > 0 || show.channels.some((c) => !c.groupName) ? (
+        <div className="filters group-filters" aria-label="Channel groups">
+          <button
+            type="button"
+            className={groupFilter === "all" ? "filter active" : "filter"}
+            onClick={() => setGroupFilter("all")}
+          >
+            All groups
+          </button>
+          {groupNames.map((g) => (
+            <button
+              key={g}
+              type="button"
+              className={groupFilter === g ? "filter active" : "filter"}
+              onClick={() => setGroupFilter(g)}
+            >
+              {g}
             </button>
-          </div>
-          {adminError ? <p className="form-error">{adminError}</p> : null}
-        </form>
-      ) : (
-        <section className="admin-panel">
-          <h2>Admin</h2>
-          <div className="admin-grid">
-            <label className="field">
-              <span>Import Shure Workbench CSV</span>
-              <input
-                type="file"
-                accept=".csv,text/csv,text/plain"
-                onChange={(e) => void onImport(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            <label className="field">
-              <span>Rooms (one per line)</span>
-              <textarea
-                rows={4}
-                value={roomsText}
-                onChange={(e) => setRoomsText(e.target.value)}
-                placeholder={"Ballroom A\nGreen Room\nStage"}
-              />
-              <button type="button" className="btn-secondary" onClick={() => void saveRooms()}>
-                Save rooms
-              </button>
-            </label>
-          </div>
-          {importMsg ? <p className="form-hint">{importMsg}</p> : null}
-        </section>
-      )}
+          ))}
+          <button
+            type="button"
+            className={groupFilter === "__ungrouped__" ? "filter active" : "filter"}
+            onClick={() => setGroupFilter("__ungrouped__")}
+          >
+            Ungrouped
+          </button>
+        </div>
+      ) : null}
 
       <div className="filters">
         {(
@@ -251,23 +448,31 @@ export function MarkBoard({
       {visible.length === 0 ? (
         <div className="empty">
           {show.channels.length === 0
-            ? admin
-              ? "Import a WWB CSV to populate channels."
-              : "No channels yet. Ask the coordinator to unlock and import a Workbench CSV."
+            ? "No channels yet. Coordinators: open Tools to import a Workbench CSV or add channels by hand."
             : "Nothing matches this filter."}
         </div>
       ) : (
-        <ul className="channel-list">
-          {visible.map((channel) => (
-            <ChannelRow
-              key={channel.id}
-              channel={channel}
-              rooms={show.rooms.map((r) => r.name)}
-              admin={admin}
-              onPatch={patchChannel}
-            />
+        <div className="group-sections">
+          {sections.map((section) => (
+            <section key={section.name} className="group-section">
+              <h2 className="group-heading">
+                {section.name}
+                <span className="group-count">{section.channels.length}</span>
+              </h2>
+              <ul className="channel-list">
+                {section.channels.map((channel) => (
+                  <ChannelRow
+                    key={channel.id}
+                    channel={channel}
+                    rooms={show.rooms.map((r) => r.name)}
+                    admin={admin}
+                    onPatch={patchChannel}
+                  />
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
@@ -288,15 +493,21 @@ function ChannelRow({
       status: ChannelStatus;
       deployed: boolean;
       roomName: string | null;
+      groupName: string | null;
     }>,
   ) => Promise<void>;
 }) {
   const blocked = channel.status === "blocked";
   const [roomDraft, setRoomDraft] = useState(channel.roomName ?? "");
+  const [groupDraft, setGroupDraft] = useState(channel.groupName ?? "");
 
   useEffect(() => {
     setRoomDraft(channel.roomName ?? "");
   }, [channel.roomName]);
+
+  useEffect(() => {
+    setGroupDraft(channel.groupName ?? "");
+  }, [channel.groupName]);
 
   return (
     <li className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}`}>
@@ -308,24 +519,42 @@ function ChannelRow({
         <div className="channel-meta">
           {channel.band ? <span>{channel.band}</span> : null}
           {channel.groupChannel ? <span>G/Ch {channel.groupChannel}</span> : null}
-          {channel.zone ? <span>{channel.zone}</span> : null}
           {channel.isBackup ? <span className="tag">Backup</span> : null}
           <span className={`tag status-${channel.status}`}>{channel.status}</span>
         </div>
       </div>
 
       {admin ? (
-        <div className="status-controls">
-          {(["allowed", "blocked", "unreviewed"] as const).map((status) => (
-            <button
-              key={status}
-              type="button"
-              className={channel.status === status ? "chip active" : "chip"}
-              onClick={() => void onPatch(channel.id, { status })}
+        <div className="admin-inline">
+          <label className="quiet-field">
+            <span>Status</span>
+            <select
+              value={channel.status}
+              onChange={(e) =>
+                void onPatch(channel.id, {
+                  status: e.target.value as ChannelStatus,
+                })
+              }
             >
-              {status}
-            </button>
-          ))}
+              <option value="unreviewed">unreviewed</option>
+              <option value="allowed">allowed</option>
+              <option value="blocked">blocked</option>
+            </select>
+          </label>
+          <label className="quiet-field">
+            <span>Group</span>
+            <input
+              list="channel-group-options"
+              value={groupDraft}
+              placeholder="e.g. Vocals"
+              onChange={(e) => setGroupDraft(e.target.value)}
+              onBlur={() => {
+                const groupName = groupDraft.trim() || null;
+                if (groupName === (channel.groupName ?? null)) return;
+                void onPatch(channel.id, { groupName });
+              }}
+            />
+          </label>
         </div>
       ) : null}
 

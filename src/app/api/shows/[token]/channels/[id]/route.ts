@@ -7,6 +7,7 @@ const bodySchema = z.object({
   status: z.enum(["allowed", "blocked", "unreviewed"]).optional(),
   deployed: z.boolean().optional(),
   roomName: z.string().nullable().optional(),
+  groupName: z.string().nullable().optional(),
   deployedBy: z.string().nullable().optional(),
 });
 
@@ -21,7 +22,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid patch." }, { status: 400 });
   }
 
-  if (parsed.data.status && !(await isAdminUnlocked(token))) {
+  if (
+    (parsed.data.status || parsed.data.groupName !== undefined) &&
+    !(await isAdminUnlocked(token))
+  ) {
     return NextResponse.json({ error: "Admin unlock required." }, { status: 403 });
   }
 

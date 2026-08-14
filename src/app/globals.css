@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #0c1b22;
-  --ink-soft: #1a333d;
-  --sea: #0e6b6e;
-  --sea-bright: #14a3a8;
-  --foam: #e7f4f3;
-  --sand: #f3f7f6;
-  --signal: #d97706;
-  --danger: #b42318;
-  --line: color-mix(in oklab, var(--ink) 12%, transparent);
-  --shadow: 0 18px 50px color-mix(in oklab, var(--ink) 18%, transparent);
+  --ink: #e8f0ff;
+  --ink-soft: #b6c5de;
+  --navy: #06101f;
+  --navy-2: #0a1a30;
+  --sea: #1aa7c4;
+  --sea-bright: #38d6f2;
+  --foam: #0d2038;
+  --sand: #0b1728;
+  --signal: #ff7a1a;
+  --signal-hot: #ff9a4a;
+  --danger: #ff5c6c;
+  --line: color-mix(in oklab, var(--sea-bright) 22%, transparent);
+  --shadow: 0 22px 60px color-mix(in oklab, black 55%, transparent);
   --font-display: var(--font-syne), "Avenir Next", sans-serif;
   --font-body: var(--font-source-sans), "Source Sans 3", sans-serif;
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
@@ -30,9 +33,9 @@ body {
   color: var(--ink);
   font-family: var(--font-body);
   background:
-    radial-gradient(1200px 600px at 10% -10%, #9ad7d4 0%, transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, #c8e6e2 0%, transparent 50%),
-    linear-gradient(165deg, #f7fbfb 0%, #e8f2f1 45%, #d9ebe9 100%);
+    radial-gradient(900px 500px at 12% -8%, color-mix(in oklab, var(--sea) 28%, transparent), transparent 55%),
+    radial-gradient(700px 420px at 90% 8%, color-mix(in oklab, var(--signal) 18%, transparent), transparent 50%),
+    linear-gradient(165deg, var(--navy) 0%, var(--navy-2) 55%, #071526 100%);
   background-attachment: fixed;
 }
 
@@ -50,6 +53,58 @@ a {
   color: var(--ink);
 }
 
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.brand-lockup-hero {
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: min(22rem, 88vw);
+}
+
+.brand-lockup-hero .brand-logo {
+  width: min(22rem, 88vw);
+  height: auto;
+  filter: drop-shadow(0 18px 40px color-mix(in oklab, var(--sea-bright) 25%, transparent));
+}
+
+.brand-lockup-header .brand-logo {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--sea-bright) 35%, transparent);
+}
+
+.brand-text {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.brand-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+
+.brand-orca {
+  color: var(--signal-hot);
+}
+
+.brand-tagline {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
 .hero {
   min-height: 100dvh;
   display: grid;
@@ -64,13 +119,13 @@ a {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, transparent 0 3%, color-mix(in oklab, var(--sea) 18%, transparent) 3% 3.2%, transparent 3.2% 8%, color-mix(in oklab, var(--sea-bright) 22%, transparent) 8% 8.15%, transparent 8.15%),
+    radial-gradient(circle at 70% 30%, color-mix(in oklab, var(--sea-bright) 12%, transparent), transparent 40%),
     repeating-linear-gradient(
       90deg,
-      transparent 0 18px,
-      color-mix(in oklab, var(--ink) 4%, transparent) 18px 19px
+      transparent 0 22px,
+      color-mix(in oklab, var(--sea) 8%, transparent) 22px 23px
     );
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 70%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 75%);
   pointer-events: none;
   animation: sweep 12s ease-in-out infinite alternate;
 }
@@ -107,12 +162,12 @@ a {
   font-size: clamp(1.15rem, 2.4vw, 1.45rem);
   line-height: 1.35;
   max-width: 28rem;
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .hero-support {
   margin: 0;
-  color: color-mix(in oklab, var(--ink) 70%, transparent);
+  color: var(--ink-soft);
   max-width: 26rem;
 }
 
@@ -121,11 +176,11 @@ a {
 .admin-panel,
 .channel-row,
 .empty {
-  background: color-mix(in oklab, white 82%, var(--foam));
+  background: color-mix(in oklab, #0f243f 88%, white 6%);
   border: 1px solid var(--line);
   border-radius: 1rem;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
 }
 
 .new-show-form {
@@ -164,7 +219,7 @@ a {
   border: 1px solid var(--line);
   border-radius: 0.7rem;
   padding: 0.7rem 0.85rem;
-  background: white;
+  background: color-mix(in oklab, var(--navy) 70%, white 8%);
   color: var(--ink);
 }
 
@@ -181,10 +236,11 @@ a {
 }
 
 .btn-primary {
-  background: var(--ink);
-  color: white;
+  background: linear-gradient(135deg, var(--signal), var(--signal-hot));
+  color: #1a0b00;
   padding: 0.85rem 1.2rem;
   font-weight: 700;
+  box-shadow: 0 10px 28px color-mix(in oklab, var(--signal) 35%, transparent);
 }
 
 .btn-primary:hover,
@@ -202,8 +258,9 @@ a {
 }
 
 .btn-secondary {
-  background: var(--sea);
-  color: white;
+  background: color-mix(in oklab, var(--sea) 28%, transparent);
+  border-color: color-mix(in oklab, var(--sea-bright) 45%, transparent);
+  color: var(--ink);
   padding: 0.65rem 1rem;
   font-weight: 650;
   width: fit-content;
@@ -219,7 +276,7 @@ a {
 .form-hint,
 .board-sub {
   margin: 0;
-  color: color-mix(in oklab, var(--ink) 65%, transparent);
+  color: var(--ink-soft);
   font-size: 0.92rem;
   line-height: 1.4;
 }
@@ -426,4 +483,153 @@ a {
   font-size: 0.88rem;
   font-weight: 650;
   max-width: 18rem;
+}
+
+.btn-quiet {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.btn-quiet:hover,
+.btn-quiet.active {
+  color: var(--ink);
+  border-color: var(--line);
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+}
+
+.tools-panel {
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  padding: 0.9rem 1rem;
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.tools-whisper {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 650;
+}
+
+.tools-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.tools-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 800px) {
+  .tools-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field-note {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.manual-add {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.manual-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr;
+  gap: 0.4rem;
+}
+
+.group-filters {
+  margin-bottom: -0.35rem;
+}
+
+.group-sections {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.group-heading {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.admin-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+}
+
+.quiet-field {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+.quiet-field select,
+.quiet-field input {
+  font: inherit;
+  font-weight: 500;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  padding: 0.4rem 0.55rem;
+  background: color-mix(in oklab, var(--navy) 70%, white 8%);
+  min-width: 8rem;
+}
+
+.channel-row.is-deployed {
+  border-color: color-mix(in oklab, var(--sea-bright) 45%, var(--line));
+  background: color-mix(in oklab, var(--sea) 14%, var(--panel));
+}
+
+.tag {
+  background: color-mix(in oklab, var(--sea-bright) 10%, transparent);
+  color: var(--ink-soft);
+}
+
+.tag.status-allowed {
+  background: color-mix(in oklab, #7dffc3 16%, transparent);
+  color: #7dffc3;
+}
+
+.tag.status-blocked {
+  background: color-mix(in oklab, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+
+.freq {
+  color: var(--sea-bright);
 }

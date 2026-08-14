@@ -21,9 +21,21 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RF-Orca",
+  title: {
+    default: "RF Orca — Radio Frequency Orchestrator",
+    template: "%s · RF Orca",
+  },
   description:
-    "Share WWB frequency plans with crews — mark allowed channels and track deployed rooms.",
+    "RF Orchestrator (Orca): share WWB frequency plans with crews — mark allowed channels and track deployed rooms.",
+  applicationName: "RF Orca",
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/brand/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
 };
 
 export default function RootLayout({
