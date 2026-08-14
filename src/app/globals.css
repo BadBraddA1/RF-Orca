@@ -1,18 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #e8f0ff;
-  --ink-soft: #b6c5de;
+  --ink: #f2f6ff;
+  --ink-soft: #c5d2e8;
   --navy: #06101f;
   --navy-2: #0a1a30;
+  --panel: #10263f;
   --sea: #1aa7c4;
-  --sea-bright: #38d6f2;
+  --sea-bright: #4ae0f5;
   --foam: #0d2038;
   --sand: #0b1728;
   --signal: #ff7a1a;
-  --signal-hot: #ff9a4a;
-  --danger: #ff5c6c;
-  --line: color-mix(in oklab, var(--sea-bright) 22%, transparent);
+  --signal-hot: #ffb060;
+  --danger: #ff7a88;
+  --line: color-mix(in oklab, var(--sea-bright) 28%, transparent);
   --shadow: 0 22px 60px color-mix(in oklab, black 55%, transparent);
   --font-display: var(--font-syne), "Avenir Next", sans-serif;
   --font-body: var(--font-source-sans), "Source Sans 3", sans-serif;
@@ -572,7 +573,7 @@ a {
   font-size: 1rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: #d7e3f7;
   display: flex;
   align-items: center;
   gap: 0.5rem;
