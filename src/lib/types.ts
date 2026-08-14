@@ -34,7 +34,7 @@ export type Show = {
 
 export type ShowPublic = Omit<Show, "adminPasswordHash"> & {
   channels: Channel[];
-  storageMode: "memory" | "postgres";
+  storageMode: "memory" | "turso";
 };
 
 export type ParsedChannelRow = {

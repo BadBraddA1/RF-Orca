@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { getSql, tursoConfigured } from "./db";
 import {
   createId,
   createShareToken,
@@ -13,7 +13,7 @@ import type {
   ShowPublic,
 } from "./types";
 
-type StoreMode = "memory" | "postgres";
+type StoreMode = "memory" | "turso";
 
 type GlobalStore = {
   shows: Map<string, Show>;
@@ -30,50 +30,60 @@ function getMemory(): GlobalStore {
 }
 
 function mode(): StoreMode {
-  return process.env.DATABASE_URL ? "postgres" : "memory";
-}
-
-function sql() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  return neon(url);
+  return tursoConfigured() ? "turso" : "memory";
 }
 
 async function ensureSchema(): Promise<void> {
-  if (mode() !== "postgres") return;
+  if (mode() !== "turso") return;
   const mem = getMemory();
   if (mem.schemaReady) return;
-  const db = sql();
-  await db`
+  const db = getSql();
+  await db.query(`
     CREATE TABLE IF NOT EXISTS shows (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       share_token TEXT UNIQUE NOT NULL,
       admin_password_hash TEXT NOT NULL,
-      rooms JSONB NOT NULL DEFAULT '[]'::jsonb,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      rooms TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
-  `;
-  await db`
+  `);
+  await db.query(`
     CREATE TABLE IF NOT EXISTS channels (
       id TEXT PRIMARY KEY,
       show_id TEXT NOT NULL REFERENCES shows(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      frequency_mhz DOUBLE PRECISION NOT NULL,
+      frequency_mhz REAL NOT NULL,
       band TEXT,
       type TEXT,
       group_channel TEXT,
       zone TEXT,
-      is_backup BOOLEAN NOT NULL DEFAULT FALSE,
+      is_backup INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'unreviewed',
-      deployed BOOLEAN NOT NULL DEFAULT FALSE,
+      deployed INTEGER NOT NULL DEFAULT 0,
       room_name TEXT,
-      deployed_at TIMESTAMPTZ,
+      deployed_at TEXT,
       deployed_by TEXT,
-      sort_order INT NOT NULL DEFAULT 0
+      sort_order INTEGER NOT NULL DEFAULT 0
     )
-  `;
+  `);
+  await db.query(
+    `CREATE INDEX IF NOT EXISTS channels_show_id_idx ON channels(show_id)`,
+  );
   mem.schemaReady = true;
+}
+
+function parseRooms(raw: unknown): Room[] {
+  if (Array.isArray(raw)) return raw as Room[];
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return Array.isArray(parsed) ? (parsed as Room[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 function toPublic(show: Show, channels: Channel[]): ShowPublic {
@@ -93,7 +103,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     }
     return null;
   }
-  const db = sql();
+  const db = getSql();
   const rows = await db`
     SELECT id, name, share_token, admin_password_hash, rooms, created_at
     FROM shows WHERE share_token = ${shareToken} LIMIT 1
@@ -105,7 +115,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     name: row.name as string,
     shareToken: row.share_token as string,
     adminPasswordHash: row.admin_password_hash as string,
-    rooms: (row.rooms as Room[]) ?? [],
+    rooms: parseRooms(row.rooms),
     createdAt: new Date(row.created_at as string).toISOString(),
   };
 }
@@ -115,7 +125,7 @@ async function getChannels(showId: string): Promise<Channel[]> {
   if (mode() === "memory") {
     return getMemory().channels.get(showId) ?? [];
   }
-  const db = sql();
+  const db = getSql();
   const rows = await db`
     SELECT * FROM channels WHERE show_id = ${showId} ORDER BY sort_order ASC
   `;
@@ -161,7 +171,7 @@ export async function createShow(input: {
     return toPublic(show, []);
   }
 
-  const db = sql();
+  const db = getSql();
   await db`
     INSERT INTO shows (id, name, share_token, admin_password_hash, rooms, created_at)
     VALUES (
@@ -221,7 +231,7 @@ export async function replaceChannelsFromImport(
     return toPublic(show, channels);
   }
 
-  const db = sql();
+  const db = getSql();
   await db`DELETE FROM channels WHERE show_id = ${show.id}`;
   for (const ch of channels) {
     await db`
@@ -292,7 +302,7 @@ export async function updateChannel(
     return toPublic(show, channels);
   }
 
-  const db = sql();
+  const db = getSql();
   await db`
     UPDATE channels SET
       status = ${next.status},
@@ -324,7 +334,7 @@ export async function setRooms(
     return toPublic(nextShow, channels);
   }
 
-  const db = sql();
+  const db = getSql();
   await db`
     UPDATE shows SET rooms = ${JSON.stringify(rooms)}
     WHERE id = ${show.id}

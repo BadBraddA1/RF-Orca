@@ -10,7 +10,7 @@
     "test:csv": "npx --yes tsx -e \"const { parseWwbCsv } = require('./src/lib/csv.ts'); const fs=require('fs'); console.log(parseWwbCsv(fs.readFileSync('fixtures/wwb/sample-inventory.csv','utf8')))\""
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.2",
+    "@libsql/client": "^0.17.4",
     "next": "16.3.1",
     "papaparse": "^5.5.3",
     "react": "19.2.8",
