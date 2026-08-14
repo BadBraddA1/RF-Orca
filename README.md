@@ -2,7 +2,7 @@
 
 Crew-facing RF mark board — nickname **Orca**. After frequency coordination is done (e.g. Shure Wireless Workbench), share one link so the floor can group channels and mark what’s deployed by room.
 
-**Live:** https://rf-orca.vercel.app · custom domain https://rforca.braddcorp.com (DNS pending — do not set `NEXT_PUBLIC_SITE_URL` to it until DNS resolves, or OG previews break)
+**Live:** https://rforca.braddcorp.com · https://rf-orca.vercel.app
 
 ## Home
 
@@ -60,7 +60,7 @@ Open [http://localhost:3000](http://localhost:3000). Sample CSV: `fixtures/wwb/s
 ```bash
 TURSO_DATABASE_URL=libsql://rf-orca-….turso.io
 TURSO_AUTH_TOKEN=…
-NEXT_PUBLIC_SITE_URL=https://rf-orca.vercel.app
+NEXT_PUBLIC_SITE_URL=https://rforca.braddcorp.com
 ABLY_API_KEY=…   # Ably app “RF Orca” server key (token auth via /api/ably-auth)
 ```
 

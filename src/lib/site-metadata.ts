@@ -3,7 +3,6 @@
  * Keep og descriptions ~125 characters for social previews.
  *
  * og:image / metadataBase must resolve on a host crawlers can fetch.
- * Until DNS for rforca.braddcorp.com is live, use the Vercel production URL.
  */
 export const siteName = "RF Orca"
 export const siteShortName = "Orca"
@@ -14,10 +13,10 @@ export const siteDescription =
 export const ogImageAlt =
   "RF Orca — Radio Frequency Orchestrator, crew mark board for live RF deploy tracking"
 
-/** Working production host (DNS for custom domain may still be pending). */
-const LIVE_SITE_URL = "https://rf-orca.vercel.app"
-/** Intended custom domain — only set NEXT_PUBLIC_SITE_URL to this after DNS works. */
-export const intendedCustomDomain = "https://rforca.braddcorp.com"
+/** Working production host. */
+const LIVE_SITE_URL = "https://rforca.braddcorp.com"
+/** Fallback if custom domain is unavailable. */
+export const vercelFallbackUrl = "https://rf-orca.vercel.app"
 
 function resolveSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "").trim()
