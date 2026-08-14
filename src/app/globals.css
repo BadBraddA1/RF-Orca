@@ -375,8 +375,9 @@ a {
 
 .filter,
 .chip {
-  background: color-mix(in oklab, white 70%, var(--foam));
+  background: color-mix(in oklab, var(--panel) 88%, white 6%);
   border-color: var(--line);
+  color: var(--ink);
   padding: 0.4rem 0.75rem;
   font-size: 0.88rem;
   font-weight: 650;
@@ -384,9 +385,9 @@ a {
 
 .filter.active,
 .chip.active {
-  background: var(--ink);
-  color: white;
-  border-color: var(--ink);
+  background: var(--sea-bright);
+  color: #041018;
+  border-color: var(--sea-bright);
 }
 
 .channel-list {
@@ -405,12 +406,12 @@ a {
 }
 
 .channel-row.is-deployed {
-  border-color: color-mix(in oklab, var(--sea-bright) 45%, var(--line));
-  background: color-mix(in oklab, #d8f3f1 55%, white);
+  border-color: color-mix(in oklab, var(--sea-bright) 50%, var(--line));
+  background: color-mix(in oklab, var(--sea) 18%, var(--panel));
 }
 
 .channel-row.status-blocked {
-  opacity: 0.72;
+  opacity: 0.78;
 }
 
 .channel-title {
@@ -444,18 +445,19 @@ a {
 .tag {
   border-radius: 999px;
   padding: 0.1rem 0.45rem;
-  background: color-mix(in oklab, var(--ink) 6%, white);
+  background: color-mix(in oklab, var(--sea-bright) 14%, transparent);
+  color: var(--ink-soft);
   font-weight: 650;
 }
 
 .tag.status-allowed {
-  background: color-mix(in oklab, var(--sea-bright) 20%, white);
-  color: var(--sea);
+  background: color-mix(in oklab, #5dffc0 22%, transparent);
+  color: #9bffd8;
 }
 
 .tag.status-blocked {
-  background: color-mix(in oklab, var(--danger) 14%, white);
-  color: var(--danger);
+  background: color-mix(in oklab, var(--danger) 22%, transparent);
+  color: #ffb0b8;
 }
 
 .status-controls {
@@ -591,7 +593,7 @@ a {
 .quiet-field {
   display: grid;
   gap: 0.25rem;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 650;
   color: var(--ink-soft);
 }
@@ -599,33 +601,33 @@ a {
 .quiet-field select,
 .quiet-field input {
   font: inherit;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 0.55rem;
-  padding: 0.4rem 0.55rem;
-  background: color-mix(in oklab, var(--navy) 70%, white 8%);
+  padding: 0.45rem 0.6rem;
+  background: #0c1c30;
   min-width: 8rem;
 }
 
 .channel-row.is-deployed {
-  border-color: color-mix(in oklab, var(--sea-bright) 45%, var(--line));
-  background: color-mix(in oklab, var(--sea) 14%, var(--panel));
+  border-color: color-mix(in oklab, var(--sea-bright) 50%, var(--line));
+  background: color-mix(in oklab, var(--sea) 18%, var(--panel));
 }
 
 .tag {
-  background: color-mix(in oklab, var(--sea-bright) 10%, transparent);
+  background: color-mix(in oklab, var(--sea-bright) 14%, transparent);
   color: var(--ink-soft);
 }
 
 .tag.status-allowed {
-  background: color-mix(in oklab, #7dffc3 16%, transparent);
-  color: #7dffc3;
+  background: color-mix(in oklab, #5dffc0 22%, transparent);
+  color: #9bffd8;
 }
 
 .tag.status-blocked {
-  background: color-mix(in oklab, var(--danger) 16%, transparent);
-  color: var(--danger);
+  background: color-mix(in oklab, var(--danger) 22%, transparent);
+  color: #ffb0b8;
 }
 
 .freq {
