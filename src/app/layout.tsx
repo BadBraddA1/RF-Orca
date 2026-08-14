@@ -1,5 +1,17 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { IBM_Plex_Mono, Source_Sans_3, Syne } from "next/font/google";
+import { SiteFooter } from "@/components/SiteFooter";
+import {
+  ogImageAlt,
+  ogImagePath,
+  siteDescription,
+  siteKeywords,
+  siteName,
+  siteTitle,
+  siteUrl,
+  twitterImagePath,
+} from "@/lib/site-metadata";
 import "./globals.css";
 
 const syne = Syne({
@@ -21,20 +33,28 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "RF Orca — Radio Frequency Orchestrator",
-    template: "%s · RF Orca",
+    default: siteTitle,
+    template: `%s · ${siteName}`,
   },
-  description:
-    "RF Orchestrator (Orca): share WWB frequency plans with crews — mark allowed channels and track deployed rooms.",
-  applicationName: "RF Orca",
-  icons: {
-    icon: [
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/brand/icon.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  description: siteDescription,
+  applicationName: siteName,
+  keywords: [...siteKeywords],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName,
+    title: siteTitle,
+    description: siteDescription,
+    images: [{ url: ogImagePath, width: 1200, height: 630, alt: ogImageAlt }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: [twitterImagePath],
   },
 };
 
@@ -48,7 +68,9 @@ export default function RootLayout({
       <body
         className={`${syne.variable} ${sourceSans.variable} ${ibmPlexMono.variable}`}
       >
-        {children}
+        <div className="app-shell">{children}</div>
+        <SiteFooter />
+        <Analytics />
       </body>
     </html>
   );

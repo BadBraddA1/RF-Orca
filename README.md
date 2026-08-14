@@ -43,7 +43,11 @@ NEXT_PUBLIC_SITE_URL=https://rforca.braddcorp.com
 
 ## Brand
 
-Logo assets live in `public/brand/` (RF Orca / Radio Frequency Orchestrator).
+Transparent logo assets in `public/brand/` (navy plate removed). Favicon / apple icon use the emblem mark only.
+
+## Site chrome
+
+Day-one chrome: `lib/site-metadata.ts`, `/opengraph-image` + `/twitter-image` (1200×630), branded `/not-found`, `/privacy`, `robots.ts`, `sitemap.ts`, Vercel Analytics. Spot-check `/opengraph-image` and a bogus URL after deploy.
 
 ## Plan
 

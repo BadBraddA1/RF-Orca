@@ -74,9 +74,7 @@ a {
 .brand-lockup-header .brand-logo {
   width: 3.25rem;
   height: 3.25rem;
-  border-radius: 999px;
-  object-fit: cover;
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--sea-bright) 35%, transparent);
+  object-fit: contain;
 }
 
 .brand-text {
@@ -631,5 +629,31 @@ a {
 }
 
 .freq {
+  color: var(--sea-bright);
+}
+
+.app-shell {
+  min-height: calc(100dvh - 3.5rem);
+}
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  padding: 1rem clamp(1rem, 3vw, 2rem) 1.35rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.site-footer a {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.site-footer a:hover {
   color: var(--sea-bright);
 }

@@ -2,7 +2,6 @@ import Image from "next/image";
 
 type BrandLockupProps = {
   size?: "hero" | "header";
-  /** Show wordmark under / beside emblem when logo already includes text */
   showTagline?: boolean;
 };
 
@@ -12,10 +11,10 @@ export function BrandLockup({ size = "hero", showTagline = true }: BrandLockupPr
   return (
     <div className={hero ? "brand-lockup brand-lockup-hero" : "brand-lockup brand-lockup-header"}>
       <Image
-        src={hero ? "/brand/rf-orca-logo.webp" : "/brand/rf-orca-logo-sm.webp"}
+        src={hero ? "/brand/rf-orca-logo.webp" : "/brand/rf-orca-mark.webp"}
         alt="RF Orca — Radio Frequency Orchestrator"
-        width={hero ? 1200 : 640}
-        height={hero ? 1200 : 640}
+        width={hero ? 1200 : 256}
+        height={hero ? 1563 : 256}
         priority={hero}
         className="brand-logo"
       />
