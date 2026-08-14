@@ -124,3 +124,15 @@ export type ManualChannelInput = {
   groupName?: string | null;
   band?: string | null;
 };
+
+/** Home “happening now” row — share link only, no secrets. */
+export type ActiveShowSummary = {
+  name: string;
+  shareToken: string;
+  createdAt: string;
+  channelCount: number;
+  deployedCount: number;
+};
+
+/** Days a show stays on the home list before it drops off (not deleted). */
+export const ACTIVE_SHOW_HOME_DAYS = 10;

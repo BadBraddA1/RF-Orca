@@ -7,11 +7,11 @@ Crew-facing RF board — nickname **Orca**. A lean, custom alternative to SoundB
 
 ## Home
 
-Compact header brand (mark + wordmark) + **New show** form above the fold. Desktop: copy left, form right. Mobile: short pitch, passwords side-by-side, Create without scrolling past a giant logo.
+Compact header brand + **New show** form above the fold. Below that, **Happening now** lists shows created in the last **10 days** (name, deploy progress, age). Older shows stay in the database and remain reachable by share link — they just leave the home list.
 
 ## Access model
 
-- Home → **New Show** only (no show list)
+- Home → **New Show** + **Happening now** (shows created in the last 10 days; older ones drop off the list but are not deleted)
 - Create with an **admin password**
 - Crews open the show link → **mark view** (Deploy + room), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block

@@ -28,7 +28,7 @@ Lean · crew-first · signal-clear. Confident and practical, not flashy enterpri
 1. **Task over theater** — Home exists to create a show; brand supports, never blocks.
 2. **Phone-first floor use** — Mark view and create flow must work without hunting or zoom.
 3. **Use only what you need** — Feature toggles; coordinators strip the board down for speed.
-4. **Shareable truth** — One link is the show; no browsing past shows.
+4. **Shareable truth** — One link is the show; home lists only recent (10-day) shows for convenience, not a permanent library.
 5. **Quiet power** — Coordinator tools stay subtle until unlocked.
 
 ## Accessibility & Inclusion

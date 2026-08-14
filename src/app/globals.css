@@ -169,6 +169,84 @@ a {
   align-content: start;
 }
 
+.active-shows {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.active-shows-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+}
+
+.active-shows-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.active-shows-head p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.active-shows-empty {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.active-shows-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.active-show-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.active-show-card:hover {
+  border-color: color-mix(in oklab, var(--sea-bright) 45%, var(--line));
+  background: color-mix(in oklab, var(--sea) 12%, var(--panel));
+}
+
+.active-show-name {
+  font-weight: 750;
+  font-size: 1.02rem;
+}
+
+.active-show-meta {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.active-show-age {
+  opacity: 0.85;
+}
+
 .hero-create .brand-lockup-header {
   gap: 0.7rem;
 }

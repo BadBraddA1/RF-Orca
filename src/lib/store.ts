@@ -10,6 +10,7 @@ import { publishShowUpdate } from "./ably";
 import type {
   ActivityEvent,
   ActivityKind,
+  ActiveShowSummary,
   Channel,
   ChannelGroup,
   ChannelStatus,
@@ -20,7 +21,7 @@ import type {
   ShowFeatures,
   ShowPublic,
 } from "./types";
-import { DEFAULT_SHOW_FEATURES } from "./types";
+import { ACTIVE_SHOW_HOME_DAYS, DEFAULT_SHOW_FEATURES } from "./types";
 
 type StoreMode = "memory" | "turso";
 
@@ -699,4 +700,62 @@ export async function updateShowFeatures(
 
 export function getStorageMode(): StoreMode {
   return mode();
+}
+
+/**
+ * Shows created within the last `days` — for home “happening now”.
+ * Older shows stay in the DB; they simply leave this list.
+ */
+export async function listActiveShows(
+  days: number = ACTIVE_SHOW_HOME_DAYS,
+): Promise<ActiveShowSummary[]> {
+  await ensureSchema();
+  const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
+  const cutoffIso = new Date(cutoffMs).toISOString();
+
+  if (mode() === "memory") {
+    const mem = getMemory();
+    const rows: ActiveShowSummary[] = [];
+    for (const show of mem.shows.values()) {
+      const created = Date.parse(show.createdAt);
+      if (!Number.isFinite(created) || created < cutoffMs) continue;
+      const channels = mem.channels.get(show.id) ?? [];
+      rows.push({
+        name: show.name,
+        shareToken: show.shareToken,
+        createdAt: show.createdAt,
+        channelCount: channels.length,
+        deployedCount: channels.filter((c) => c.deployed).length,
+      });
+    }
+    return rows.sort(
+      (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+    );
+  }
+
+  const db = getSql();
+  const rows = await db`
+    SELECT
+      s.name,
+      s.share_token,
+      s.created_at,
+      (
+        SELECT COUNT(*) FROM channels c WHERE c.show_id = s.id
+      ) AS channel_count,
+      (
+        SELECT COUNT(*) FROM channels c
+        WHERE c.show_id = s.id AND c.deployed = 1
+      ) AS deployed_count
+    FROM shows s
+    WHERE s.created_at >= ${cutoffIso}
+    ORDER BY s.created_at DESC
+  `;
+
+  return rows.map((row) => ({
+    name: row.name as string,
+    shareToken: row.share_token as string,
+    createdAt: new Date(row.created_at as string).toISOString(),
+    channelCount: Number(row.channel_count ?? 0),
+    deployedCount: Number(row.deployed_count ?? 0),
+  }));
 }
