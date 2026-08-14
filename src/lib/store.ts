@@ -449,6 +449,59 @@ export async function updateChannel(
   return toPublic(nextShow, channels);
 }
 
+export async function bulkSetChannelStatus(
+  shareToken: string,
+  channelIds: string[],
+  status: ChannelStatus,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const idSet = new Set(channelIds);
+  if (idSet.size === 0) {
+    return toPublic(show, await getChannels(show.id));
+  }
+
+  const channels = await getChannels(show.id);
+  const next = channels.map((ch) => {
+    if (!idSet.has(ch.id)) return ch;
+    const updated: Channel = { ...ch, status };
+    if (status === "blocked" && updated.deployed) {
+      updated.deployed = false;
+      updated.roomName = null;
+      updated.deployedAt = null;
+      updated.deployedBy = null;
+    }
+    return updated;
+  });
+
+  if (mode() === "memory") {
+    getMemory().channels.set(show.id, next);
+    return toPublic(show, next);
+  }
+
+  const db = getSql();
+  const clearDeploy = status === "blocked";
+  for (const id of idSet) {
+    if (clearDeploy) {
+      await db`
+        UPDATE channels SET
+          status = ${status},
+          deployed = 0,
+          room_name = NULL,
+          deployed_at = NULL,
+          deployed_by = NULL
+        WHERE id = ${id} AND show_id = ${show.id}
+      `;
+    } else {
+      await db`
+        UPDATE channels SET status = ${status}
+        WHERE id = ${id} AND show_id = ${show.id}
+      `;
+    }
+  }
+  return toPublic(show, next);
+}
+
 export async function setRooms(
   shareToken: string,
   roomNames: string[],

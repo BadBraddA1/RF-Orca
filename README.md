@@ -10,6 +10,7 @@ Crew-facing RF board — nickname **Orca**. Import a Shure Wireless Workbench CS
 - Create with an **admin password**
 - Crews open the show link → **mark view** (deploy + room), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
+- Bulk status: set all **visible** (filter/group) channels to Allowed / Blocked / Unreviewed, or per group heading
 
 ## Channel groups
 

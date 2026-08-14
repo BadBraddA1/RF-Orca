@@ -567,6 +567,43 @@ a {
   gap: 1.25rem;
 }
 
+.group-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.55rem;
+}
+
+.group-heading-row .group-heading {
+  margin: 0;
+}
+
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: color-mix(in oklab, var(--panel) 90%, transparent);
+}
+
+.bulk-label {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--ink-soft);
+  margin-right: 0.25rem;
+}
+
+.bulk-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+}
+
 .group-heading {
   margin: 0 0 0.55rem;
   font-family: var(--font-display);

@@ -33,6 +33,7 @@ export function MarkBoard({
   const [manualFreq, setManualFreq] = useState("");
   const [manualGroup, setManualGroup] = useState("");
   const [copied, setCopied] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [, startTransition] = useTransition();
 
   const refresh = useCallback(async () => {
@@ -260,6 +261,26 @@ export function MarkBoard({
     window.setTimeout(() => setCopied(false), 2000);
   }
 
+  async function bulkStatus(ids: string[], status: ChannelStatus) {
+    if (!admin || ids.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}/channels`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelIds: ids, status }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Bulk update failed");
+        return;
+      }
+      setShow(data.show);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   return (
     <div className="board">
       <header className="board-header">
@@ -445,6 +466,40 @@ export function MarkBoard({
         ))}
       </div>
 
+      {admin && visible.length > 0 ? (
+        <div className="bulk-bar" role="group" aria-label="Bulk status for visible channels">
+          <span className="bulk-label">
+            Set {visible.length} visible →
+          </span>
+          <button
+            type="button"
+            className="chip"
+            disabled={bulkBusy}
+            onClick={() => void bulkStatus(visible.map((c) => c.id), "allowed")}
+          >
+            Allowed
+          </button>
+          <button
+            type="button"
+            className="chip"
+            disabled={bulkBusy}
+            onClick={() => void bulkStatus(visible.map((c) => c.id), "blocked")}
+          >
+            Blocked
+          </button>
+          <button
+            type="button"
+            className="chip"
+            disabled={bulkBusy}
+            onClick={() =>
+              void bulkStatus(visible.map((c) => c.id), "unreviewed")
+            }
+          >
+            Unreviewed
+          </button>
+        </div>
+      ) : null}
+
       {visible.length === 0 ? (
         <div className="empty">
           {show.channels.length === 0
@@ -455,10 +510,55 @@ export function MarkBoard({
         <div className="group-sections">
           {sections.map((section) => (
             <section key={section.name} className="group-section">
-              <h2 className="group-heading">
-                {section.name}
-                <span className="group-count">{section.channels.length}</span>
-              </h2>
+              <div className="group-heading-row">
+                <h2 className="group-heading">
+                  {section.name}
+                  <span className="group-count">{section.channels.length}</span>
+                </h2>
+                {admin ? (
+                  <div className="bulk-inline" role="group" aria-label={`Bulk status for ${section.name}`}>
+                    <button
+                      type="button"
+                      className="btn-quiet"
+                      disabled={bulkBusy}
+                      onClick={() =>
+                        void bulkStatus(
+                          section.channels.map((c) => c.id),
+                          "allowed",
+                        )
+                      }
+                    >
+                      Allow all
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-quiet"
+                      disabled={bulkBusy}
+                      onClick={() =>
+                        void bulkStatus(
+                          section.channels.map((c) => c.id),
+                          "blocked",
+                        )
+                      }
+                    >
+                      Block all
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-quiet"
+                      disabled={bulkBusy}
+                      onClick={() =>
+                        void bulkStatus(
+                          section.channels.map((c) => c.id),
+                          "unreviewed",
+                        )
+                      }
+                    >
+                      Reset all
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               <ul className="channel-list">
                 {section.channels.map((channel) => (
                   <ChannelRow
