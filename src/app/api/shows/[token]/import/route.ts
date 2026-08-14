@@ -3,6 +3,11 @@ import { isAdminUnlocked } from "@/lib/admin";
 import { parseWwbCsv } from "@/lib/csv";
 import { replaceChannelsFromImport } from "@/lib/store";
 
+/**
+ * POST multipart:
+ * - preview=1 (or action=preview): parse only, do not write
+ * - otherwise: replace channels (confirm after preview)
+ */
 export async function POST(
   request: Request,
   context: { params: Promise<{ token: string }> },
@@ -18,6 +23,11 @@ export async function POST(
     return NextResponse.json({ error: "CSV file required." }, { status: 400 });
   }
 
+  const preview =
+    form.get("preview") === "1" ||
+    form.get("preview") === "true" ||
+    form.get("action") === "preview";
+
   const text = await file.text();
   const { rows, warnings } = parseWwbCsv(text);
   if (rows.length === 0) {
@@ -25,6 +35,25 @@ export async function POST(
       { error: "No channels found in file.", warnings },
       { status: 400 },
     );
+  }
+
+  if (preview) {
+    return NextResponse.json({
+      preview: true,
+      warnings,
+      count: rows.length,
+      rows: rows.slice(0, 80).map((r) => ({
+        name: r.name,
+        frequencyMhz: r.frequencyMhz,
+        band: r.band,
+        zone: r.zone,
+        isBackup: r.isBackup,
+        groupChannel: r.groupChannel,
+      })),
+      truncated: rows.length > 80,
+      filename: file.name,
+      csvText: text,
+    });
   }
 
   const show = await replaceChannelsFromImport(token, rows);

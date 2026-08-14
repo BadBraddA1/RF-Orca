@@ -1,15 +1,52 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { BrandLockup } from "@/components/BrandLockup";
+import { withinDeployGrace } from "@/lib/board-helpers";
+import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
 import type {
   Channel,
   ChannelStatus,
   ShowFeatures,
   ShowPublic,
 } from "@/lib/types";
+import { DEPLOY_UNDO_GRACE_SEC } from "@/lib/types";
 
 type Filter = "all" | "allowed" | "blocked" | "deployed" | "open";
+
+type FocusState = {
+  group: string;
+  room: string;
+};
+
+type ImportPreview = {
+  warnings: string[];
+  count: number;
+  rows: Array<{
+    name: string;
+    frequencyMhz: number;
+    band: string | null;
+    zone: string | null;
+    isBackup: boolean;
+    groupChannel: string | null;
+  }>;
+  truncated: boolean;
+  filename: string;
+  csvText: string;
+};
+
+type UndoToast = {
+  channelId: string;
+  channelName: string;
+  expiresAt: number;
+};
 
 const FEATURE_TOGGLES: {
   key: keyof ShowFeatures;
@@ -39,7 +76,7 @@ const FEATURE_TOGGLES: {
   {
     key: "lockDeployed",
     label: "Lock after deploy",
-    hint: "Crew can’t undo or change room once Deployed (you still can)",
+    hint: "Crew can’t undo after grace — you still can",
   },
   {
     key: "crewLocked",
@@ -47,6 +84,24 @@ const FEATURE_TOGGLES: {
     hint: "Freeze all crew marking — read-only until you unlock",
   },
 ];
+
+function focusKey(token: string) {
+  return `rf-orca-focus:${token}`;
+}
+
+function loadFocus(token: string): FocusState {
+  try {
+    const raw = localStorage.getItem(focusKey(token));
+    if (!raw) return { group: "all", room: "" };
+    const parsed = JSON.parse(raw) as FocusState;
+    return {
+      group: parsed.group || "all",
+      room: parsed.room || "",
+    };
+  } catch {
+    return { group: "all", room: "" };
+  }
+}
 
 export function MarkBoard({
   token,
@@ -61,6 +116,8 @@ export function MarkBoard({
   const [admin, setAdmin] = useState(initialAdmin);
   const [filter, setFilter] = useState<Filter>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [focusRoom, setFocusRoom] = useState("");
+  const [search, setSearch] = useState("");
   const [toolsOpen, setToolsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -71,38 +128,87 @@ export function MarkBoard({
     initialShow.groups.map((g) => g.name).join("\n"),
   );
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(
+    null,
+  );
+  const [importBusy, setImportBusy] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualFreq, setManualFreq] = useState("");
   const [manualGroup, setManualGroup] = useState("");
   const [copied, setCopied] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
+  const [live, setLive] = useState(true);
+  const [undo, setUndo] = useState<UndoToast | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const revisionRef = useRef(initialShow.revision ?? 0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
 
   const features = show.features;
 
-  const refresh = useCallback(async () => {
-    const res = await fetch(`/api/shows/${token}`, { cache: "no-store" });
-    if (!res.ok) return;
-    const data = await res.json();
-    setShow(data.show);
-    setAdmin(data.admin);
-    setRoomsText(
-      (data.show.rooms as { name: string }[]).map((r) => r.name).join("\n"),
-    );
-    setGroupsText(
-      (data.show.groups as { name: string }[]).map((g) => g.name).join("\n"),
-    );
+  useEffect(() => {
+    const focus = loadFocus(token);
+    setGroupFilter(focus.group);
+    setFocusRoom(focus.room);
   }, [token]);
 
   useEffect(() => {
+    localStorage.setItem(
+      focusKey(token),
+      JSON.stringify({ group: groupFilter, room: focusRoom }),
+    );
+  }, [token, groupFilter, focusRoom]);
+
+  useEffect(() => {
+    if (!undo) return;
+    const ms = Math.max(0, undo.expiresAt - Date.now());
+    const id = window.setTimeout(() => setUndo(null), ms);
+    return () => window.clearTimeout(id);
+  }, [undo]);
+
+  const applyShow = useCallback((next: ShowPublic, nextAdmin?: boolean) => {
+    setShow(next);
+    revisionRef.current = next.revision ?? 0;
+    if (typeof nextAdmin === "boolean") setAdmin(nextAdmin);
+    setRoomsText(next.rooms.map((r) => r.name).join("\n"));
+    setGroupsText(next.groups.map((g) => g.name).join("\n"));
+  }, []);
+
+  // Live sync — poll revision every 1.2s
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch(
+          `/api/shows/${token}/live?r=${revisionRef.current}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (data.unchanged) {
+          setLive(true);
+          return;
+        }
+        if (data.show) {
+          startTransition(() => {
+            applyShow(data.show, data.admin);
+          });
+          setLive(true);
+        }
+      } catch {
+        setLive(false);
+      }
+    };
     const id = window.setInterval(() => {
-      startTransition(() => {
-        void refresh();
-      });
-    }, 8000);
-    return () => window.clearInterval(id);
-  }, [refresh]);
+      void tick();
+    }, 1200);
+    void tick();
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [token, applyShow]);
 
   const groupNames = useMemo(() => {
     if (!features.groups) return [];
@@ -120,12 +226,27 @@ export function MarkBoard({
       allowed: channels.filter((c) => c.status === "allowed").length,
       blocked: channels.filter((c) => c.status === "blocked").length,
       deployed: channels.filter((c) => c.deployed).length,
-      open: channels.filter((c) => !c.deployed && c.status !== "blocked").length,
+      open: channels.filter((c) => !c.deployed && c.status !== "blocked")
+        .length,
     };
   }, [show.channels]);
 
+  const groupProgress = useMemo(() => {
+    if (!features.groups || !features.deploy) return [];
+    return groupNames.map((name) => {
+      const list = show.channels.filter((c) => c.groupName === name);
+      const deployed = list.filter((c) => c.deployed).length;
+      return { name, deployed, total: list.length };
+    });
+  }, [groupNames, show.channels, features.groups, features.deploy]);
+
   const visible = useMemo(() => {
     return show.channels.filter((c) => {
+      if (!channelMatchesQuery(c, search)) return false;
+      if (focusRoom && (c.roomName ?? "") !== focusRoom) {
+        // Focus room: show deployed-in-room OR undeployed (still need to place)
+        if (c.deployed) return false;
+      }
       if (features.groups && groupFilter !== "all") {
         if (groupFilter === "__ungrouped__") {
           if (c.groupName) return false;
@@ -145,18 +266,50 @@ export function MarkBoard({
       }
       return true;
     });
-  }, [show.channels, filter, groupFilter, features]);
+  }, [
+    show.channels,
+    filter,
+    groupFilter,
+    features,
+    search,
+    focusRoom,
+  ]);
+
+  // When focusing a room, also include channels already deployed to that room
+  const visibleWithRoomFocus = useMemo(() => {
+    if (!focusRoom) return visible;
+    const extra = show.channels.filter(
+      (c) =>
+        c.roomName === focusRoom &&
+        channelMatchesQuery(c, search) &&
+        (!features.groups ||
+          groupFilter === "all" ||
+          (groupFilter === "__ungrouped__"
+            ? !c.groupName
+            : c.groupName === groupFilter)),
+    );
+    const ids = new Set(visible.map((c) => c.id));
+    return [...visible, ...extra.filter((c) => !ids.has(c.id))];
+  }, [
+    visible,
+    focusRoom,
+    show.channels,
+    search,
+    features.groups,
+    groupFilter,
+  ]);
 
   const sections = useMemo(() => {
+    const list = visibleWithRoomFocus;
     if (!features.groups) {
-      return [{ name: "", channels: visible }];
+      return [{ name: "", channels: list }];
     }
     const map = new Map<string, Channel[]>();
-    for (const ch of visible) {
+    for (const ch of list) {
       const key = ch.groupName?.trim() || "Ungrouped";
-      const list = map.get(key) ?? [];
-      list.push(ch);
-      map.set(key, list);
+      const bucket = map.get(key) ?? [];
+      bucket.push(ch);
+      map.set(key, bucket);
     }
     const orderedKeys = [
       ...groupNames.filter((g) => map.has(g)),
@@ -166,7 +319,7 @@ export function MarkBoard({
       if (!orderedKeys.includes(key)) orderedKeys.push(key);
     }
     return orderedKeys.map((name) => ({ name, channels: map.get(name)! }));
-  }, [visible, groupNames, features.groups]);
+  }, [visibleWithRoomFocus, groupNames, features.groups]);
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -208,7 +361,7 @@ export function MarkBoard({
         alert(data.error || "Could not save setting");
         return;
       }
-      setShow(data.show);
+      applyShow(data.show);
     } finally {
       setSettingsBusy(false);
     }
@@ -222,7 +375,9 @@ export function MarkBoard({
       roomName: string | null;
       groupName: string | null;
     }>,
+    opts?: { undoToast?: boolean },
   ) {
+    const before = show.channels.find((c) => c.id === channelId);
     const res = await fetch(`/api/shows/${token}/channels/${channelId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -233,33 +388,68 @@ export function MarkBoard({
       alert(data.error || "Update failed");
       return;
     }
-    setShow(data.show);
-    setGroupsText(
-      (data.show.groups as { name: string }[]).map((g) => g.name).join("\n"),
-    );
+    applyShow(data.show);
+    if (opts?.undoToast && patch.deployed === true && before) {
+      setUndo({
+        channelId,
+        channelName: before.name,
+        expiresAt: Date.now() + 5000,
+      });
+    }
+    if (patch.deployed === false) setUndo(null);
   }
 
-  async function onImport(file: File | null) {
+  async function onPickImport(file: File | null) {
     if (!file) return;
     setImportMsg(null);
-    const form = new FormData();
-    form.append("file", file);
-    const res = await fetch(`/api/shows/${token}/import`, {
-      method: "POST",
-      body: form,
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setImportMsg(data.error || "Import failed");
-      return;
+    setImportPreview(null);
+    setImportBusy(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("preview", "1");
+      const res = await fetch(`/api/shows/${token}/import`, {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportMsg(data.error || "Import preview failed");
+        return;
+      }
+      setImportPreview(data as ImportPreview);
+    } finally {
+      setImportBusy(false);
     }
-    setShow(data.show);
-    setGroupsText(
-      (data.show.groups as { name: string }[]).map((g) => g.name).join("\n"),
-    );
-    const warn =
-      data.warnings?.length > 0 ? ` Warnings: ${data.warnings.join(" ")}` : "";
-    setImportMsg(`Imported ${data.imported} channels.${warn}`);
+  }
+
+  async function confirmImport() {
+    if (!importPreview) return;
+    setImportBusy(true);
+    setImportMsg(null);
+    try {
+      const form = new FormData();
+      const blob = new Blob([importPreview.csvText], { type: "text/csv" });
+      form.append("file", blob, importPreview.filename || "import.csv");
+      const res = await fetch(`/api/shows/${token}/import`, {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportMsg(data.error || "Import failed");
+        return;
+      }
+      applyShow(data.show);
+      const warn =
+        data.warnings?.length > 0
+          ? ` Warnings: ${data.warnings.join(" ")}`
+          : "";
+      setImportMsg(`Imported ${data.imported} channels.${warn}`);
+      setImportPreview(null);
+    } finally {
+      setImportBusy(false);
+    }
   }
 
   async function saveRooms() {
@@ -277,7 +467,7 @@ export function MarkBoard({
       alert(data.error || "Could not save rooms");
       return;
     }
-    setShow(data.show);
+    applyShow(data.show);
   }
 
   async function saveGroups() {
@@ -295,7 +485,7 @@ export function MarkBoard({
       alert(data.error || "Could not save groups");
       return;
     }
-    setShow(data.show);
+    applyShow(data.show);
   }
 
   async function addManual(e: React.FormEvent) {
@@ -320,10 +510,7 @@ export function MarkBoard({
       setImportMsg(data.error || "Could not add channel");
       return;
     }
-    setShow(data.show);
-    setGroupsText(
-      (data.show.groups as { name: string }[]).map((g) => g.name).join("\n"),
-    );
+    applyShow(data.show);
     setManualName("");
     setManualFreq("");
     setImportMsg(`Added ${manualName.trim()}.`);
@@ -349,10 +536,19 @@ export function MarkBoard({
         alert(data.error || "Bulk update failed");
         return;
       }
-      setShow(data.show);
+      applyShow(data.show);
     } finally {
       setBulkBusy(false);
     }
+  }
+
+  function jumpToFirstMatch() {
+    const first = visibleWithRoomFocus[0];
+    if (!first) return;
+    setHighlightId(first.id);
+    const el = document.getElementById(`ch-${first.id}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => setHighlightId(null), 1600);
   }
 
   const filterOptions = (
@@ -371,13 +567,8 @@ export function MarkBoard({
     ] as const
   ).filter(Boolean) as [Filter, string][];
 
-  const boardSub = (() => {
-    const bits: string[] = [];
-    if (features.deploy) bits.push("Tap Deploy");
-    if (features.rooms) bits.push("set the room");
-    if (bits.length === 0) return "Frequency board.";
-    return `${bits.join(", ")}.`;
-  })();
+  const pct =
+    counts.all > 0 ? Math.round((counts.deployed / counts.all) * 100) : 0;
 
   return (
     <div className="board">
@@ -386,14 +577,29 @@ export function MarkBoard({
           <BrandLockup size="header" showTagline />
           <h1>{show.name}</h1>
           <p className="board-sub">
-            {boardSub}
+            {features.deploy ? "Tap Deploy" : "Frequency board"}
+            {features.rooms ? ", set the room" : ""}.
+            <span className={`live-pill${live ? " on" : ""}`}>
+              {live ? "Live" : "Reconnecting…"}
+            </span>
             {show.storageMode === "memory" ? (
               <span className="demo-pill"> Demo storage</span>
             ) : null}
           </p>
         </div>
         <div className="board-actions">
-          <button type="button" className="btn-ghost" onClick={() => void copyLink()}>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => downloadShowCsv(show)}
+          >
+            Export CSV
+          </button>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => void copyLink()}
+          >
             {copied ? "Copied" : "Copy link"}
           </button>
           <button
@@ -407,12 +613,101 @@ export function MarkBoard({
         </div>
       </header>
 
+      {features.deploy ? (
+        <div className="progress-hud" role="status">
+          <div className="progress-hud-top">
+            <strong>
+              {counts.deployed}/{counts.all} deployed
+            </strong>
+            <span>{pct}%</span>
+          </div>
+          <div className="progress-track" aria-hidden>
+            <div className="progress-fill" style={{ width: `${pct}%` }} />
+          </div>
+          {groupProgress.length > 0 ? (
+            <div className="progress-groups">
+              {groupProgress.map((g) => (
+                <span key={g.name}>
+                  {g.name} {g.deployed}/{g.total}
+                  {g.total > 0 && g.deployed === g.total ? " ✓" : ""}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {(show.conflicts?.length ?? 0) > 0 ? (
+        <div className="board-banner conflict" role="alert">
+          <strong>Frequency conflict</strong>
+          {show.conflicts.slice(0, 3).map((c) => (
+            <span key={c.frequencyMhz}>
+              {" "}
+              · {c.frequencyMhz.toFixed(3)} MHz (
+              {c.channels.map((ch) => ch.name).join(" + ")})
+            </span>
+          ))}
+          {show.conflicts.length > 3
+            ? ` · +${show.conflicts.length - 3} more`
+            : null}
+        </div>
+      ) : null}
+
       {features.crewLocked ? (
         <div className="board-banner locked" role="status">
           Board locked for crew — marking paused.
           {admin ? " You can still edit while Tools are unlocked." : null}
         </div>
       ) : null}
+
+      {(show.activity?.length ?? 0) > 0 ? (
+        <div className="activity-strip" aria-label="Recent activity">
+          {show.activity.slice(0, 6).map((a) => (
+            <div key={a.id} className="activity-item">
+              <span className="activity-msg">{a.message}</span>
+              <span className="activity-time">
+                {formatAgo(a.at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="board-toolbar">
+        <label className="search-field">
+          <span className="sr-only">Search channels</span>
+          <input
+            ref={searchInputRef}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                jumpToFirstMatch();
+              }
+            }}
+            placeholder="Search name or MHz…"
+            inputMode="search"
+            autoComplete="off"
+          />
+        </label>
+        {features.rooms && show.rooms.length > 0 ? (
+          <label className="focus-field">
+            <span>My room</span>
+            <select
+              value={focusRoom}
+              onChange={(e) => setFocusRoom(e.target.value)}
+            >
+              <option value="">All rooms</option>
+              {show.rooms.map((r) => (
+                <option key={r.id} value={r.name}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
 
       {toolsOpen ? (
         <aside className="tools-panel" aria-label="Coordinator tools">
@@ -447,7 +742,9 @@ export function MarkBoard({
               </div>
 
               <div className="feature-toggles" aria-label="Show options">
-                <p className="tools-whisper">Show options — use only what you need</p>
+                <p className="tools-whisper">
+                  Show options — use only what you need
+                </p>
                 {FEATURE_TOGGLES.map((item) => (
                   <label key={item.key} className="toggle-row">
                     <span className="toggle-copy">
@@ -473,14 +770,66 @@ export function MarkBoard({
                   <input
                     type="file"
                     accept=".csv,text/csv,text/plain"
-                    onChange={(e) => void onImport(e.target.files?.[0] ?? null)}
+                    disabled={importBusy}
+                    onChange={(e) =>
+                      void onPickImport(e.target.files?.[0] ?? null)
+                    }
                   />
                   <span className="field-note">
-                    Zones from WWB become channel groups when groups are on.
+                    Preview first — confirm before replacing the board.
                   </span>
                 </label>
 
-                <form className="field manual-add" onSubmit={(e) => void addManual(e)}>
+                {importPreview ? (
+                  <div className="import-preview">
+                    <p className="tools-whisper">
+                      Preview · {importPreview.count} channels
+                      {importPreview.truncated ? " (showing first 80)" : ""}
+                      {importPreview.filename
+                        ? ` · ${importPreview.filename}`
+                        : ""}
+                    </p>
+                    <div className="import-preview-table">
+                      {importPreview.rows.slice(0, 12).map((r, i) => (
+                        <div key={`${r.name}-${i}`} className="import-row">
+                          <strong>{r.name}</strong>
+                          <span>{r.frequencyMhz.toFixed(3)} MHz</span>
+                          <span>{r.zone || "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {importPreview.warnings.length > 0 ? (
+                      <p className="form-hint">
+                        {importPreview.warnings.join(" ")}
+                      </p>
+                    ) : null}
+                    <div className="import-preview-actions">
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        disabled={importBusy}
+                        onClick={() => void confirmImport()}
+                      >
+                        {importBusy
+                          ? "Importing…"
+                          : `Replace board with ${importPreview.count}`}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-quiet"
+                        disabled={importBusy}
+                        onClick={() => setImportPreview(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <form
+                  className="field manual-add"
+                  onSubmit={(e) => void addManual(e)}
+                >
                   <span>Add channel by hand</span>
                   <div className="manual-row">
                     <input
@@ -501,7 +850,7 @@ export function MarkBoard({
                     <input
                       value={manualGroup}
                       onChange={(e) => setManualGroup(e.target.value)}
-                      placeholder="Group (optional) — e.g. Vocals"
+                      placeholder="Group (optional)"
                       list="channel-group-options"
                     />
                   ) : null}
@@ -609,18 +958,25 @@ export function MarkBoard({
         </div>
       ) : null}
 
-      {admin && features.status && visible.length > 0 ? (
+      {admin && features.status && visibleWithRoomFocus.length > 0 ? (
         <div
           className="bulk-bar"
           role="group"
           aria-label="Bulk status for visible channels"
         >
-          <span className="bulk-label">Set {visible.length} visible →</span>
+          <span className="bulk-label">
+            Set {visibleWithRoomFocus.length} visible →
+          </span>
           <button
             type="button"
             className="chip"
             disabled={bulkBusy}
-            onClick={() => void bulkStatus(visible.map((c) => c.id), "allowed")}
+            onClick={() =>
+              void bulkStatus(
+                visibleWithRoomFocus.map((c) => c.id),
+                "allowed",
+              )
+            }
           >
             Allowed
           </button>
@@ -628,7 +984,12 @@ export function MarkBoard({
             type="button"
             className="chip"
             disabled={bulkBusy}
-            onClick={() => void bulkStatus(visible.map((c) => c.id), "blocked")}
+            onClick={() =>
+              void bulkStatus(
+                visibleWithRoomFocus.map((c) => c.id),
+                "blocked",
+              )
+            }
           >
             Blocked
           </button>
@@ -637,7 +998,10 @@ export function MarkBoard({
             className="chip"
             disabled={bulkBusy}
             onClick={() =>
-              void bulkStatus(visible.map((c) => c.id), "unreviewed")
+              void bulkStatus(
+                visibleWithRoomFocus.map((c) => c.id),
+                "unreviewed",
+              )
             }
           >
             Unreviewed
@@ -645,19 +1009,16 @@ export function MarkBoard({
         </div>
       ) : null}
 
-      {visible.length === 0 ? (
+      {visibleWithRoomFocus.length === 0 ? (
         <div className="empty">
           {show.channels.length === 0
             ? "No channels yet. Coordinators: open Tools to import a Workbench CSV or add channels by hand."
-            : "Nothing matches this filter."}
+            : "Nothing matches this filter / search."}
         </div>
       ) : (
         <div className="group-sections">
           {sections.map((section) => (
-            <section
-              key={section.name || "all"}
-              className="group-section"
-            >
+            <section key={section.name || "all"} className="group-section">
               {features.groups && section.name ? (
                 <div className="group-heading-row">
                   <h2 className="group-heading">
@@ -723,6 +1084,10 @@ export function MarkBoard({
                     rooms={show.rooms.map((r) => r.name)}
                     admin={admin}
                     features={features}
+                    highlighted={highlightId === channel.id}
+                    conflicted={show.conflicts?.some((c) =>
+                      c.channels.some((x) => x.id === channel.id),
+                    )}
                     onPatch={patchChannel}
                   />
                 ))}
@@ -731,8 +1096,36 @@ export function MarkBoard({
           ))}
         </div>
       )}
+
+      {undo ? (
+        <div className="undo-toast" role="status">
+          <span>Deployed {undo.channelName}</span>
+          <button
+            type="button"
+            onClick={() =>
+              void patchChannel(undo.channelId, {
+                deployed: false,
+                roomName: null,
+              })
+            }
+          >
+            Undo
+          </button>
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function formatAgo(iso: string): string {
+  const ms = Date.now() - Date.parse(iso);
+  if (!Number.isFinite(ms) || ms < 0) return "now";
+  const s = Math.floor(ms / 1000);
+  if (s < 45) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h`;
 }
 
 function ChannelRow({
@@ -740,12 +1133,16 @@ function ChannelRow({
   rooms,
   admin,
   features,
+  highlighted,
+  conflicted,
   onPatch,
 }: {
   channel: Channel;
   rooms: string[];
   admin: boolean;
   features: ShowFeatures;
+  highlighted?: boolean;
+  conflicted?: boolean;
   onPatch: (
     id: string,
     patch: Partial<{
@@ -754,12 +1151,17 @@ function ChannelRow({
       roomName: string | null;
       groupName: string | null;
     }>,
+    opts?: { undoToast?: boolean },
   ) => Promise<void>;
 }) {
   const blocked = features.status && channel.status === "blocked";
   const crewFrozen = features.crewLocked && !admin;
+  const inGrace =
+    features.lockDeployed &&
+    channel.deployed &&
+    withinDeployGrace(channel.deployedAt, DEPLOY_UNDO_GRACE_SEC);
   const deployLocked =
-    features.lockDeployed && channel.deployed && !admin;
+    features.lockDeployed && channel.deployed && !admin && !inGrace;
   const markDisabled = blocked || crewFrozen || deployLocked;
   const [roomDraft, setRoomDraft] = useState(channel.roomName ?? "");
   const [groupDraft, setGroupDraft] = useState(channel.groupName ?? "");
@@ -774,7 +1176,8 @@ function ChannelRow({
 
   return (
     <li
-      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${deployLocked ? " is-locked" : ""}`}
+      id={`ch-${channel.id}`}
+      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
         <div className="channel-main">
@@ -796,7 +1199,13 @@ function ChannelRow({
             {features.rooms && channel.deployed && channel.roomName ? (
               <span className="tag deployed-room">{channel.roomName}</span>
             ) : null}
-            {deployLocked ? <span className="tag locked-tag">Locked</span> : null}
+            {conflicted ? <span className="tag conflict-tag">Conflict</span> : null}
+            {deployLocked ? (
+              <span className="tag locked-tag">Locked</span>
+            ) : null}
+            {inGrace && !admin ? (
+              <span className="tag">Undo ok</span>
+            ) : null}
           </div>
         </div>
 
@@ -806,13 +1215,6 @@ function ChannelRow({
             className={`deploy-btn${channel.deployed ? " on" : ""}${markDisabled ? " disabled" : ""}`}
             disabled={markDisabled}
             aria-pressed={channel.deployed}
-            title={
-              deployLocked
-                ? "Locked after deploy — coordinator can unlock"
-                : crewFrozen
-                  ? "Board locked for crew"
-                  : undefined
-            }
             onClick={() => {
               if (markDisabled) return;
               if (channel.deployed) {
@@ -820,7 +1222,11 @@ function ChannelRow({
                 return;
               }
               if (!features.rooms) {
-                void onPatch(channel.id, { deployed: true, roomName: null });
+                void onPatch(
+                  channel.id,
+                  { deployed: true, roomName: null },
+                  { undoToast: true },
+                );
                 return;
               }
               const roomName = channel.roomName || roomDraft.trim() || null;
@@ -828,16 +1234,21 @@ function ChannelRow({
                 const room = window.prompt("Room?");
                 if (!room?.trim()) return;
                 setRoomDraft(room.trim());
-                void onPatch(channel.id, {
-                  deployed: true,
-                  roomName: room.trim(),
-                });
+                void onPatch(
+                  channel.id,
+                  { deployed: true, roomName: room.trim() },
+                  { undoToast: true },
+                );
                 return;
               }
-              void onPatch(channel.id, {
-                deployed: true,
-                roomName: roomName || (rooms[0] ?? null),
-              });
+              void onPatch(
+                channel.id,
+                {
+                  deployed: true,
+                  roomName: roomName || (rooms[0] ?? null),
+                },
+                { undoToast: true },
+              );
             }}
           >
             {channel.deployed ? "Deployed" : "Deploy"}
@@ -884,9 +1295,7 @@ function ChannelRow({
       ) : null}
 
       {features.rooms ? (
-        <label
-          className={`room-field${markDisabled ? " disabled" : ""}`}
-        >
+        <label className={`room-field${markDisabled ? " disabled" : ""}`}>
           <span>Room</span>
           {rooms.length > 0 ? (
             <select

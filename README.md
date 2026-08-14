@@ -18,9 +18,20 @@ Compact header brand (mark + wordmark) + **New show** form above the fold. Deskt
 - **Show options** (toggles): Deploy, Rooms, Groups, Allow/Block, **Lock after deploy**, **Lock board for crew** — turn on only what the floor needs
 - Bulk status: set all **visible** (filter/group) channels to Allowed / Blocked / Unreviewed, or per group heading
 
-**Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room; coordinator can still change it with Tools unlocked.
+**Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room after a short **undo grace** (~8s / toast Undo). Coordinator can still change anytime with Tools unlocked.
 
 **Lock board for crew**: freezes all crew marking for the show (handy when the plan is done).
+
+## Floor speed features
+
+- **Live sync** — boards poll revision every ~1.2s (`/api/shows/[token]/live`); Live pill in the header
+- **Import preview** — Workbench CSV shows a confirm table before replacing the board
+- **Search** — name / MHz jump (Enter scrolls to first match)
+- **My room** focus — filter to the room you’re dressing (persists in localStorage)
+- **Progress HUD** — sticky deployed count + per-group progress
+- **Activity strip** — recent deploy / import / settings events
+- **Conflict ping** — same frequency deployed more than once
+- **Export CSV** — snapshot of what actually went out
 
 ## Channel groups
 

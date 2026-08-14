@@ -1,4 +1,6 @@
 import type { Channel, ShowFeatures } from "./types";
+import { DEPLOY_UNDO_GRACE_SEC } from "./types";
+import { withinDeployGrace } from "./board-helpers";
 
 type CrewPatch = {
   status?: unknown;
@@ -9,7 +11,7 @@ type CrewPatch = {
 
 /**
  * Returns an error message if a non-admin patch violates show feature locks.
- * Admins bypass all of these.
+ * Admins bypass all of these. Deploy undo has a short grace window.
  */
 export function crewPatchBlocked(
   features: ShowFeatures,
@@ -37,6 +39,11 @@ export function crewPatchBlocked(
     const undeploying = patch.deployed === false;
     const changingRoom =
       patch.roomName !== undefined && patch.roomName !== channel.roomName;
+    const inGrace = withinDeployGrace(
+      channel.deployedAt,
+      DEPLOY_UNDO_GRACE_SEC,
+    );
+    if (undeploying && inGrace) return null;
     if (undeploying || changingRoom) {
       return "Deployed channels are locked. Coordinator can change them after unlock.";
     }
