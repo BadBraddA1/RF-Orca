@@ -4,7 +4,9 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 **Live:** https://rforca.com · https://rforca.braddcorp.com · https://rf-orca.vercel.app
 
-## Home
+## Demo
+
+`/demo` plays a simulated show (fake Workbench import, deploys by room, progress HUD, activity strip, frequency conflict, board lock). Nothing is written to the database. Home links **Watch a live demo**.
 
 Compact header brand + **New show** form above the fold. Below that, **Happening now** lists shows created in the last **10 days** (name, deploy progress, age). Older shows stay in the database and remain reachable by share link — they just leave the home list.
 

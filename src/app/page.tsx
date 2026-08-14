@@ -27,6 +27,11 @@ export default async function HomePage() {
               shows stay listed here for {ACTIVE_SHOW_HOME_DAYS} days, then drop
               off (not deleted).
             </p>
+            <p className="hero-demo-link">
+              <Link href="/demo" className="btn-ghost">
+                Watch a live demo
+              </Link>
+            </p>
           </div>
 
           <NewShowForm />
