@@ -14,9 +14,11 @@ export const ogImageAlt =
   "RF Orca — Radio Frequency Orchestrator, crew mark board for live RF deploy tracking"
 
 /** Working production host. */
-const LIVE_SITE_URL = "https://rforca.braddcorp.com"
-/** Fallback if custom domain is unavailable. */
+const LIVE_SITE_URL = "https://rforca.com"
+/** Vercel default host. */
 export const vercelFallbackUrl = "https://rf-orca.vercel.app"
+/** Braddcorp subdomain alias. */
+export const braddcorpAliasUrl = "https://rforca.braddcorp.com"
 
 function resolveSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "").trim()
