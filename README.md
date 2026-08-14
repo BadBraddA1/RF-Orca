@@ -1,9 +1,8 @@
 # RF Orca (Radio Frequency Orchestrator)
 
-Crew-facing RF board — nickname **Orca**. A lean, custom alternative to SoundBase for the floor: after coordination (Workbench / Coord / etc.), share one link so crews can group channels and mark what’s deployed by room.
+Crew-facing RF mark board — nickname **Orca**. After frequency coordination is done (e.g. Shure Wireless Workbench), share one link so the floor can group channels and mark what’s deployed by room.
 
 **Live:** https://rf-orca.vercel.app · custom domain https://rforca.braddcorp.com (DNS pending — do not set `NEXT_PUBLIC_SITE_URL` to it until DNS resolves, or OG previews break)
-
 
 ## Home
 
@@ -20,7 +19,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 **Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room after a short **undo grace** (~8s / toast Undo). Coordinator can still change anytime with Tools unlocked.
 
-**Lock board for crew**: freezes all crew marking for the show (handy when the plan is done).
+**Lock board for crew**: freezes all crew marking for the show (handy when the plan is set).
 
 ## Floor speed features
 
@@ -31,7 +30,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Progress HUD** — sticky deployed count + per-group progress
 - **Activity strip** — recent deploy / import / settings events
 - **Conflict ping** — same frequency deployed more than once
-- **Export CSV** — snapshot of what actually went out
+- **Export CSV** — snapshot of the board
 
 ## Channel groups
 

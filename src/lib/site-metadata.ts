@@ -10,9 +10,9 @@ export const siteShortName = "Orca"
 export const siteTitle = "RF Orca — Radio Frequency Orchestrator"
 /** Keep ≤ ~125 characters for social truncations. */
 export const siteDescription =
-  "Custom SoundBase-style crew board: share Workbench plans, group channels, and track what’s deployed by room."
+  "Share a frequency plan with the floor: group channels and track what’s deployed by room — no accounts."
 export const ogImageAlt =
-  "RF Orca — Radio Frequency Orchestrator, a lean crew alternative for RF deploy tracking"
+  "RF Orca — Radio Frequency Orchestrator, crew mark board for live RF deploy tracking"
 
 /** Working production host (DNS for custom domain may still be pending). */
 const LIVE_SITE_URL = "https://rf-orca.vercel.app"
@@ -39,7 +39,8 @@ export const twitterImagePath = "/twitter-image"
 export const siteKeywords = [
   "RF Orca",
   "Radio Frequency Orchestrator",
-  "Shure Workbench",
   "wireless microphone",
   "frequency coordination",
+  "Shure Workbench",
+  "live production RF",
 ] as const

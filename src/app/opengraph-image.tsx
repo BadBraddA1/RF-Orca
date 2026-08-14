@@ -60,7 +60,7 @@ export default async function Image() {
             Radio Frequency Orchestrator
           </div>
           <div style={{ fontSize: 24, color: "#b6c5de", lineHeight: 1.35 }}>
-            Share Workbench plans. Group channels. Track what’s deployed.
+            Share the plan. Group channels. Track what’s deployed.
           </div>
           <div style={{ marginTop: 8, fontSize: 20, color: "#ff9a4a" }}>
             {host}

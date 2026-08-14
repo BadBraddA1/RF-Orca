@@ -1,6 +1,6 @@
 # RF-Orca — Product & Build Plan
 
-Shareable RF coordination board for live crews — a custom, lean alternative to SoundBase for the floor. Import a Shure Wireless Workbench export, lock which channels are allowed, and track which frequencies are actually deployed (and in which room).
+Shareable RF mark board for live crews. Import a Shure Wireless Workbench export (or enter channels by hand), lock which channels are allowed, and track which frequencies are actually deployed (and in which room).
 
 ---
 

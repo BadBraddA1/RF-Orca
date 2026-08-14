@@ -19,13 +19,13 @@ export default async function HomePage() {
             <p className="hero-kicker">Radio Frequency Orchestrator</p>
             <h1>New show</h1>
             <p className="hero-lead">
-              Lean SoundBase alternative for the floor — one link, mark what’s
-              deployed.
+              Share the plan with the floor — one link to group channels and
+              mark what’s deployed.
             </p>
             <p className="hero-support">
-              Workbench CSV or hand-entry. No accounts. Active shows stay on
-              this page for {ACTIVE_SHOW_HOME_DAYS} days, then drop off the list
-              (not deleted).
+              Bring a Workbench CSV or add channels by hand. No accounts. Active
+              shows stay listed here for {ACTIVE_SHOW_HOME_DAYS} days, then drop
+              off (not deleted).
             </p>
           </div>
 
