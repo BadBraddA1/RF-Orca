@@ -4,6 +4,7 @@ import {
   createShareToken,
   hashPassword,
 } from "./crypto";
+import { mergeFeatures, parseFeatures } from "./features";
 import type {
   Channel,
   ChannelGroup,
@@ -12,8 +13,10 @@ import type {
   ParsedChannelRow,
   Room,
   Show,
+  ShowFeatures,
   ShowPublic,
 } from "./types";
+import { DEFAULT_SHOW_FEATURES } from "./types";
 
 type StoreMode = "memory" | "turso";
 
@@ -59,6 +62,7 @@ async function ensureSchema(): Promise<void> {
       admin_password_hash TEXT NOT NULL,
       rooms TEXT NOT NULL DEFAULT '[]',
       groups TEXT NOT NULL DEFAULT '[]',
+      features TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
@@ -86,6 +90,11 @@ async function ensureSchema(): Promise<void> {
     "shows",
     "groups",
     `ALTER TABLE shows ADD COLUMN groups TEXT NOT NULL DEFAULT '[]'`,
+  );
+  await ensureColumn(
+    "shows",
+    "features",
+    `ALTER TABLE shows ADD COLUMN features TEXT NOT NULL DEFAULT '{}'`,
   );
   await ensureColumn(
     "channels",
@@ -149,13 +158,18 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
   await ensureSchema();
   if (mode() === "memory") {
     for (const show of getMemory().shows.values()) {
-      if (show.shareToken === shareToken) return show;
+      if (show.shareToken === shareToken) {
+        return {
+          ...show,
+          features: parseFeatures(show.features ?? DEFAULT_SHOW_FEATURES),
+        };
+      }
     }
     return null;
   }
   const db = getSql();
   const rows = await db`
-    SELECT id, name, share_token, admin_password_hash, rooms, groups, created_at
+    SELECT id, name, share_token, admin_password_hash, rooms, groups, features, created_at
     FROM shows WHERE share_token = ${shareToken} LIMIT 1
   `;
   const row = rows[0];
@@ -167,6 +181,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     adminPasswordHash: row.admin_password_hash as string,
     rooms: parseJsonList<Room>(row.rooms),
     groups: parseJsonList<ChannelGroup>(row.groups),
+    features: parseFeatures(row.features),
     createdAt: new Date(row.created_at as string).toISOString(),
   };
 }
@@ -219,6 +234,7 @@ export async function createShow(input: {
     adminPasswordHash: hashPassword(input.adminPassword),
     rooms: [],
     groups: [],
+    features: { ...DEFAULT_SHOW_FEATURES },
     createdAt: new Date().toISOString(),
   };
 
@@ -231,7 +247,7 @@ export async function createShow(input: {
 
   const db = getSql();
   await db`
-    INSERT INTO shows (id, name, share_token, admin_password_hash, rooms, groups, created_at)
+    INSERT INTO shows (id, name, share_token, admin_password_hash, rooms, groups, features, created_at)
     VALUES (
       ${show.id},
       ${show.name},
@@ -239,6 +255,7 @@ export async function createShow(input: {
       ${show.adminPasswordHash},
       ${JSON.stringify(show.rooms)},
       ${JSON.stringify(show.groups)},
+      ${JSON.stringify(show.features)},
       ${show.createdAt}
     )
   `;
@@ -557,6 +574,27 @@ export async function setGroups(
   await persistShowGroups(nextShow);
   const channels = await getChannels(show.id);
   return toPublic(nextShow, channels);
+}
+
+export async function updateShowFeatures(
+  shareToken: string,
+  patch: Partial<ShowFeatures>,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const features = mergeFeatures(show.features, patch);
+  const nextShow: Show = { ...show, features };
+
+  if (mode() === "memory") {
+    getMemory().shows.set(show.id, nextShow);
+    return toPublic(nextShow, await getChannels(show.id));
+  }
+
+  const db = getSql();
+  await db`
+    UPDATE shows SET features = ${JSON.stringify(features)} WHERE id = ${show.id}
+  `;
+  return toPublic(nextShow, await getChannels(show.id));
 }
 
 export function getStorageMode(): StoreMode {

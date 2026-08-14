@@ -569,6 +569,95 @@ a {
   gap: 1rem;
 }
 
+.feature-toggles {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+}
+
+.toggle-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  cursor: pointer;
+}
+
+.toggle-copy {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.toggle-copy strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.toggle-row input[type="checkbox"] {
+  appearance: none;
+  width: 2.75rem;
+  height: 1.55rem;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 70%, #000);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.toggle-row input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.toggle-row input[type="checkbox"]:checked {
+  background: color-mix(in oklab, var(--sea-bright) 35%, transparent);
+  border-color: color-mix(in oklab, var(--sea-bright) 55%, transparent);
+}
+
+.toggle-row input[type="checkbox"]:checked::after {
+  transform: translateX(1.15rem);
+  background: var(--sea-bright);
+}
+
+.board-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.board-banner.locked {
+  background: color-mix(in oklab, var(--signal) 16%, transparent);
+  border-color: color-mix(in oklab, var(--signal) 40%, transparent);
+  color: var(--signal-hot);
+}
+
+.tag.locked-tag {
+  background: color-mix(in oklab, var(--signal) 20%, transparent);
+  color: var(--signal-hot);
+}
+
+.channel-row.is-locked {
+  opacity: 0.92;
+}
+
+
 @media (min-width: 800px) {
   .tools-grid {
     grid-template-columns: 1fr 1fr;

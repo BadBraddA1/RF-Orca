@@ -10,7 +10,12 @@ Crew-facing RF board — nickname **Orca**. A lean, custom alternative to SoundB
 - Create with an **admin password**
 - Crews open the show link → **mark view** (Deploy + room), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
+- **Show options** (toggles): Deploy, Rooms, Groups, Allow/Block, **Lock after deploy**, **Lock board for crew** — turn on only what the floor needs
 - Bulk status: set all **visible** (filter/group) channels to Allowed / Blocked / Unreviewed, or per group heading
+
+**Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room; coordinator can still change it with Tools unlocked.
+
+**Lock board for crew**: freezes all crew marking for the show (handy when the plan is done).
 
 ## Channel groups
 

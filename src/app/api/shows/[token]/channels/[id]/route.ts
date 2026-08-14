@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminUnlocked } from "@/lib/admin";
-import { updateChannel } from "@/lib/store";
+import { crewPatchBlocked } from "@/lib/crew-guard";
+import { getShowPublic, updateChannel } from "@/lib/store";
 
 const bodySchema = z.object({
   status: z.enum(["allowed", "blocked", "unreviewed"]).optional(),
@@ -22,11 +23,27 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid patch." }, { status: 400 });
   }
 
+  const admin = await isAdminUnlocked(token);
   if (
     (parsed.data.status || parsed.data.groupName !== undefined) &&
-    !(await isAdminUnlocked(token))
+    !admin
   ) {
     return NextResponse.json({ error: "Admin unlock required." }, { status: 403 });
+  }
+
+  if (!admin) {
+    const current = await getShowPublic(token);
+    if (!current) {
+      return NextResponse.json({ error: "Channel not found." }, { status: 404 });
+    }
+    const channel = current.channels.find((c) => c.id === id);
+    if (!channel) {
+      return NextResponse.json({ error: "Channel not found." }, { status: 404 });
+    }
+    const blocked = crewPatchBlocked(current.features, channel, parsed.data);
+    if (blocked) {
+      return NextResponse.json({ error: blocked }, { status: 403 });
+    }
   }
 
   try {

@@ -43,10 +43,11 @@ mark Allowed / Blocked, set up rooms
         ↓
 Share the same show URL with crews (no password)
         ↓
-Crews use mark view: tap **Deploy** / **Deployed** and set a room
-        + select Room
-        ↓
-Board updates for everyone on that link
+- Quiet **Coordinator / Tools** unlocks import + show options
+- **Show options (toggles):** Deploy, Rooms, Groups, Allow/Block, Lock after deploy, Lock board for crew
+- Crews use mark view: tap **Deploy** / **Deployed** and set a room (when those options are on)
+- **Lock after deploy** (default on): crew cannot undo a deployed channel; coordinator still can
+- **Lock board for crew**: freeze marking when the plan is set
 ```
 
 ### Access model (decided)
