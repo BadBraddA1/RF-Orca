@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og"
-import { readFile } from "node:fs/promises"
-import { join } from "node:path"
+import { loadOgLogoDataUrl } from "@/lib/og-logo"
 import { ogImageAlt, siteName, siteUrl } from "@/lib/site-metadata"
 
 export const alt = ogImageAlt
@@ -10,13 +9,7 @@ export const runtime = "nodejs"
 
 export default async function Image() {
   const host = new URL(siteUrl).host
-  let logoSrc: string | null = null
-  try {
-    const buf = await readFile(join(process.cwd(), "public/brand/icon.png"))
-    logoSrc = `data:image/png;base64,${buf.toString("base64")}`
-  } catch {
-    logoSrc = null
-  }
+  const logoSrc = await loadOgLogoDataUrl()
 
   return new ImageResponse(
     (

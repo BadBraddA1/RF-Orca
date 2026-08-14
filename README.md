@@ -58,7 +58,9 @@ Transparent logo assets in `public/brand/` (navy plate removed). Favicon / apple
 
 ## Site chrome
 
-Day-one chrome: `lib/site-metadata.ts`, `/opengraph-image` + `/twitter-image` (1200×630), branded `/not-found`, `/privacy`, `robots.ts`, `sitemap.ts`, Vercel Analytics. Spot-check `/opengraph-image` and a bogus URL after deploy.
+Day-one chrome: `lib/site-metadata.ts`, `/opengraph-image` + `/twitter-image` (1200×630), branded `/not-found`, `/privacy`, `robots.ts`, `sitemap.ts`, Vercel Analytics.
+
+**Per-show OG:** `/s/[token]/opengraph-image` (and twitter) renders the show name + deploy stats for link previews. Spot-check `/s/{token}/opengraph-image` after create.
 
 ## Plan
 
