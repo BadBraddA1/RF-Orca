@@ -245,12 +245,34 @@ a {
 
 .password-row {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 0.75rem;
+  min-width: 0;
 }
 
-@media (min-width: 520px) {
+.password-row .field {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.password-row .field > span {
+  display: block;
+}
+
+.password-row .field input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1100px) {
   .password-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -308,6 +330,7 @@ a {
   gap: 0.35rem;
   font-size: 0.92rem;
   font-weight: 600;
+  min-width: 0;
 }
 
 .field input,
@@ -322,6 +345,10 @@ a {
   padding: 0.7rem 0.85rem;
   background: color-mix(in oklab, var(--navy) 70%, white 8%);
   color: var(--ink);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .btn-primary,
@@ -1299,8 +1326,8 @@ a {
   }
 
   .password-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.55rem;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .field input,
