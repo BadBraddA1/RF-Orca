@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Source_Sans_3, Syne } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const syne = Syne({
@@ -49,6 +50,7 @@ export default function RootLayout({
         className={`${syne.variable} ${sourceSans.variable} ${ibmPlexMono.variable}`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );
