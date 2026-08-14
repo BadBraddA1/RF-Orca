@@ -6,6 +6,7 @@ import {
 } from "./crypto";
 import { mergeFeatures, parseFeatures } from "./features";
 import { findFreqConflicts, parseActivity } from "./board-helpers";
+import { publishShowUpdate } from "./ably";
 import type {
   ActivityEvent,
   ActivityKind,
@@ -207,6 +208,12 @@ async function persistShowMeta(show: Show): Promise<void> {
   `;
 }
 
+/** Persist show meta and ping Ably subscribers (no-op without ABLY_API_KEY). */
+async function finishMutation(show: Show): Promise<void> {
+  await persistShowMeta(show);
+  void publishShowUpdate(show.shareToken, show.revision ?? 0);
+}
+
 async function getShowByToken(shareToken: string): Promise<Show | null> {
   await ensureSchema();
   if (mode() === "memory") {
@@ -376,14 +383,14 @@ export async function replaceChannelsFromImport(
   );
 
   if (mode() === "memory") {
-    getMemory().shows.set(nextShow.id, nextShow);
     getMemory().channels.set(show.id, channels);
+    await finishMutation(nextShow);
     return toPublic(nextShow, channels);
   }
 
   const db = getSql();
   await db`DELETE FROM channels WHERE show_id = ${show.id}`;
-  await persistShowMeta(nextShow);
+  await finishMutation(nextShow);
   for (const ch of channels) {
     await db`
       INSERT INTO channels (
@@ -433,12 +440,12 @@ export async function addManualChannel(
   const channels = [...existing, channel];
 
   if (mode() === "memory") {
-    getMemory().shows.set(nextShow.id, nextShow);
     getMemory().channels.set(show.id, channels);
+    await finishMutation(nextShow);
     return toPublic(nextShow, channels);
   }
 
-  await persistShowMeta(nextShow);
+  await finishMutation(nextShow);
   const db = getSql();
   await db`
     INSERT INTO channels (
@@ -534,12 +541,12 @@ export async function updateChannel(
   nextShow = touchShow(nextShow, activityKind, activityMessage, next.id);
 
   if (mode() === "memory") {
-    getMemory().shows.set(nextShow.id, nextShow);
     getMemory().channels.set(show.id, channels);
+    await finishMutation(nextShow);
     return toPublic(nextShow, channels);
   }
 
-  await persistShowMeta(nextShow);
+  await finishMutation(nextShow);
   const db = getSql();
   await db`
     UPDATE channels SET
@@ -586,12 +593,12 @@ export async function bulkSetChannelStatus(
   );
 
   if (mode() === "memory") {
-    getMemory().shows.set(nextShow.id, nextShow);
     getMemory().channels.set(show.id, next);
+    await finishMutation(nextShow);
     return toPublic(nextShow, next);
   }
 
-  await persistShowMeta(nextShow);
+  await finishMutation(nextShow);
   const db = getSql();
   const clearDeploy = status === "blocked";
   for (const id of idSet) {
@@ -629,12 +636,12 @@ export async function setRooms(
   const nextShow = touchShow({ ...show, rooms }, "rooms", "Updated rooms");
 
   if (mode() === "memory") {
-    getMemory().shows.set(show.id, nextShow);
+    await finishMutation(nextShow);
     const channels = await getChannels(show.id);
     return toPublic(nextShow, channels);
   }
 
-  await persistShowMeta(nextShow);
+  await finishMutation(nextShow);
   const channels = await getChannels(show.id);
   return toPublic(nextShow, channels);
 }
@@ -658,12 +665,12 @@ export async function setGroups(
   const nextShow = touchShow({ ...show, groups }, "groups", "Updated groups");
 
   if (mode() === "memory") {
-    getMemory().shows.set(show.id, nextShow);
+    await finishMutation(nextShow);
     const channels = await getChannels(show.id);
     return toPublic(nextShow, channels);
   }
 
-  await persistShowMeta(nextShow);
+  await finishMutation(nextShow);
   const channels = await getChannels(show.id);
   return toPublic(nextShow, channels);
 }
@@ -682,11 +689,11 @@ export async function updateShowFeatures(
   );
 
   if (mode() === "memory") {
-    getMemory().shows.set(show.id, nextShow);
+    await finishMutation(nextShow);
     return toPublic(nextShow, await getChannels(show.id));
   }
 
-  await persistShowMeta(nextShow);
+  await finishMutation(nextShow);
   return toPublic(nextShow, await getChannels(show.id));
 }
 

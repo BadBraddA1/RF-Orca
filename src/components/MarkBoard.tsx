@@ -11,6 +11,7 @@ import {
 import { BrandLockup } from "@/components/BrandLockup";
 import { withinDeployGrace } from "@/lib/board-helpers";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
+import { useShowLive } from "@/hooks/useShowLive";
 import type {
   Channel,
   ChannelStatus,
@@ -138,7 +139,6 @@ export function MarkBoard({
   const [copied, setCopied] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
-  const [live, setLive] = useState(true);
   const [undo, setUndo] = useState<UndoToast | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const revisionRef = useRef(initialShow.revision ?? 0);
@@ -175,40 +175,18 @@ export function MarkBoard({
     setGroupsText(next.groups.map((g) => g.name).join("\n"));
   }, []);
 
-  // Live sync — poll revision every 1.2s
-  useEffect(() => {
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const res = await fetch(
-          `/api/shows/${token}/live?r=${revisionRef.current}`,
-          { cache: "no-store" },
-        );
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        if (data.unchanged) {
-          setLive(true);
-          return;
-        }
-        if (data.show) {
-          startTransition(() => {
-            applyShow(data.show, data.admin);
-          });
-          setLive(true);
-        }
-      } catch {
-        setLive(false);
-      }
-    };
-    const id = window.setInterval(() => {
-      void tick();
-    }, 1200);
-    void tick();
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
+  const refreshFromServer = useCallback(async () => {
+    const res = await fetch(`/api/shows/${token}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    startTransition(() => {
+      applyShow(data.show, data.admin);
+    });
   }, [token, applyShow]);
+
+  const { live, transport } = useShowLive(token, () => {
+    void refreshFromServer();
+  });
 
   const groupNames = useMemo(() => {
     if (!features.groups) return [];
@@ -580,7 +558,11 @@ export function MarkBoard({
             {features.deploy ? "Tap Deploy" : "Frequency board"}
             {features.rooms ? ", set the room" : ""}.
             <span className={`live-pill${live ? " on" : ""}`}>
-              {live ? "Live" : "Reconnecting…"}
+              {live
+                ? transport === "ably"
+                  ? "Live"
+                  : "Live · poll"
+                : "Reconnecting…"}
             </span>
             {show.storageMode === "memory" ? (
               <span className="demo-pill"> Demo storage</span>

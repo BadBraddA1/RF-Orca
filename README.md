@@ -24,7 +24,7 @@ Compact header brand (mark + wordmark) + **New show** form above the fold. Deskt
 
 ## Floor speed features
 
-- **Live sync** — boards poll revision every ~1.2s (`/api/shows/[token]/live`); Live pill in the header
+- **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Import preview** — Workbench CSV shows a confirm table before replacing the board
 - **Search** — name / MHz jump (Enter scrolls to first match)
 - **My room** focus — filter to the room you’re dressing (persists in localStorage)
@@ -62,6 +62,7 @@ Open [http://localhost:3000](http://localhost:3000). Sample CSV: `fixtures/wwb/s
 TURSO_DATABASE_URL=libsql://rf-orca-….turso.io
 TURSO_AUTH_TOKEN=…
 NEXT_PUBLIC_SITE_URL=https://rf-orca.vercel.app
+ABLY_API_KEY=…   # Ably app “RF Orca” server key (token auth via /api/ably-auth)
 ```
 
 ## Brand
