@@ -2,7 +2,8 @@
 
 Crew-facing RF board — nickname **Orca**. A lean, custom alternative to SoundBase for the floor: after coordination (Workbench / Coord / etc.), share one link so crews can group channels and mark what’s deployed by room.
 
-**Live:** https://rforca.braddcorp.com (DNS may still be pending) · https://rf-orca.vercel.app
+**Live:** https://rf-orca.vercel.app · custom domain https://rforca.braddcorp.com (DNS pending — do not set `NEXT_PUBLIC_SITE_URL` to it until DNS resolves, or OG previews break)
+
 
 ## Home
 
@@ -48,7 +49,7 @@ Open [http://localhost:3000](http://localhost:3000). Sample CSV: `fixtures/wwb/s
 ```bash
 TURSO_DATABASE_URL=libsql://rf-orca-….turso.io
 TURSO_AUTH_TOKEN=…
-NEXT_PUBLIC_SITE_URL=https://rforca.braddcorp.com
+NEXT_PUBLIC_SITE_URL=https://rf-orca.vercel.app
 ```
 
 ## Brand
