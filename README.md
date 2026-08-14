@@ -4,6 +4,10 @@ Crew-facing RF board — nickname **Orca**. A lean, custom alternative to SoundB
 
 **Live:** https://rforca.braddcorp.com (DNS may still be pending) · https://rf-orca.vercel.app
 
+## Home
+
+Compact header brand (mark + wordmark) + **New show** form above the fold. Desktop: copy left, form right. Mobile: short pitch, passwords side-by-side, Create without scrolling past a giant logo.
+
 ## Access model
 
 - Home → **New Show** only (no show list)

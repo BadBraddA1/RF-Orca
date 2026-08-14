@@ -113,6 +113,12 @@ a {
   overflow: hidden;
 }
 
+.hero-create {
+  min-height: calc(100dvh - 3.5rem);
+  align-items: start;
+  padding: 1.15rem clamp(1rem, 3.5vw, 3rem) 1.5rem;
+}
+
 .hero::before {
   content: "";
   position: absolute;
@@ -127,6 +133,11 @@ a {
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 75%);
   pointer-events: none;
   animation: sweep 12s ease-in-out infinite alternate;
+}
+
+.hero-create::before {
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), transparent 55%);
+  opacity: 0.85;
 }
 
 @keyframes sweep {
@@ -148,6 +159,49 @@ a {
   gap: 1.25rem;
 }
 
+.hero-create-inner {
+  position: relative;
+  z-index: 1;
+  width: min(58rem, 100%);
+  margin-inline: auto;
+  display: grid;
+  gap: 1.1rem;
+  align-content: start;
+}
+
+.hero-create .brand-lockup-header {
+  gap: 0.7rem;
+}
+
+.hero-create .brand-lockup-header .brand-logo {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.hero-create .brand-name {
+  font-size: 1.35rem;
+}
+
+.hero-create-grid {
+  display: grid;
+  gap: 1rem 2rem;
+  align-items: start;
+}
+
+.hero-copy {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+}
+
+.hero-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
 .hero h1 {
   position: absolute;
   width: 1px;
@@ -156,18 +210,59 @@ a {
   clip: rect(0 0 0 0);
 }
 
+.hero-create h1 {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.85rem, 4vw, 2.35rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
 .hero-lead {
   margin: 0;
-  font-size: clamp(1.15rem, 2.4vw, 1.45rem);
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
   line-height: 1.35;
   max-width: 28rem;
   color: var(--ink);
+  text-wrap: pretty;
 }
 
 .hero-support {
   margin: 0;
   color: var(--ink-soft);
-  max-width: 26rem;
+  max-width: 28rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.password-row {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 520px) {
+  .password-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 840px) {
+  .hero-create-grid {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+    gap: 1.5rem 2.25rem;
+  }
+
+  .hero-copy {
+    padding-top: 0.35rem;
+  }
 }
 
 .new-show-form,
@@ -184,16 +279,23 @@ a {
 
 .new-show-form {
   display: grid;
-  gap: 0.9rem;
-  padding: 1.25rem;
-  margin-top: 0.5rem;
-  animation: rise 0.7s ease both;
+  gap: 0.75rem;
+  padding: 1.05rem 1.1rem;
+  margin-top: 0;
+  animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero::before,
+  .new-show-form {
+    animation: none;
+  }
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -935,13 +1037,56 @@ a {
     align-items: start;
   }
 
+  .hero-create {
+    padding-top: 0.85rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .hero-create-inner {
+    gap: 0.85rem;
+  }
+
+  .hero-create .brand-lockup-header .brand-logo {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .hero-create .brand-name {
+    font-size: 1.2rem;
+  }
+
+  .hero-create .brand-tagline {
+    display: none;
+  }
+
+  .hero-kicker {
+    display: none;
+  }
+
+  .hero-create h1 {
+    font-size: 1.7rem;
+  }
+
+  .hero-lead {
+    font-size: 1rem;
+  }
+
+  .hero-support {
+    font-size: 0.9rem;
+  }
+
   .hero-inner {
     gap: 0.9rem;
     max-width: none;
   }
 
   .new-show-form {
-    padding: 1rem;
+    padding: 0.9rem;
+  }
+
+  .password-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
   }
 
   .field input,

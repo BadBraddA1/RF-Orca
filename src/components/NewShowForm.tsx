@@ -49,38 +49,41 @@ export function NewShowForm() {
           required
           maxLength={120}
           autoComplete="off"
+          autoFocus
         />
       </label>
-      <label className="field">
-        <span>Admin password</span>
-        <input
-          type="password"
-          value={adminPassword}
-          onChange={(e) => setAdminPassword(e.target.value)}
-          placeholder="For import & allow/block edits"
-          required
-          minLength={4}
-          autoComplete="new-password"
-        />
-      </label>
-      <label className="field">
-        <span>Confirm password</span>
-        <input
-          type="password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          required
-          minLength={4}
-          autoComplete="new-password"
-        />
-      </label>
+      <div className="password-row">
+        <label className="field">
+          <span>Admin password</span>
+          <input
+            type="password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+            placeholder="Coordinator unlock"
+            required
+            minLength={4}
+            autoComplete="new-password"
+          />
+        </label>
+        <label className="field">
+          <span>Confirm</span>
+          <input
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Same password"
+            required
+            minLength={4}
+            autoComplete="new-password"
+          />
+        </label>
+      </div>
       {error ? <p className="form-error">{error}</p> : null}
       <button type="submit" className="btn-primary" disabled={pending}>
         {pending ? "Creating…" : "Create show"}
       </button>
       <p className="form-hint">
-        You’ll get a share link. Crews open it for the mark view — no login.
-        Save the link; shows are not listed on the home page.
+        Creates a share link for the mark view — crews need no login.
       </p>
     </form>
   );
