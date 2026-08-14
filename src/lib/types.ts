@@ -39,6 +39,28 @@ export const DEFAULT_SHOW_FEATURES: ShowFeatures = {
   crewLocked: false,
 };
 
+/** Seconds after deploy when crew may still undo despite lockDeployed. */
+export const DEPLOY_UNDO_GRACE_SEC = 8;
+
+export type ActivityKind =
+  | "deploy"
+  | "undeploy"
+  | "room"
+  | "status"
+  | "import"
+  | "add"
+  | "settings"
+  | "groups"
+  | "rooms";
+
+export type ActivityEvent = {
+  id: string;
+  at: string;
+  kind: ActivityKind;
+  message: string;
+  channelId?: string | null;
+};
+
 export type Channel = {
   id: string;
   showId: string;
@@ -59,6 +81,11 @@ export type Channel = {
   sortOrder: number;
 };
 
+export type FreqConflict = {
+  frequencyMhz: number;
+  channels: { id: string; name: string; roomName: string | null }[];
+};
+
 export type Show = {
   id: string;
   name: string;
@@ -68,12 +95,17 @@ export type Show = {
   /** Ordered channel-group labels for this show. */
   groups: ChannelGroup[];
   features: ShowFeatures;
+  /** Monotonic counter — clients poll and refresh when it changes. */
+  revision: number;
+  /** Newest-first activity for the live strip (capped). */
+  activity: ActivityEvent[];
   createdAt: string;
 };
 
 export type ShowPublic = Omit<Show, "adminPasswordHash"> & {
   channels: Channel[];
   storageMode: "memory" | "turso";
+  conflicts: FreqConflict[];
 };
 
 export type ParsedChannelRow = {

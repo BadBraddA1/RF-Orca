@@ -5,7 +5,10 @@ import {
   hashPassword,
 } from "./crypto";
 import { mergeFeatures, parseFeatures } from "./features";
+import { findFreqConflicts, parseActivity } from "./board-helpers";
 import type {
+  ActivityEvent,
+  ActivityKind,
   Channel,
   ChannelGroup,
   ChannelStatus,
@@ -20,10 +23,12 @@ import { DEFAULT_SHOW_FEATURES } from "./types";
 
 type StoreMode = "memory" | "turso";
 
+const SCHEMA_VERSION = 3;
+
 type GlobalStore = {
   shows: Map<string, Show>;
   channels: Map<string, Channel[]>;
-  schemaReady?: boolean;
+  schemaVersion?: number;
 };
 
 function getMemory(): GlobalStore {
@@ -52,7 +57,7 @@ async function ensureColumn(
 async function ensureSchema(): Promise<void> {
   if (mode() !== "turso") return;
   const mem = getMemory();
-  if (mem.schemaReady) return;
+  if (mem.schemaVersion === SCHEMA_VERSION) return;
   const db = getSql();
   await db.query(`
     CREATE TABLE IF NOT EXISTS shows (
@@ -97,6 +102,16 @@ async function ensureSchema(): Promise<void> {
     `ALTER TABLE shows ADD COLUMN features TEXT NOT NULL DEFAULT '{}'`,
   );
   await ensureColumn(
+    "shows",
+    "revision",
+    `ALTER TABLE shows ADD COLUMN revision INTEGER NOT NULL DEFAULT 0`,
+  );
+  await ensureColumn(
+    "shows",
+    "activity",
+    `ALTER TABLE shows ADD COLUMN activity TEXT NOT NULL DEFAULT '[]'`,
+  );
+  await ensureColumn(
     "channels",
     "group_name",
     `ALTER TABLE channels ADD COLUMN group_name TEXT`,
@@ -104,7 +119,7 @@ async function ensureSchema(): Promise<void> {
   await db.query(
     `CREATE INDEX IF NOT EXISTS channels_show_id_idx ON channels(show_id)`,
   );
-  mem.schemaReady = true;
+  mem.schemaVersion = SCHEMA_VERSION;
 }
 
 function parseJsonList<T extends { id: string; name: string }>(
@@ -128,6 +143,7 @@ function toPublic(show: Show, channels: Channel[]): ShowPublic {
     ...rest,
     channels: [...channels].sort((a, b) => a.sortOrder - b.sortOrder),
     storageMode: mode(),
+    conflicts: findFreqConflicts(channels),
   };
 }
 
@@ -154,6 +170,43 @@ function mapChannelRow(row: Record<string, unknown>): Channel {
   };
 }
 
+function touchShow(
+  show: Show,
+  kind: ActivityKind,
+  message: string,
+  channelId?: string | null,
+): Show {
+  const entry: ActivityEvent = {
+    id: createId("act"),
+    at: new Date().toISOString(),
+    kind,
+    message,
+    channelId: channelId ?? null,
+  };
+  return {
+    ...show,
+    revision: (show.revision ?? 0) + 1,
+    activity: [entry, ...(show.activity ?? [])].slice(0, 40),
+  };
+}
+
+async function persistShowMeta(show: Show): Promise<void> {
+  if (mode() === "memory") {
+    getMemory().shows.set(show.id, show);
+    return;
+  }
+  const db = getSql();
+  await db`
+    UPDATE shows SET
+      rooms = ${JSON.stringify(show.rooms)},
+      groups = ${JSON.stringify(show.groups)},
+      features = ${JSON.stringify(show.features)},
+      revision = ${show.revision},
+      activity = ${JSON.stringify(show.activity)}
+    WHERE id = ${show.id}
+  `;
+}
+
 async function getShowByToken(shareToken: string): Promise<Show | null> {
   await ensureSchema();
   if (mode() === "memory") {
@@ -162,6 +215,8 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
         return {
           ...show,
           features: parseFeatures(show.features ?? DEFAULT_SHOW_FEATURES),
+          revision: show.revision ?? 0,
+          activity: parseActivity(show.activity ?? []),
         };
       }
     }
@@ -169,7 +224,8 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
   }
   const db = getSql();
   const rows = await db`
-    SELECT id, name, share_token, admin_password_hash, rooms, groups, features, created_at
+    SELECT id, name, share_token, admin_password_hash, rooms, groups, features,
+           revision, activity, created_at
     FROM shows WHERE share_token = ${shareToken} LIMIT 1
   `;
   const row = rows[0];
@@ -182,6 +238,8 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     rooms: parseJsonList<Room>(row.rooms),
     groups: parseJsonList<ChannelGroup>(row.groups),
     features: parseFeatures(row.features),
+    revision: Number(row.revision ?? 0),
+    activity: parseActivity(row.activity),
     createdAt: new Date(row.created_at as string).toISOString(),
   };
 }
@@ -211,17 +269,6 @@ function withGroupCatalog(show: Show, groupName: string | null | undefined): Sho
   };
 }
 
-async function persistShowGroups(show: Show): Promise<void> {
-  if (mode() === "memory") {
-    getMemory().shows.set(show.id, show);
-    return;
-  }
-  const db = getSql();
-  await db`
-    UPDATE shows SET groups = ${JSON.stringify(show.groups)} WHERE id = ${show.id}
-  `;
-}
-
 export async function createShow(input: {
   name: string;
   adminPassword: string;
@@ -235,6 +282,8 @@ export async function createShow(input: {
     rooms: [],
     groups: [],
     features: { ...DEFAULT_SHOW_FEATURES },
+    revision: 0,
+    activity: [],
     createdAt: new Date().toISOString(),
   };
 
@@ -247,7 +296,10 @@ export async function createShow(input: {
 
   const db = getSql();
   await db`
-    INSERT INTO shows (id, name, share_token, admin_password_hash, rooms, groups, features, created_at)
+    INSERT INTO shows (
+      id, name, share_token, admin_password_hash, rooms, groups, features,
+      revision, activity, created_at
+    )
     VALUES (
       ${show.id},
       ${show.name},
@@ -256,6 +308,8 @@ export async function createShow(input: {
       ${JSON.stringify(show.rooms)},
       ${JSON.stringify(show.groups)},
       ${JSON.stringify(show.features)},
+      ${show.revision},
+      ${JSON.stringify(show.activity)},
       ${show.createdAt}
     )
   `;
@@ -275,6 +329,13 @@ export async function getShowInternal(
   shareToken: string,
 ): Promise<Show | null> {
   return getShowByToken(shareToken);
+}
+
+export async function getShowRevision(
+  shareToken: string,
+): Promise<number | null> {
+  const show = await getShowByToken(shareToken);
+  return show ? show.revision ?? 0 : null;
 }
 
 export async function replaceChannelsFromImport(
@@ -308,6 +369,11 @@ export async function replaceChannelsFromImport(
   for (const ch of channels) {
     nextShow = withGroupCatalog(nextShow, ch.groupName);
   }
+  nextShow = touchShow(
+    nextShow,
+    "import",
+    `Imported ${channels.length} channels`,
+  );
 
   if (mode() === "memory") {
     getMemory().shows.set(nextShow.id, nextShow);
@@ -317,7 +383,7 @@ export async function replaceChannelsFromImport(
 
   const db = getSql();
   await db`DELETE FROM channels WHERE show_id = ${show.id}`;
-  await persistShowGroups(nextShow);
+  await persistShowMeta(nextShow);
   for (const ch of channels) {
     await db`
       INSERT INTO channels (
@@ -362,7 +428,8 @@ export async function addManualChannel(
     sortOrder: existing.length,
   };
 
-  const nextShow = withGroupCatalog(show, groupName);
+  let nextShow = withGroupCatalog(show, groupName);
+  nextShow = touchShow(nextShow, "add", `Added ${channel.name}`, channel.id);
   const channels = [...existing, channel];
 
   if (mode() === "memory") {
@@ -371,7 +438,7 @@ export async function addManualChannel(
     return toPublic(nextShow, channels);
   }
 
-  await persistShowGroups(nextShow);
+  await persistShowMeta(nextShow);
   const db = getSql();
   await db`
     INSERT INTO channels (
@@ -409,9 +476,13 @@ export async function updateChannel(
   const current = channels[index];
   let next: Channel = { ...current };
   let nextShow = show;
+  let activityKind: ActivityKind = "status";
+  let activityMessage = `Updated ${current.name}`;
 
   if (patch.status) {
     next.status = patch.status;
+    activityKind = "status";
+    activityMessage = `Set ${next.name} → ${patch.status}`;
     if (patch.status === "blocked" && next.deployed) {
       next.deployed = false;
       next.roomName = null;
@@ -429,21 +500,38 @@ export async function updateChannel(
       next.deployedAt = new Date().toISOString();
       next.deployedBy = patch.deployedBy ?? next.deployedBy;
       if (patch.roomName !== undefined) next.roomName = patch.roomName;
+      activityKind = "deploy";
+      activityMessage = next.roomName
+        ? `Deployed ${next.name} → ${next.roomName}`
+        : `Deployed ${next.name}`;
     } else {
       next.deployedAt = null;
       next.deployedBy = null;
       next.roomName = null;
+      activityKind = "undeploy";
+      activityMessage = `Undeployed ${next.name}`;
     }
   } else if (patch.roomName !== undefined) {
     next.roomName = patch.roomName;
+    activityKind = "room";
+    activityMessage = patch.roomName
+      ? `Moved ${next.name} → ${patch.roomName}`
+      : `Cleared room for ${next.name}`;
   }
 
   if (patch.groupName !== undefined) {
     next.groupName = patch.groupName?.trim() || null;
     nextShow = withGroupCatalog(nextShow, next.groupName);
+    if (typeof patch.deployed !== "boolean" && !patch.status && patch.roomName === undefined) {
+      activityKind = "groups";
+      activityMessage = next.groupName
+        ? `Grouped ${next.name} → ${next.groupName}`
+        : `Ungrouped ${next.name}`;
+    }
   }
 
   channels[index] = next;
+  nextShow = touchShow(nextShow, activityKind, activityMessage, next.id);
 
   if (mode() === "memory") {
     getMemory().shows.set(nextShow.id, nextShow);
@@ -451,7 +539,7 @@ export async function updateChannel(
     return toPublic(nextShow, channels);
   }
 
-  if (nextShow !== show) await persistShowGroups(nextShow);
+  await persistShowMeta(nextShow);
   const db = getSql();
   await db`
     UPDATE channels SET
@@ -491,11 +579,19 @@ export async function bulkSetChannelStatus(
     return updated;
   });
 
+  const nextShow = touchShow(
+    show,
+    "status",
+    `Set ${idSet.size} channels → ${status}`,
+  );
+
   if (mode() === "memory") {
+    getMemory().shows.set(nextShow.id, nextShow);
     getMemory().channels.set(show.id, next);
-    return toPublic(show, next);
+    return toPublic(nextShow, next);
   }
 
+  await persistShowMeta(nextShow);
   const db = getSql();
   const clearDeploy = status === "blocked";
   for (const id of idSet) {
@@ -516,7 +612,7 @@ export async function bulkSetChannelStatus(
       `;
     }
   }
-  return toPublic(show, next);
+  return toPublic(nextShow, next);
 }
 
 export async function setRooms(
@@ -530,7 +626,7 @@ export async function setRooms(
     .filter(Boolean)
     .map((name) => ({ id: createId("room"), name }));
 
-  const nextShow: Show = { ...show, rooms };
+  const nextShow = touchShow({ ...show, rooms }, "rooms", "Updated rooms");
 
   if (mode() === "memory") {
     getMemory().shows.set(show.id, nextShow);
@@ -538,11 +634,7 @@ export async function setRooms(
     return toPublic(nextShow, channels);
   }
 
-  const db = getSql();
-  await db`
-    UPDATE shows SET rooms = ${JSON.stringify(rooms)}
-    WHERE id = ${show.id}
-  `;
+  await persistShowMeta(nextShow);
   const channels = await getChannels(show.id);
   return toPublic(nextShow, channels);
 }
@@ -563,7 +655,7 @@ export async function setGroups(
       return existing ?? { id: createId("grp"), name };
     });
 
-  const nextShow: Show = { ...show, groups };
+  const nextShow = touchShow({ ...show, groups }, "groups", "Updated groups");
 
   if (mode() === "memory") {
     getMemory().shows.set(show.id, nextShow);
@@ -571,7 +663,7 @@ export async function setGroups(
     return toPublic(nextShow, channels);
   }
 
-  await persistShowGroups(nextShow);
+  await persistShowMeta(nextShow);
   const channels = await getChannels(show.id);
   return toPublic(nextShow, channels);
 }
@@ -583,17 +675,18 @@ export async function updateShowFeatures(
   const show = await getShowByToken(shareToken);
   if (!show) return null;
   const features = mergeFeatures(show.features, patch);
-  const nextShow: Show = { ...show, features };
+  const nextShow = touchShow(
+    { ...show, features },
+    "settings",
+    "Updated show options",
+  );
 
   if (mode() === "memory") {
     getMemory().shows.set(show.id, nextShow);
     return toPublic(nextShow, await getChannels(show.id));
   }
 
-  const db = getSql();
-  await db`
-    UPDATE shows SET features = ${JSON.stringify(features)} WHERE id = ${show.id}
-  `;
+  await persistShowMeta(nextShow);
   return toPublic(nextShow, await getChannels(show.id));
 }
 
