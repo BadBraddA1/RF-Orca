@@ -288,7 +288,7 @@ export function MarkBoard({
           <BrandLockup size="header" showTagline />
           <h1>{show.name}</h1>
           <p className="board-sub">
-            Mark what’s deployed and which room.
+            Tap Deploy, set the room.
             {show.storageMode === "memory" ? (
               <span className="demo-pill"> Demo storage</span>
             ) : null}
@@ -611,17 +611,50 @@ function ChannelRow({
 
   return (
     <li className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}`}>
-      <div className="channel-main">
-        <div className="channel-title">
-          <strong>{channel.name}</strong>
-          <span className="freq">{channel.frequencyMhz.toFixed(3)} MHz</span>
+      <div className="channel-top-row">
+        <div className="channel-main">
+          <div className="channel-title">
+            <strong>{channel.name}</strong>
+            <span className="freq">{channel.frequencyMhz.toFixed(3)} MHz</span>
+          </div>
+          <div className="channel-meta">
+            {channel.band ? <span>{channel.band}</span> : null}
+            {channel.groupChannel ? <span>G/Ch {channel.groupChannel}</span> : null}
+            {channel.isBackup ? <span className="tag">Backup</span> : null}
+            <span className={`tag status-${channel.status}`}>{channel.status}</span>
+            {channel.deployed && channel.roomName ? (
+              <span className="tag deployed-room">{channel.roomName}</span>
+            ) : null}
+          </div>
         </div>
-        <div className="channel-meta">
-          {channel.band ? <span>{channel.band}</span> : null}
-          {channel.groupChannel ? <span>G/Ch {channel.groupChannel}</span> : null}
-          {channel.isBackup ? <span className="tag">Backup</span> : null}
-          <span className={`tag status-${channel.status}`}>{channel.status}</span>
-        </div>
+
+        <button
+          type="button"
+          className={`deploy-btn${channel.deployed ? " on" : ""}${blocked ? " disabled" : ""}`}
+          disabled={blocked}
+          aria-pressed={channel.deployed}
+          onClick={() => {
+            if (blocked) return;
+            if (channel.deployed) {
+              void onPatch(channel.id, { deployed: false, roomName: null });
+              return;
+            }
+            const roomName = channel.roomName || roomDraft.trim() || null;
+            if (!roomName && rooms.length === 0) {
+              const room = window.prompt("Room?");
+              if (!room?.trim()) return;
+              setRoomDraft(room.trim());
+              void onPatch(channel.id, { deployed: true, roomName: room.trim() });
+              return;
+            }
+            void onPatch(channel.id, {
+              deployed: true,
+              roomName: roomName || (rooms[0] ?? null),
+            });
+          }}
+        >
+          {channel.deployed ? "Deployed" : "Deploy"}
+        </button>
       </div>
 
       {admin ? (
@@ -658,30 +691,7 @@ function ChannelRow({
         </div>
       ) : null}
 
-      <label className={`deploy-check${blocked ? " disabled" : ""}`}>
-        <input
-          type="checkbox"
-          checked={channel.deployed}
-          disabled={blocked}
-          onChange={(e) => {
-            const deployed = e.target.checked;
-            if (deployed && !(channel.roomName || roomDraft) && rooms.length === 0) {
-              const room = window.prompt("Room deployed in?");
-              if (!room) return;
-              setRoomDraft(room);
-              void onPatch(channel.id, { deployed: true, roomName: room });
-              return;
-            }
-            void onPatch(channel.id, {
-              deployed,
-              roomName: deployed ? channel.roomName || roomDraft || null : null,
-            });
-          }}
-        />
-        <span>I have deployed this frequency</span>
-      </label>
-
-      <label className="room-field">
+      <label className={`room-field${blocked ? " disabled" : ""}`}>
         <span>Room</span>
         {rooms.length > 0 ? (
           <select
@@ -706,7 +716,7 @@ function ChannelRow({
           <input
             value={roomDraft}
             disabled={blocked}
-            placeholder="e.g. Ballroom A"
+            placeholder="Room / zone"
             onChange={(e) => setRoomDraft(e.target.value)}
             onBlur={() => {
               const roomName = roomDraft.trim() || null;

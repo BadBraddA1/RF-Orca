@@ -7,9 +7,9 @@ export const siteShortName = "Orca"
 export const siteTitle = "RF Orca — Radio Frequency Orchestrator"
 /** Keep ≤ ~125 characters for social truncations. */
 export const siteDescription =
-  "Share Workbench plans with crews — group channels, mark allowed, and track what’s deployed by room."
+  "Custom SoundBase-style crew board: share Workbench plans, group channels, and track what’s deployed by room."
 export const ogImageAlt =
-  "RF Orca — Radio Frequency Orchestrator for live crew frequency tracking"
+  "RF Orca — Radio Frequency Orchestrator, a lean crew alternative for RF deploy tracking"
 
 const CANONICAL_SITE_URL = "https://rforca.braddcorp.com"
 

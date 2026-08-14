@@ -1,6 +1,6 @@
 # RF-Orca — Product & Build Plan
 
-Shareable RF coordination board for live crews: import a Shure Wireless Workbench export, lock which channels are allowed, and track which frequencies are actually deployed (and in which room).
+Shareable RF coordination board for live crews — a custom, lean alternative to SoundBase for the floor. Import a Shure Wireless Workbench export, lock which channels are allowed, and track which frequencies are actually deployed (and in which room).
 
 ---
 
@@ -20,7 +20,7 @@ Today that usually lives in spreadsheets, radios, and verbal handoffs. RF-Orca i
 
 | Role | How they get in | What they can do |
 |------|-----------------|------------------|
-| **Anyone with the show link (crew)** | Open shared URL | **Mark view only** — see allowed channels, check “deployed”, set room |
+| **Anyone with the show link (crew)** | Open shared URL | **Mark view only** — tap Deploy/Deployed, set room |
 | **Coordinator (admin)** | Same URL + **admin password** set at create time | Import WWB file, mark Allowed/Blocked, manage rooms, edit show settings |
 
 **No accounts / no login system.** Access is the show link. Editing is gated by a per-show admin password chosen when the show is created. Crews never need a password.
@@ -43,7 +43,7 @@ mark Allowed / Blocked, set up rooms
         ↓
 Share the same show URL with crews (no password)
         ↓
-Crews use mark view: check “I have deployed this frequency”
+Crews use mark view: tap **Deploy** / **Deployed** and set a room
         + select Room
         ↓
 Board updates for everyone on that link
@@ -249,7 +249,7 @@ Local-only / offline-first is out of scope for MVP; MVP assumes an online shared
 2. Creating a show requires an **admin password** and lands on the show’s mark view URL
 3. Coordinator uploads a real WWB CSV (after admin unlock) and sees correct channel names + frequencies
 4. Coordinator can mark channels allowed or blocked (admin only)
-5. Crew on the same link (no password) can check “I have deployed this frequency” and set a room
+5. Crew on the same link (no password) can tap Deploy/Deployed and set a room (phone-friendly)
 6. Another device on the same show link sees those updates (refresh or live)
 7. Blocked channels cannot be deployed
 8. Board is usable on a phone

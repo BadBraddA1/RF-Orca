@@ -1,6 +1,6 @@
 # RF Orca (Radio Frequency Orchestrator)
 
-Crew-facing RF board — nickname **Orca**. Import a Shure Wireless Workbench CSV **or** add channels by hand, organize them into **channel groups**, mark allowed/blocked, and track deployed frequencies by room.
+Crew-facing RF board — nickname **Orca**. A lean, custom alternative to SoundBase for the floor: after coordination (Workbench / Coord / etc.), share one link so crews can group channels and mark what’s deployed by room.
 
 **Live:** https://rforca.braddcorp.com (DNS may still be pending) · https://rf-orca.vercel.app
 
@@ -8,7 +8,7 @@ Crew-facing RF board — nickname **Orca**. Import a Shure Wireless Workbench CS
 
 - Home → **New Show** only (no show list)
 - Create with an **admin password**
-- Crews open the show link → **mark view** (deploy + room), no login
+- Crews open the show link → **mark view** (Deploy + room), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
 - Bulk status: set all **visible** (filter/group) channels to Allowed / Blocked / Unreviewed, or per group heading
 

@@ -8,12 +8,12 @@ export default function HomePage() {
         <BrandLockup size="hero" />
         <h1>RF Orchestrator</h1>
         <p className="hero-lead">
-          Orca — import a Shure Workbench plan, share one link, and let crews
-          mark what’s deployed and where.
+          Orca — a lean, crew-first alternative to SoundBase for the floor:
+          share one link, group channels, and mark what’s deployed.
         </p>
         <p className="hero-support">
-          No accounts. Create a show, set an admin password for edits, and send
-          crews straight to the mark view.
+          Bring a Workbench CSV or add channels by hand. No accounts — create a
+          show, set an admin password, and send crews the mark view.
         </p>
         <NewShowForm />
       </div>

@@ -467,15 +467,43 @@ a {
   gap: 0.35rem;
 }
 
-.deploy-check {
+.channel-top-row {
   display: flex;
-  gap: 0.55rem;
-  align-items: center;
-  font-weight: 650;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.deploy-check.disabled {
-  opacity: 0.5;
+.deploy-btn {
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+  min-width: 5.75rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 80%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.deploy-btn.on {
+  background: color-mix(in oklab, #5dffc0 28%, transparent);
+  border-color: color-mix(in oklab, #5dffc0 55%, transparent);
+  color: #b8ffe0;
+}
+
+.deploy-btn.disabled,
+.room-field.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tag.deployed-room {
+  background: color-mix(in oklab, var(--signal) 22%, transparent);
+  color: var(--signal-hot);
 }
 
 .room-field {
@@ -483,7 +511,13 @@ a {
   gap: 0.3rem;
   font-size: 0.88rem;
   font-weight: 650;
-  max-width: 18rem;
+  max-width: none;
+}
+
+.room-field select,
+.room-field input {
+  min-height: 2.75rem;
+  width: 100%;
 }
 
 .btn-quiet {
@@ -696,4 +730,142 @@ a {
 
 .site-footer a:hover {
   color: var(--sea-bright);
+}
+
+.footer-sep {
+  opacity: 0.5;
+}
+
+@media (max-width: 720px) {
+  .board {
+    padding: 1rem 0.85rem calc(1.5rem + env(safe-area-inset-bottom));
+    gap: 0.85rem;
+  }
+
+  .board-header {
+    gap: 0.75rem;
+  }
+
+  .board-header h1 {
+    font-size: clamp(1.45rem, 7vw, 1.9rem);
+  }
+
+  .board-actions {
+    width: 100%;
+  }
+
+  .board-actions .btn-ghost,
+  .board-actions .btn-quiet {
+    flex: 1 1 auto;
+    min-height: 2.75rem;
+    justify-content: center;
+  }
+
+  .filters,
+  .group-filters,
+  .bulk-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.15rem;
+    margin-inline: -0.15rem;
+    padding-inline: 0.15rem;
+  }
+
+  .filters::-webkit-scrollbar,
+  .group-filters::-webkit-scrollbar,
+  .bulk-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter,
+  .chip {
+    flex: 0 0 auto;
+    min-height: 2.5rem;
+    padding: 0.45rem 0.85rem;
+  }
+
+  .bulk-bar {
+    gap: 0.35rem;
+  }
+
+  .channel-row {
+    padding: 0.85rem;
+    gap: 0.65rem;
+  }
+
+  .channel-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+  }
+
+  .channel-title strong {
+    font-size: 1.05rem;
+  }
+
+  .deploy-btn {
+    min-width: 5.5rem;
+  }
+
+  .admin-inline,
+  .quiet-field,
+  .room-field,
+  .quiet-field select,
+  .quiet-field input {
+    width: 100%;
+    max-width: none;
+  }
+
+  .quiet-field select,
+  .quiet-field input,
+  .room-field select,
+  .room-field input {
+    font-size: 1rem; /* avoid iOS zoom */
+  }
+
+  .group-heading-row {
+    align-items: flex-start;
+  }
+
+  .bulk-inline {
+    width: 100%;
+  }
+
+  .bulk-inline .btn-quiet {
+    min-height: 2.4rem;
+  }
+
+  .brand-lockup-hero .brand-logo {
+    width: min(16rem, 86vw);
+  }
+
+  .hero {
+    padding: 1.25rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+    align-items: start;
+  }
+
+  .hero-inner {
+    gap: 0.9rem;
+    max-width: none;
+  }
+
+  .new-show-form {
+    padding: 1rem;
+  }
+
+  .field input,
+  .btn-primary {
+    min-height: 2.85rem;
+    font-size: 1rem;
+  }
+
+  .tools-panel {
+    padding: 0.85rem;
+  }
+
+  .site-footer {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
 }
