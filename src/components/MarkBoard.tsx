@@ -9,12 +9,14 @@ import {
   useTransition,
 } from "react";
 import { BrandLockup } from "@/components/BrandLockup";
+import { MicRackGrid } from "@/components/MicRackGrid";
 import { withinDeployGrace } from "@/lib/board-helpers";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
 import { useShowLive } from "@/hooks/useShowLive";
 import type {
   Channel,
   ChannelStatus,
+  RackSize,
   ShowFeatures,
   ShowPublic,
 } from "@/lib/types";
@@ -27,7 +29,11 @@ type Filter =
   | "deployed"
   | "open"
   | "assigned"
-  | "unassigned";
+  | "unassigned"
+  | "inuse"
+  | "spare";
+
+type BoardView = "rack" | "list";
 
 type FocusState = {
   group: string;
@@ -73,8 +79,8 @@ const FEATURE_TOGGLES: {
   },
   {
     key: "assignments",
-    label: "Mic assignments",
-    hint: "Who is on each RF channel — live for A2s",
+    label: "Mic rack assignments",
+    hint: "12/24-ch grid — who has which mic, mark in use",
   },
   {
     key: "groups",
@@ -131,6 +137,7 @@ export function MarkBoard({
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [focusRoom, setFocusRoom] = useState("");
   const [search, setSearch] = useState("");
+  const [boardView, setBoardView] = useState<BoardView>("rack");
   const [toolsOpen, setToolsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -151,6 +158,7 @@ export function MarkBoard({
   const [copied, setCopied] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
+  const [rackBusy, setRackBusy] = useState(false);
   const [undo, setUndo] = useState<UndoToast | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const revisionRef = useRef(initialShow.revision ?? 0);
@@ -220,6 +228,8 @@ export function MarkBoard({
         .length,
       assigned: channels.filter((c) => Boolean(c.assignedTo?.trim())).length,
       unassigned: channels.filter((c) => !c.assignedTo?.trim()).length,
+      inuse: channels.filter((c) => c.inUse).length,
+      spare: channels.filter((c) => !c.inUse).length,
     };
   }, [show.channels]);
 
@@ -270,6 +280,8 @@ export function MarkBoard({
       if (filter === "unassigned") {
         return features.assignments && !c.assignedTo?.trim();
       }
+      if (filter === "inuse") return features.assignments && c.inUse;
+      if (filter === "spare") return features.assignments && !c.inUse;
       return true;
     });
   }, [
@@ -373,6 +385,30 @@ export function MarkBoard({
     }
   }
 
+  async function patchRack(body: {
+    rackSize?: RackSize;
+    fillEmpty?: boolean;
+  }) {
+    if (!admin || rackBusy) return;
+    setRackBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}/rack`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not update rack");
+        return;
+      }
+      applyShow(data.show);
+      setBoardView("rack");
+    } finally {
+      setRackBusy(false);
+    }
+  }
+
   async function patchChannel(
     channelId: string,
     patch: Partial<{
@@ -381,6 +417,8 @@ export function MarkBoard({
       roomName: string | null;
       groupName: string | null;
       assignedTo: string | null;
+      inUse: boolean;
+      name: string;
     }>,
     opts?: { undoToast?: boolean },
   ) {
@@ -561,15 +599,18 @@ export function MarkBoard({
   const filterOptions = (
     [
       ["all", `All (${counts.all})`],
-      features.deploy ? (["open", `Open (${counts.open})`] as const) : null,
-      features.deploy
-        ? (["deployed", `Deployed (${counts.deployed})`] as const)
+      features.assignments
+        ? (["inuse", `In use (${counts.inuse})`] as const)
+        : null,
+      features.assignments
+        ? (["spare", `Not in use (${counts.spare})`] as const)
         : null,
       features.assignments
         ? (["unassigned", `No who (${counts.unassigned})`] as const)
         : null,
-      features.assignments
-        ? (["assigned", `Assigned (${counts.assigned})`] as const)
+      features.deploy ? (["open", `Open (${counts.open})`] as const) : null,
+      features.deploy
+        ? (["deployed", `Deployed (${counts.deployed})`] as const)
         : null,
       features.status
         ? (["allowed", `Allowed (${counts.allowed})`] as const)
@@ -584,6 +625,10 @@ export function MarkBoard({
     counts.all > 0 ? Math.round((counts.deployed / counts.all) * 100) : 0;
   const assignPct =
     counts.all > 0 ? Math.round((counts.assigned / counts.all) * 100) : 0;
+  const usePct =
+    counts.all > 0 ? Math.round((counts.inuse / counts.all) * 100) : 0;
+  const showRack =
+    features.assignments && boardView === "rack";
 
   return (
     <div className="board">
@@ -592,9 +637,13 @@ export function MarkBoard({
           <BrandLockup size="header" showTagline />
           <h1>{show.name}</h1>
           <p className="board-sub">
-            {features.deploy ? "Tap Deploy" : "Frequency board"}
-            {features.rooms ? ", set the room" : ""}
-            {features.assignments ? ", who is on each mic" : ""}.
+            {features.assignments
+              ? `${show.rackSize}-ch rack — who has which mic`
+              : features.deploy
+                ? "Tap Deploy"
+                : "Frequency board"}
+            {features.rooms && !features.assignments ? ", set the room" : ""}
+            {features.assignments ? ", mark in use" : ""}.
             <span className={`live-pill${live ? " on" : ""}`}>
               {live
                 ? transport === "ably"
@@ -647,9 +696,9 @@ export function MarkBoard({
           {features.assignments ? (
             <div className="progress-assign">
               <strong>
-                {counts.assigned}/{counts.all} assigned
+                {counts.inuse}/{counts.all} in use · {counts.assigned} assigned
               </strong>
-              <span>{assignPct}%</span>
+              <span>{usePct}%</span>
             </div>
           ) : null}
           {groupProgress.length > 0 ? (
@@ -667,12 +716,18 @@ export function MarkBoard({
         <div className="progress-hud" role="status">
           <div className="progress-hud-top">
             <strong>
+              {counts.inuse}/{counts.all} in use
+            </strong>
+            <span>{usePct}%</span>
+          </div>
+          <div className="progress-track" aria-hidden>
+            <div className="progress-fill" style={{ width: `${usePct}%` }} />
+          </div>
+          <div className="progress-assign">
+            <strong>
               {counts.assigned}/{counts.all} assigned
             </strong>
             <span>{assignPct}%</span>
-          </div>
-          <div className="progress-track" aria-hidden>
-            <div className="progress-fill" style={{ width: `${assignPct}%` }} />
           </div>
         </div>
       ) : null}
@@ -728,13 +783,31 @@ export function MarkBoard({
             }}
             placeholder={
               features.assignments
-                ? "Search name, who, or MHz…"
+                ? "Search who, mic, or MHz…"
                 : "Search name or MHz…"
             }
             inputMode="search"
             autoComplete="off"
           />
         </label>
+        {features.assignments ? (
+          <div className="view-toggle" role="group" aria-label="Board view">
+            <button
+              type="button"
+              className={boardView === "rack" ? "chip active" : "chip"}
+              onClick={() => setBoardView("rack")}
+            >
+              Rack
+            </button>
+            <button
+              type="button"
+              className={boardView === "list" ? "chip active" : "chip"}
+              onClick={() => setBoardView("list")}
+            >
+              List
+            </button>
+          </div>
+        ) : null}
         {features.rooms && show.rooms.length > 0 ? (
           <label className="focus-field">
             <span>My room</span>
@@ -807,6 +880,39 @@ export function MarkBoard({
                   </label>
                 ))}
               </div>
+
+              {features.assignments ? (
+                <div className="rack-tools" aria-label="Mic rack size">
+                  <p className="tools-whisper">Mic rack</p>
+                  <div className="rack-size-row">
+                    {([12, 24] as const).map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        className={
+                          show.rackSize === size ? "chip active" : "chip"
+                        }
+                        disabled={rackBusy}
+                        onClick={() => void patchRack({ rackSize: size })}
+                      >
+                        {size}-ch
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="chip"
+                      disabled={rackBusy}
+                      onClick={() => void patchRack({ fillEmpty: true })}
+                    >
+                      Fill empty slots
+                    </button>
+                  </div>
+                  <p className="field-note">
+                    A2 face: CH 01–{show.rackSize}. Fill empty to create blank
+                    slots you can name (Handheld 3) and assign.
+                  </p>
+                </div>
+              ) : null}
 
               <div className="tools-grid">
                 <label className="field">
@@ -1053,10 +1159,36 @@ export function MarkBoard({
         </div>
       ) : null}
 
-      {visibleWithRoomFocus.length === 0 ? (
+      {showRack ? (
+        <MicRackGrid
+          channels={show.channels}
+          rackSize={show.rackSize ?? 12}
+          features={features}
+          admin={admin}
+          assigneeNames={assigneeNames}
+          search={search}
+          filterInUse={
+            filter === "inuse" ? "inuse" : filter === "spare" ? "spare" : "all"
+          }
+          filterWho={
+            filter === "assigned"
+              ? "assigned"
+              : filter === "unassigned"
+                ? "unassigned"
+                : "all"
+          }
+          onPatch={async (id, patch) => {
+            await patchChannel(id, patch);
+          }}
+          onFillEmpty={
+            admin ? async () => patchRack({ fillEmpty: true }) : undefined
+          }
+          fillBusy={rackBusy}
+        />
+      ) : visibleWithRoomFocus.length === 0 ? (
         <div className="empty">
           {show.channels.length === 0
-            ? "No channels yet. Coordinators: open Tools to import a Workbench CSV or add channels by hand."
+            ? "No channels yet. Coordinators: open Tools to import a Workbench CSV, fill a 12/24 rack, or add channels by hand."
             : "Nothing matches this filter / search."}
         </div>
       ) : (
@@ -1141,7 +1273,7 @@ export function MarkBoard({
         </div>
       )}
 
-      {features.assignments && assigneeNames.length > 0 ? (
+      {!showRack && features.assignments && assigneeNames.length > 0 ? (
         <datalist id="assignee-options">
           {assigneeNames.map((name) => (
             <option key={name} value={name} />
@@ -1203,6 +1335,8 @@ function ChannelRow({
       roomName: string | null;
       groupName: string | null;
       assignedTo: string | null;
+      inUse: boolean;
+      name: string;
     }>,
     opts?: { undoToast?: boolean },
   ) => Promise<void>;
@@ -1236,16 +1370,23 @@ function ChannelRow({
   return (
     <li
       id={`ch-${channel.id}`}
-      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${conflicted ? " is-conflict" : ""}`}
+      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
         <div className="channel-main">
           <div className="channel-title">
+            {channel.rackSlot != null ? (
+              <span className="rack-ch-inline">
+                CH {String(channel.rackSlot).padStart(2, "0")}
+              </span>
+            ) : null}
             <strong>{channel.name}</strong>
             <span className="freq">{channel.frequencyMhz.toFixed(3)} MHz</span>
           </div>
           {features.assignments && channel.assignedTo ? (
-            <p className="channel-who">{channel.assignedTo}</p>
+            <p className="channel-who">
+              {channel.assignedTo} has {channel.name}
+            </p>
           ) : null}
           <div className="channel-meta">
             {channel.band ? <span>{channel.band}</span> : null}
@@ -1314,6 +1455,19 @@ function ChannelRow({
             }}
           >
             {channel.deployed ? "Deployed" : "Deploy"}
+          </button>
+        ) : null}
+        {features.assignments ? (
+          <button
+            type="button"
+            className={`deploy-btn use-btn${channel.inUse ? " on" : ""}${assignDisabled ? " disabled" : ""}`}
+            disabled={assignDisabled}
+            aria-pressed={channel.inUse}
+            onClick={() =>
+              void onPatch(channel.id, { inUse: !channel.inUse })
+            }
+          >
+            {channel.inUse ? "In use" : "Not in use"}
           </button>
         ) : null}
       </div>

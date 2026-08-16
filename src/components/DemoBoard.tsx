@@ -209,9 +209,16 @@ export function DemoBoard() {
                           </span>
                         </div>
                         {channel.assignedTo ? (
-                          <p className="channel-who">{channel.assignedTo}</p>
+                          <p className="channel-who">
+                            {channel.assignedTo} has {channel.name}
+                          </p>
                         ) : null}
                         <div className="channel-meta">
+                          {channel.rackSlot != null ? (
+                            <span>
+                              CH {String(channel.rackSlot).padStart(2, "0")}
+                            </span>
+                          ) : null}
                           {channel.band ? <span>{channel.band}</span> : null}
                           {channel.groupChannel ? (
                             <span>G/Ch {channel.groupChannel}</span>
@@ -222,6 +229,11 @@ export function DemoBoard() {
                           <span className={`tag status-${channel.status}`}>
                             {channel.status}
                           </span>
+                          {channel.inUse ? (
+                            <span className="tag">In use</span>
+                          ) : (
+                            <span className="tag">Not in use</span>
+                          )}
                           {channel.deployed && channel.roomName ? (
                             <span className="tag deployed-room">
                               {channel.roomName}

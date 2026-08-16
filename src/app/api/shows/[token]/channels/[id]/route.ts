@@ -10,6 +10,8 @@ const bodySchema = z.object({
   roomName: z.string().nullable().optional(),
   groupName: z.string().nullable().optional(),
   assignedTo: z.string().max(80).nullable().optional(),
+  inUse: z.boolean().optional(),
+  name: z.string().trim().min(1).max(80).optional(),
   deployedBy: z.string().nullable().optional(),
 });
 
@@ -26,7 +28,9 @@ export async function PATCH(
 
   const admin = await isAdminUnlocked(token);
   if (
-    (parsed.data.status || parsed.data.groupName !== undefined) &&
+    (parsed.data.status ||
+      parsed.data.groupName !== undefined ||
+      parsed.data.name !== undefined) &&
     !admin
   ) {
     return NextResponse.json({ error: "Admin unlock required." }, { status: 403 });

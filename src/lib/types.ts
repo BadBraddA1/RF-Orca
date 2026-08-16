@@ -1,5 +1,10 @@
 export type ChannelStatus = "allowed" | "blocked" | "unreviewed";
 
+/** Fixed A2 rack face — 12 or 24 channel grid. */
+export type RackSize = 12 | 24;
+
+export const DEFAULT_RACK_SIZE: RackSize = 12;
+
 export type Room = {
   id: string;
   name: string;
@@ -20,7 +25,7 @@ export type ShowFeatures = {
   deploy: boolean;
   /** Room assignment on deploy */
   rooms: boolean;
-  /** Who is on each mic / pack (A2 talent assignments) */
+  /** Who is on each mic / pack (A2 talent assignments) + rack grid */
   assignments: boolean;
   /** Channel groups (filters, sections, assign) */
   groups: boolean;
@@ -50,6 +55,7 @@ export type ActivityKind =
   | "undeploy"
   | "room"
   | "assign"
+  | "inuse"
   | "status"
   | "import"
   | "add"
@@ -82,6 +88,10 @@ export type Channel = {
   roomName: string | null;
   /** Talent / wearer on this RF channel (A2 mic assignment). */
   assignedTo: string | null;
+  /** Pack currently out / active on the floor. */
+  inUse: boolean;
+  /** 1-based slot on the 12/24 rack grid. */
+  rackSlot: number | null;
   deployedAt: string | null;
   deployedBy: string | null;
   sortOrder: number;
@@ -101,6 +111,8 @@ export type Show = {
   /** Ordered channel-group labels for this show. */
   groups: ChannelGroup[];
   features: ShowFeatures;
+  /** A2 rack face size for the assignment grid. */
+  rackSize: RackSize;
   /** Monotonic counter — clients poll and refresh when it changes. */
   revision: number;
   /** Newest-first activity for the live strip (capped). */
@@ -142,3 +154,12 @@ export type ActiveShowSummary = {
 
 /** Days a show stays on the home list before it drops off (not deleted). */
 export const ACTIVE_SHOW_HOME_DAYS = 10;
+
+export function parseRackSize(raw: unknown): RackSize {
+  const n = typeof raw === "string" ? Number(raw) : Number(raw);
+  return n === 24 ? 24 : DEFAULT_RACK_SIZE;
+}
+
+export function formatRackSlot(slot: number): string {
+  return String(slot).padStart(2, "0");
+}
