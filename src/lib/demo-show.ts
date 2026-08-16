@@ -86,6 +86,13 @@ export function buildDemoShow(): ShowPublic {
     features: { ...DEFAULT_SHOW_FEATURES },
     rackCols: DEFAULT_RACK_LAYOUT.cols,
     rackRows: DEFAULT_RACK_LAYOUT.rows,
+    people: [
+      { id: "per_maya", name: "Maya Chen" },
+      { id: "per_jordan", name: "Jordan Lee" },
+      { id: "per_pastor", name: "Pastor Kim" },
+      { id: "per_bradd", name: "Bradd" },
+      { id: "per_a2", name: "A2 Desk" },
+    ],
     revision: 1,
     activity: [
       {

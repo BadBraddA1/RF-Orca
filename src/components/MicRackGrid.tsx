@@ -112,6 +112,7 @@ export function MicRackGrid({
             features={features}
             admin={admin}
             frozen={features.crewLocked && !admin}
+            assigneeNames={assigneeNames}
             onPatch={onPatch}
           />
         ))}
@@ -134,6 +135,7 @@ function RackCell({
   features,
   admin,
   frozen,
+  assigneeNames,
   onPatch,
 }: {
   slot: number;
@@ -141,6 +143,7 @@ function RackCell({
   features: ShowFeatures;
   admin: boolean;
   frozen: boolean;
+  assigneeNames: string[];
   onPatch: (id: string, patch: Patch) => Promise<void>;
 }) {
   const [whoDraft, setWhoDraft] = useState(channel?.assignedTo ?? "");
@@ -244,6 +247,28 @@ function RackCell({
 
       <label className={`rack-field${frozen ? " disabled" : ""}`}>
         <span>Who</span>
+        {assigneeNames.length > 0 ? (
+          <select
+            className="rack-drop-select"
+            value=""
+            disabled={frozen || !features.assignments}
+            aria-label="Drop in saved name"
+            onChange={(e) => {
+              const assignedTo = e.target.value || null;
+              if (!assignedTo) return;
+              setWhoDraft(assignedTo);
+              void onPatch(channel.id, { assignedTo });
+              e.target.value = "";
+            }}
+          >
+            <option value="">Drop in name…</option>
+            {assigneeNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <input
           list="assignee-options"
           value={whoDraft}

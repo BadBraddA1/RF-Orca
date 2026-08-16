@@ -151,6 +151,9 @@ export function MarkBoard({
   const [groupsText, setGroupsText] = useState(
     initialShow.groups.map((g) => g.name).join("\n"),
   );
+  const [peopleText, setPeopleText] = useState(
+    (initialShow.people ?? []).map((p) => p.name).join("\n"),
+  );
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(
     null,
@@ -203,6 +206,7 @@ export function MarkBoard({
     if (typeof nextAdmin === "boolean") setAdmin(nextAdmin);
     setRoomsText(next.rooms.map((r) => r.name).join("\n"));
     setGroupsText(next.groups.map((g) => g.name).join("\n"));
+    setPeopleText((next.people ?? []).map((p) => p.name).join("\n"));
     setCustomCols(String(next.rackCols ?? 4));
     setCustomRows(String(next.rackRows ?? 3));
   }, []);
@@ -247,11 +251,14 @@ export function MarkBoard({
 
   const assigneeNames = useMemo(() => {
     if (!features.assignments) return [];
-    const names = show.channels
+    const fromRoster = (show.people ?? []).map((p) => p.name.trim());
+    const fromChannels = show.channels
       .map((c) => c.assignedTo?.trim())
       .filter((n): n is string => Boolean(n));
-    return [...new Set(names)].sort((a, b) => a.localeCompare(b));
-  }, [show.channels, features.assignments]);
+    return [...new Set([...fromRoster, ...fromChannels])].sort((a, b) =>
+      a.localeCompare(b),
+    );
+  }, [show.people, show.channels, features.assignments]);
 
   const groupProgress = useMemo(() => {
     if (!features.groups || !features.deploy) return [];
@@ -542,6 +549,24 @@ export function MarkBoard({
     const data = await res.json();
     if (!res.ok) {
       alert(data.error || "Could not save groups");
+      return;
+    }
+    applyShow(data.show);
+  }
+
+  async function savePeople() {
+    const people = peopleText
+      .split("\n")
+      .map((r) => r.trim())
+      .filter(Boolean);
+    const res = await fetch(`/api/shows/${token}/people`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ people }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not save names");
       return;
     }
     applyShow(data.show);
@@ -1090,6 +1115,29 @@ export function MarkBoard({
                   </label>
                 ) : null}
 
+                {features.assignments ? (
+                  <label className="field">
+                    <span>Saved names (one per line)</span>
+                    <textarea
+                      rows={4}
+                      value={peopleText}
+                      onChange={(e) => setPeopleText(e.target.value)}
+                      placeholder={"Bradd\nMaya Chen\nJordan Lee"}
+                    />
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => void savePeople()}
+                    >
+                      Save names
+                    </button>
+                    <span className="field-note">
+                      Drop these into any channel’s Who menu. Typing a new Who
+                      also saves the name for reuse.
+                    </span>
+                  </label>
+                ) : null}
+
                 {features.rooms ? (
                   <label className="field">
                     <span>Rooms (one per line)</span>
@@ -1321,6 +1369,7 @@ export function MarkBoard({
                     key={channel.id}
                     channel={channel}
                     rooms={show.rooms.map((r) => r.name)}
+                    assigneeNames={assigneeNames}
                     admin={admin}
                     features={features}
                     highlighted={highlightId === channel.id}
@@ -1378,6 +1427,7 @@ function formatAgo(iso: string): string {
 function ChannelRow({
   channel,
   rooms,
+  assigneeNames,
   admin,
   features,
   highlighted,
@@ -1386,6 +1436,7 @@ function ChannelRow({
 }: {
   channel: Channel;
   rooms: string[];
+  assigneeNames: string[];
   admin: boolean;
   features: ShowFeatures;
   highlighted?: boolean;
@@ -1581,6 +1632,28 @@ function ChannelRow({
               className={`room-field assign-field${assignDisabled ? " disabled" : ""}`}
             >
               <span>Who</span>
+              {assigneeNames.length > 0 ? (
+                <select
+                  className="rack-drop-select"
+                  value=""
+                  disabled={assignDisabled}
+                  aria-label="Drop in saved name"
+                  onChange={(e) => {
+                    const assignedTo = e.target.value || null;
+                    if (!assignedTo) return;
+                    setWhoDraft(assignedTo);
+                    void onPatch(channel.id, { assignedTo });
+                    e.target.value = "";
+                  }}
+                >
+                  <option value="">Drop in name…</option>
+                  {assigneeNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               <input
                 list="assignee-options"
                 value={whoDraft}

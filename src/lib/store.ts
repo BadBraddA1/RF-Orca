@@ -18,6 +18,7 @@ import type {
   ManualChannelInput,
   MicKind,
   ParsedChannelRow,
+  Person,
   Room,
   Show,
   ShowFeatures,
@@ -35,7 +36,7 @@ import {
 
 type StoreMode = "memory" | "turso";
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 type GlobalStore = {
   shows: Map<string, Show>;
@@ -126,6 +127,11 @@ async function ensureSchema(): Promise<void> {
     "shows",
     "activity",
     `ALTER TABLE shows ADD COLUMN activity TEXT NOT NULL DEFAULT '[]'`,
+  );
+  await ensureColumn(
+    "shows",
+    "people",
+    `ALTER TABLE shows ADD COLUMN people TEXT NOT NULL DEFAULT '[]'`,
   );
   await ensureColumn(
     "shows",
@@ -258,6 +264,7 @@ async function persistShowMeta(show: Show): Promise<void> {
     UPDATE shows SET
       rooms = ${JSON.stringify(show.rooms)},
       groups = ${JSON.stringify(show.groups)},
+      people = ${JSON.stringify(show.people)},
       features = ${JSON.stringify(show.features)},
       rack_cols = ${show.rackCols},
       rack_rows = ${show.rackRows},
@@ -287,6 +294,9 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
         return {
           ...show,
           features: parseFeatures(show.features ?? DEFAULT_SHOW_FEATURES),
+          people: parseJsonList<Person>(
+            (show as Show).people ?? [],
+          ),
           rackCols: layout.cols,
           rackRows: layout.rows,
           revision: show.revision ?? 0,
@@ -298,8 +308,8 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
   }
   const db = getSql();
   const rows = await db`
-    SELECT id, name, share_token, admin_password_hash, rooms, groups, features,
-           rack_size, rack_cols, rack_rows, revision, activity, created_at
+    SELECT id, name, share_token, admin_password_hash, rooms, groups, people,
+           features, rack_size, rack_cols, rack_rows, revision, activity, created_at
     FROM shows WHERE share_token = ${shareToken} LIMIT 1
   `;
   const row = rows[0];
@@ -316,6 +326,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     adminPasswordHash: row.admin_password_hash as string,
     rooms: parseJsonList<Room>(row.rooms),
     groups: parseJsonList<ChannelGroup>(row.groups),
+    people: parseJsonList<Person>(row.people),
     features: parseFeatures(row.features),
     rackCols: layout.cols,
     rackRows: layout.rows,
@@ -350,6 +361,20 @@ function withGroupCatalog(show: Show, groupName: string | null | undefined): Sho
   };
 }
 
+/** Keep show.people roster in sync when someone is assigned. */
+function withPeopleCatalog(show: Show, personName: string | null | undefined): Show {
+  const name = personName?.trim();
+  if (!name) return show;
+  const people = show.people ?? [];
+  if (people.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+    return show;
+  }
+  return {
+    ...show,
+    people: [...people, { id: createId("per"), name }],
+  };
+}
+
 export async function createShow(input: {
   name: string;
   adminPassword: string;
@@ -362,6 +387,7 @@ export async function createShow(input: {
     adminPasswordHash: hashPassword(input.adminPassword),
     rooms: [],
     groups: [],
+    people: [],
     features: { ...DEFAULT_SHOW_FEATURES },
     rackCols: DEFAULT_RACK_LAYOUT.cols,
     rackRows: DEFAULT_RACK_LAYOUT.rows,
@@ -380,7 +406,7 @@ export async function createShow(input: {
   const db = getSql();
   await db`
     INSERT INTO shows (
-      id, name, share_token, admin_password_hash, rooms, groups, features,
+      id, name, share_token, admin_password_hash, rooms, groups, people, features,
       rack_size, rack_cols, rack_rows, revision, activity, created_at
     )
     VALUES (
@@ -390,6 +416,7 @@ export async function createShow(input: {
       ${show.adminPasswordHash},
       ${JSON.stringify(show.rooms)},
       ${JSON.stringify(show.groups)},
+      ${JSON.stringify(show.people)},
       ${JSON.stringify(show.features)},
       ${rackSlotCount(show)},
       ${show.rackCols},
@@ -635,6 +662,7 @@ export async function updateChannel(
 
   if (patch.assignedTo !== undefined) {
     next.assignedTo = patch.assignedTo?.trim() || null;
+    nextShow = withPeopleCatalog(nextShow, next.assignedTo);
   }
 
   if (typeof patch.inUse === "boolean") {
@@ -832,6 +860,35 @@ export async function setGroups(
   await finishMutation(nextShow);
   const channels = await getChannels(show.id);
   return toPublic(nextShow, channels);
+}
+
+export async function setPeople(
+  shareToken: string,
+  personNames: string[],
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const seen = new Set<string>();
+  const people: Person[] = [];
+  for (const raw of personNames) {
+    const name = raw.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const existing = (show.people ?? []).find(
+      (p) => p.name.toLowerCase() === key,
+    );
+    people.push(existing ?? { id: createId("per"), name });
+  }
+
+  const nextShow = touchShow(
+    { ...show, people },
+    "people",
+    `Saved ${people.length} names`,
+  );
+  await finishMutation(nextShow);
+  return toPublic(nextShow, await getChannels(show.id));
 }
 
 export async function updateShowFeatures(

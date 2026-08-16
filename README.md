@@ -28,7 +28,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 ## Floor speed features
 
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
-- **Mic rack (A2)** — custom grid (4×1, 3×3, 4×3, … or any cols×rows); **Handheld / Lav** buttons; set **Who**; toggle **In use**; Fill empty; live via Ably
+- **Mic rack (A2)** — custom grid (4×1, 3×3, …); **Handheld / Lav**; **saved names** roster with drop-in Who menu; set Who; toggle In use; live via Ably
 - **Import preview** — Workbench CSV shows a confirm table before replacing the board
 - **Search** — name / who / MHz jump (Enter scrolls to first match)
 - **My room** focus — filter to the room you’re dressing (persists in localStorage)
@@ -48,7 +48,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - With `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`: durable shared shows (production)
 - Without them: in-memory demo store (local only; resets on cold start)
-- Schema v6: `rack_cols` / `rack_rows`, channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
+- Schema v7: `people` roster, `rack_cols` / `rack_rows`, channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
 
 ## Develop
 

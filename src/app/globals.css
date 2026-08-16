@@ -970,6 +970,23 @@ a {
   background: #0c1c30;
 }
 
+.rack-drop-select {
+  min-height: 2.4rem;
+  width: 100%;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  background: #0c1c30;
+  margin-bottom: 0.3rem;
+}
+
+.assign-field .rack-drop-select {
+  margin-bottom: 0.35rem;
+}
+
 .rack-field.disabled {
   opacity: 0.45;
 }

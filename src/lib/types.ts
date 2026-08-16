@@ -36,6 +36,12 @@ export type ChannelGroup = {
   name: string;
 };
 
+/** Saved talent / wearer name for reuse across the show. */
+export type Person = {
+  id: string;
+  name: string;
+};
+
 /**
  * Per-show feature toggles — coordinator turns on only what the floor needs.
  * Defaults keep a full board; slim shows can disable rooms/groups/status/etc.
@@ -81,7 +87,8 @@ export type ActivityKind =
   | "add"
   | "settings"
   | "groups"
-  | "rooms";
+  | "rooms"
+  | "people";
 
 export type ActivityEvent = {
   id: string;
@@ -132,6 +139,8 @@ export type Show = {
   rooms: Room[];
   /** Ordered channel-group labels for this show. */
   groups: ChannelGroup[];
+  /** Saved names (talent / wearers) for drop-in assignment. */
+  people: Person[];
   features: ShowFeatures;
   /** A2 rack columns (width of the grid). */
   rackCols: number;
