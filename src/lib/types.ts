@@ -20,6 +20,8 @@ export type ShowFeatures = {
   deploy: boolean;
   /** Room assignment on deploy */
   rooms: boolean;
+  /** Who is on each mic / pack (A2 talent assignments) */
+  assignments: boolean;
   /** Channel groups (filters, sections, assign) */
   groups: boolean;
   /** Allowed / Blocked / Unreviewed workflow */
@@ -33,6 +35,7 @@ export type ShowFeatures = {
 export const DEFAULT_SHOW_FEATURES: ShowFeatures = {
   deploy: true,
   rooms: true,
+  assignments: true,
   groups: true,
   status: true,
   lockDeployed: true,
@@ -46,6 +49,7 @@ export type ActivityKind =
   | "deploy"
   | "undeploy"
   | "room"
+  | "assign"
   | "status"
   | "import"
   | "add"
@@ -76,6 +80,8 @@ export type Channel = {
   status: ChannelStatus;
   deployed: boolean;
   roomName: string | null;
+  /** Talent / wearer on this RF channel (A2 mic assignment). */
+  assignedTo: string | null;
   deployedAt: string | null;
   deployedBy: string | null;
   sortOrder: number;

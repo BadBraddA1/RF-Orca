@@ -21,19 +21,20 @@ type SeedChannel = {
   band: string
   groupName: string
   groupChannel?: string
+  assignedTo?: string
   isBackup?: boolean
   status?: Channel["status"]
 }
 
 const SEED: SeedChannel[] = [
-  { name: "Lead Vocal", frequencyMhz: 518.125, band: "G50", groupName: "Vocals", groupChannel: "1/1", status: "allowed" },
-  { name: "BGV 1", frequencyMhz: 520.250, band: "G50", groupName: "Vocals", groupChannel: "1/2", status: "allowed" },
+  { name: "Lead Vocal", frequencyMhz: 518.125, band: "G50", groupName: "Vocals", groupChannel: "1/1", assignedTo: "Maya Chen", status: "allowed" },
+  { name: "BGV 1", frequencyMhz: 520.250, band: "G50", groupName: "Vocals", groupChannel: "1/2", assignedTo: "Jordan Lee", status: "allowed" },
   { name: "BGV 2", frequencyMhz: 522.500, band: "G50", groupName: "Vocals", groupChannel: "1/3", status: "allowed" },
-  { name: "Pastor Mic", frequencyMhz: 524.750, band: "G50", groupName: "Vocals", groupChannel: "1/4", status: "allowed" },
-  { name: "IEM Mix A", frequencyMhz: 556.000, band: "H50", groupName: "IEMs", groupChannel: "2/1", status: "allowed" },
-  { name: "IEM Mix B", frequencyMhz: 558.250, band: "H50", groupName: "IEMs", groupChannel: "2/2", status: "allowed" },
+  { name: "Pastor Mic", frequencyMhz: 524.750, band: "G50", groupName: "Vocals", groupChannel: "1/4", assignedTo: "Pastor Kim", status: "allowed" },
+  { name: "IEM Mix A", frequencyMhz: 556.000, band: "H50", groupName: "IEMs", groupChannel: "2/1", assignedTo: "Maya Chen", status: "allowed" },
+  { name: "IEM Mix B", frequencyMhz: 558.250, band: "H50", groupName: "IEMs", groupChannel: "2/2", assignedTo: "Jordan Lee", status: "allowed" },
   { name: "IEM Mix C", frequencyMhz: 560.500, band: "H50", groupName: "IEMs", groupChannel: "2/3", status: "unreviewed" },
-  { name: "Comms Lead", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/1", status: "allowed" },
+  { name: "Comms Lead", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/1", assignedTo: "A2 Desk", status: "allowed" },
   { name: "Comms Stage", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/2", status: "allowed" }, // same freq — conflict later
   { name: "Spare Handheld", frequencyMhz: 530.000, band: "G50", groupName: "Vocals", isBackup: true, status: "blocked" },
 ]
@@ -53,6 +54,7 @@ function makeChannel(seed: SeedChannel, index: number): Channel {
     status: seed.status ?? "unreviewed",
     deployed: false,
     roomName: null,
+    assignedTo: seed.assignedTo ?? null,
     deployedAt: null,
     deployedBy: null,
     sortOrder: index,
@@ -116,7 +118,7 @@ export function pushActivity(
 export function patchDemoChannel(
   show: ShowPublic,
   channelId: string,
-  patch: Partial<Pick<Channel, "deployed" | "roomName" | "status">>,
+  patch: Partial<Pick<Channel, "deployed" | "roomName" | "status" | "assignedTo">>,
   activityMessage?: string,
 ): ShowPublic {
   const channels = show.channels.map((ch) => {
@@ -139,12 +141,17 @@ export function patchDemoChannel(
     conflicts: findFreqConflicts(channels),
   }
   if (activityMessage) {
-    nextShow = pushActivity(
-      nextShow,
-      patch.deployed === false ? "undeploy" : patch.deployed ? "deploy" : "status",
-      activityMessage,
-      channelId,
-    )
+    const kind =
+      patch.assignedTo !== undefined &&
+      patch.deployed === undefined &&
+      patch.status === undefined
+        ? "assign"
+        : patch.deployed === false
+          ? "undeploy"
+          : patch.deployed
+            ? "deploy"
+            : "status"
+    nextShow = pushActivity(nextShow, kind, activityMessage, channelId)
   } else {
     nextShow = { ...nextShow, revision: show.revision + 1 }
   }
@@ -171,6 +178,20 @@ export function buildDemoBeats(): DemoBeat[] {
           ch.id,
           { status: "allowed" },
           `Set ${ch.name} → allowed`,
+        )
+      },
+    },
+    {
+      delayMs: 1100,
+      label: "Assign BGV 2 pack",
+      run: (show) => {
+        const ch = show.channels.find((c) => c.name === "BGV 2")
+        if (!ch) return show
+        return patchDemoChannel(
+          show,
+          ch.id,
+          { assignedTo: "Sam Rivera" },
+          `${ch.name} → Sam Rivera`,
         )
       },
     },

@@ -20,7 +20,14 @@ import type {
 } from "@/lib/types";
 import { DEPLOY_UNDO_GRACE_SEC } from "@/lib/types";
 
-type Filter = "all" | "allowed" | "blocked" | "deployed" | "open";
+type Filter =
+  | "all"
+  | "allowed"
+  | "blocked"
+  | "deployed"
+  | "open"
+  | "assigned"
+  | "unassigned";
 
 type FocusState = {
   group: string;
@@ -63,6 +70,11 @@ const FEATURE_TOGGLES: {
     key: "rooms",
     label: "Rooms",
     hint: "Assign a room or zone when deploying",
+  },
+  {
+    key: "assignments",
+    label: "Mic assignments",
+    hint: "Who is on each RF channel — live for A2s",
   },
   {
     key: "groups",
@@ -206,8 +218,18 @@ export function MarkBoard({
       deployed: channels.filter((c) => c.deployed).length,
       open: channels.filter((c) => !c.deployed && c.status !== "blocked")
         .length,
+      assigned: channels.filter((c) => Boolean(c.assignedTo?.trim())).length,
+      unassigned: channels.filter((c) => !c.assignedTo?.trim()).length,
     };
   }, [show.channels]);
+
+  const assigneeNames = useMemo(() => {
+    if (!features.assignments) return [];
+    const names = show.channels
+      .map((c) => c.assignedTo?.trim())
+      .filter((n): n is string => Boolean(n));
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+  }, [show.channels, features.assignments]);
 
   const groupProgress = useMemo(() => {
     if (!features.groups || !features.deploy) return [];
@@ -241,6 +263,12 @@ export function MarkBoard({
           !c.deployed &&
           (!features.status || c.status !== "blocked")
         );
+      }
+      if (filter === "assigned") {
+        return features.assignments && Boolean(c.assignedTo?.trim());
+      }
+      if (filter === "unassigned") {
+        return features.assignments && !c.assignedTo?.trim();
       }
       return true;
     });
@@ -352,6 +380,7 @@ export function MarkBoard({
       deployed: boolean;
       roomName: string | null;
       groupName: string | null;
+      assignedTo: string | null;
     }>,
     opts?: { undoToast?: boolean },
   ) {
@@ -536,6 +565,12 @@ export function MarkBoard({
       features.deploy
         ? (["deployed", `Deployed (${counts.deployed})`] as const)
         : null,
+      features.assignments
+        ? (["unassigned", `No who (${counts.unassigned})`] as const)
+        : null,
+      features.assignments
+        ? (["assigned", `Assigned (${counts.assigned})`] as const)
+        : null,
       features.status
         ? (["allowed", `Allowed (${counts.allowed})`] as const)
         : null,
@@ -547,6 +582,8 @@ export function MarkBoard({
 
   const pct =
     counts.all > 0 ? Math.round((counts.deployed / counts.all) * 100) : 0;
+  const assignPct =
+    counts.all > 0 ? Math.round((counts.assigned / counts.all) * 100) : 0;
 
   return (
     <div className="board">
@@ -556,7 +593,8 @@ export function MarkBoard({
           <h1>{show.name}</h1>
           <p className="board-sub">
             {features.deploy ? "Tap Deploy" : "Frequency board"}
-            {features.rooms ? ", set the room" : ""}.
+            {features.rooms ? ", set the room" : ""}
+            {features.assignments ? ", who is on each mic" : ""}.
             <span className={`live-pill${live ? " on" : ""}`}>
               {live
                 ? transport === "ably"
@@ -606,6 +644,14 @@ export function MarkBoard({
           <div className="progress-track" aria-hidden>
             <div className="progress-fill" style={{ width: `${pct}%` }} />
           </div>
+          {features.assignments ? (
+            <div className="progress-assign">
+              <strong>
+                {counts.assigned}/{counts.all} assigned
+              </strong>
+              <span>{assignPct}%</span>
+            </div>
+          ) : null}
           {groupProgress.length > 0 ? (
             <div className="progress-groups">
               {groupProgress.map((g) => (
@@ -616,6 +662,18 @@ export function MarkBoard({
               ))}
             </div>
           ) : null}
+        </div>
+      ) : features.assignments ? (
+        <div className="progress-hud" role="status">
+          <div className="progress-hud-top">
+            <strong>
+              {counts.assigned}/{counts.all} assigned
+            </strong>
+            <span>{assignPct}%</span>
+          </div>
+          <div className="progress-track" aria-hidden>
+            <div className="progress-fill" style={{ width: `${assignPct}%` }} />
+          </div>
         </div>
       ) : null}
 
@@ -668,7 +726,11 @@ export function MarkBoard({
                 jumpToFirstMatch();
               }
             }}
-            placeholder="Search name or MHz…"
+            placeholder={
+              features.assignments
+                ? "Search name, who, or MHz…"
+                : "Search name or MHz…"
+            }
             inputMode="search"
             autoComplete="off"
           />
@@ -1079,6 +1141,14 @@ export function MarkBoard({
         </div>
       )}
 
+      {features.assignments && assigneeNames.length > 0 ? (
+        <datalist id="assignee-options">
+          {assigneeNames.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
+      ) : null}
+
       {undo ? (
         <div className="undo-toast" role="status">
           <span>Deployed {undo.channelName}</span>
@@ -1132,6 +1202,7 @@ function ChannelRow({
       deployed: boolean;
       roomName: string | null;
       groupName: string | null;
+      assignedTo: string | null;
     }>,
     opts?: { undoToast?: boolean },
   ) => Promise<void>;
@@ -1145,8 +1216,10 @@ function ChannelRow({
   const deployLocked =
     features.lockDeployed && channel.deployed && !admin && !inGrace;
   const markDisabled = blocked || crewFrozen || deployLocked;
+  const assignDisabled = crewFrozen;
   const [roomDraft, setRoomDraft] = useState(channel.roomName ?? "");
   const [groupDraft, setGroupDraft] = useState(channel.groupName ?? "");
+  const [whoDraft, setWhoDraft] = useState(channel.assignedTo ?? "");
 
   useEffect(() => {
     setRoomDraft(channel.roomName ?? "");
@@ -1155,6 +1228,10 @@ function ChannelRow({
   useEffect(() => {
     setGroupDraft(channel.groupName ?? "");
   }, [channel.groupName]);
+
+  useEffect(() => {
+    setWhoDraft(channel.assignedTo ?? "");
+  }, [channel.assignedTo]);
 
   return (
     <li
@@ -1167,6 +1244,9 @@ function ChannelRow({
             <strong>{channel.name}</strong>
             <span className="freq">{channel.frequencyMhz.toFixed(3)} MHz</span>
           </div>
+          {features.assignments && channel.assignedTo ? (
+            <p className="channel-who">{channel.assignedTo}</p>
+          ) : null}
           <div className="channel-meta">
             {channel.band ? <span>{channel.band}</span> : null}
             {channel.groupChannel ? (
@@ -1276,45 +1356,70 @@ function ChannelRow({
         </div>
       ) : null}
 
-      {features.rooms ? (
-        <label className={`room-field${markDisabled ? " disabled" : ""}`}>
-          <span>Room</span>
-          {rooms.length > 0 ? (
-            <select
-              value={channel.roomName ?? ""}
-              disabled={markDisabled}
-              onChange={(e) => {
-                const roomName = e.target.value || null;
-                void onPatch(channel.id, {
-                  roomName,
-                  deployed: Boolean(roomName) || channel.deployed,
-                });
-              }}
+      {features.assignments || features.rooms ? (
+        <div className="channel-floor-fields">
+          {features.assignments ? (
+            <label
+              className={`room-field assign-field${assignDisabled ? " disabled" : ""}`}
             >
-              <option value="">Select room</option>
-              {rooms.map((room) => (
-                <option key={room} value={room}>
-                  {room}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              value={roomDraft}
-              disabled={markDisabled}
-              placeholder="Room / zone"
-              onChange={(e) => setRoomDraft(e.target.value)}
-              onBlur={() => {
-                const roomName = roomDraft.trim() || null;
-                if (roomName === (channel.roomName ?? null)) return;
-                void onPatch(channel.id, {
-                  roomName,
-                  deployed: Boolean(roomName) || channel.deployed,
-                });
-              }}
-            />
-          )}
-        </label>
+              <span>Who</span>
+              <input
+                list="assignee-options"
+                value={whoDraft}
+                disabled={assignDisabled}
+                placeholder="Talent / wearer"
+                maxLength={80}
+                autoComplete="off"
+                onChange={(e) => setWhoDraft(e.target.value)}
+                onBlur={() => {
+                  const assignedTo = whoDraft.trim() || null;
+                  if (assignedTo === (channel.assignedTo ?? null)) return;
+                  void onPatch(channel.id, { assignedTo });
+                }}
+              />
+            </label>
+          ) : null}
+          {features.rooms ? (
+            <label className={`room-field${markDisabled ? " disabled" : ""}`}>
+              <span>Room</span>
+              {rooms.length > 0 ? (
+                <select
+                  value={channel.roomName ?? ""}
+                  disabled={markDisabled}
+                  onChange={(e) => {
+                    const roomName = e.target.value || null;
+                    void onPatch(channel.id, {
+                      roomName,
+                      deployed: Boolean(roomName) || channel.deployed,
+                    });
+                  }}
+                >
+                  <option value="">Select room</option>
+                  {rooms.map((room) => (
+                    <option key={room} value={room}>
+                      {room}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={roomDraft}
+                  disabled={markDisabled}
+                  placeholder="Room / zone"
+                  onChange={(e) => setRoomDraft(e.target.value)}
+                  onBlur={() => {
+                    const roomName = roomDraft.trim() || null;
+                    if (roomName === (channel.roomName ?? null)) return;
+                    void onPatch(channel.id, {
+                      roomName,
+                      deployed: Boolean(roomName) || channel.deployed,
+                    });
+                  }}
+                />
+              )}
+            </label>
+          ) : null}
+        </div>
       ) : null}
     </li>
   );

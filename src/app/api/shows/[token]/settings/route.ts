@@ -6,6 +6,7 @@ import { updateShowFeatures } from "@/lib/store";
 const bodySchema = z.object({
   deploy: z.boolean().optional(),
   rooms: z.boolean().optional(),
+  assignments: z.boolean().optional(),
   groups: z.boolean().optional(),
   status: z.boolean().optional(),
   lockDeployed: z.boolean().optional(),

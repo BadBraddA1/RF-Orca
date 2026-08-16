@@ -9,6 +9,7 @@ const bodySchema = z.object({
   deployed: z.boolean().optional(),
   roomName: z.string().nullable().optional(),
   groupName: z.string().nullable().optional(),
+  assignedTo: z.string().max(80).nullable().optional(),
   deployedBy: z.string().nullable().optional(),
 });
 

@@ -26,13 +26,14 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 ## Floor speed features
 
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
+- **Mic assignments** — who is on each RF channel (talent / wearer); crew can set **Who** on the floor; filters for Assigned / No who; live via Ably
 - **Import preview** — Workbench CSV shows a confirm table before replacing the board
-- **Search** — name / MHz jump (Enter scrolls to first match)
+- **Search** — name / who / MHz jump (Enter scrolls to first match)
 - **My room** focus — filter to the room you’re dressing (persists in localStorage)
-- **Progress HUD** — sticky deployed count + per-group progress
-- **Activity strip** — recent deploy / import / settings events
+- **Progress HUD** — sticky deployed count + assignment progress + per-group progress
+- **Activity strip** — recent deploy / assign / import / settings events
 - **Conflict ping** — same frequency deployed more than once
-- **Export CSV** — snapshot of the board
+- **Export CSV** — snapshot of the board (includes `assigned_to`)
 
 ## Channel groups
 
@@ -45,7 +46,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - With `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`: durable shared shows (production)
 - Without them: in-memory demo store (local only; resets on cold start)
-- Schema v3: each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
+- Schema v4: channels include `assigned_to` for mic assignments. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
 
 ## Develop
 

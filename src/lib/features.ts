@@ -21,6 +21,7 @@ export function parseFeatures(raw: unknown): ShowFeatures {
   return {
     deploy: bool(obj.deploy, DEFAULT_SHOW_FEATURES.deploy),
     rooms: bool(obj.rooms, DEFAULT_SHOW_FEATURES.rooms),
+    assignments: bool(obj.assignments, DEFAULT_SHOW_FEATURES.assignments),
     groups: bool(obj.groups, DEFAULT_SHOW_FEATURES.groups),
     status: bool(obj.status, DEFAULT_SHOW_FEATURES.status),
     lockDeployed: bool(obj.lockDeployed, DEFAULT_SHOW_FEATURES.lockDeployed),

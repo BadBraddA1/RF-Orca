@@ -11,6 +11,7 @@ export function buildShowExportCsv(show: ShowPublic): string {
     "status",
     "deployed",
     "room",
+    "assigned_to",
     "deployed_at",
     "backup",
   ];
@@ -26,6 +27,7 @@ export function buildShowExportCsv(show: ShowPublic): string {
         ch.status,
         ch.deployed ? "yes" : "no",
         csv(ch.roomName),
+        csv(ch.assignedTo),
         csv(ch.deployedAt),
         ch.isBackup ? "yes" : "no",
       ].join(","),
@@ -73,6 +75,7 @@ export function channelMatchesQuery(ch: Channel, q: string): boolean {
     ch.groupName,
     ch.groupChannel,
     ch.roomName,
+    ch.assignedTo,
     ch.zone,
     ch.type,
   ]

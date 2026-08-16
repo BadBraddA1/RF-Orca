@@ -10,7 +10,7 @@ RF coordinators and live-event crews after frequency coordination (Workbench / C
 
 ## Product Purpose
 
-RF Orca is a crew-facing mark board for live RF: after the frequency plan is coordinated elsewhere, share one link so the floor can group channels and track deploy-by-room without accounts. Success = create a show and share a link in under a minute; crews can mark deploy without scrolling past noise.
+RF Orca is a crew-facing mark board for live RF: after the frequency plan is coordinated elsewhere, share one link so the floor can group channels, assign who is on each mic, and track deploy-by-room without accounts. Success = create a show and share a link in under a minute; crews can mark deploy without scrolling past noise.
 
 ## Brand Personality
 

@@ -208,6 +208,9 @@ export function DemoBoard() {
                             {channel.frequencyMhz.toFixed(3)} MHz
                           </span>
                         </div>
+                        {channel.assignedTo ? (
+                          <p className="channel-who">{channel.assignedTo}</p>
+                        ) : null}
                         <div className="channel-meta">
                           {channel.band ? <span>{channel.band}</span> : null}
                           {channel.groupChannel ? (

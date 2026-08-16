@@ -25,7 +25,7 @@ import { ACTIVE_SHOW_HOME_DAYS, DEFAULT_SHOW_FEATURES } from "./types";
 
 type StoreMode = "memory" | "turso";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 type GlobalStore = {
   shows: Map<string, Show>;
@@ -88,6 +88,7 @@ async function ensureSchema(): Promise<void> {
       status TEXT NOT NULL DEFAULT 'unreviewed',
       deployed INTEGER NOT NULL DEFAULT 0,
       room_name TEXT,
+      assigned_to TEXT,
       deployed_at TEXT,
       deployed_by TEXT,
       sort_order INTEGER NOT NULL DEFAULT 0
@@ -117,6 +118,11 @@ async function ensureSchema(): Promise<void> {
     "channels",
     "group_name",
     `ALTER TABLE channels ADD COLUMN group_name TEXT`,
+  );
+  await ensureColumn(
+    "channels",
+    "assigned_to",
+    `ALTER TABLE channels ADD COLUMN assigned_to TEXT`,
   );
   await db.query(
     `CREATE INDEX IF NOT EXISTS channels_show_id_idx ON channels(show_id)`,
@@ -164,6 +170,7 @@ function mapChannelRow(row: Record<string, unknown>): Channel {
     status: row.status as ChannelStatus,
     deployed: Boolean(row.deployed),
     roomName: (row.room_name as string) ?? null,
+    assignedTo: (row.assigned_to as string) ?? null,
     deployedAt: row.deployed_at
       ? new Date(row.deployed_at as string).toISOString()
       : null,
@@ -368,6 +375,7 @@ export async function replaceChannelsFromImport(
     status: "unreviewed" as const,
     deployed: false,
     roomName: null,
+    assignedTo: null,
     deployedAt: null,
     deployedBy: null,
     sortOrder: index,
@@ -396,13 +404,13 @@ export async function replaceChannelsFromImport(
     await db`
       INSERT INTO channels (
         id, show_id, name, frequency_mhz, band, type, group_channel, zone,
-        group_name, is_backup, status, deployed, room_name, deployed_at,
-        deployed_by, sort_order
+        group_name, is_backup, status, deployed, room_name, assigned_to,
+        deployed_at, deployed_by, sort_order
       ) VALUES (
         ${ch.id}, ${ch.showId}, ${ch.name}, ${ch.frequencyMhz}, ${ch.band},
         ${ch.type}, ${ch.groupChannel}, ${ch.zone}, ${ch.groupName},
         ${ch.isBackup}, ${ch.status}, ${ch.deployed}, ${ch.roomName},
-        ${ch.deployedAt}, ${ch.deployedBy}, ${ch.sortOrder}
+        ${ch.assignedTo}, ${ch.deployedAt}, ${ch.deployedBy}, ${ch.sortOrder}
       )
     `;
   }
@@ -431,6 +439,7 @@ export async function addManualChannel(
     status: "unreviewed",
     deployed: false,
     roomName: null,
+    assignedTo: null,
     deployedAt: null,
     deployedBy: null,
     sortOrder: existing.length,
@@ -451,14 +460,14 @@ export async function addManualChannel(
   await db`
     INSERT INTO channels (
       id, show_id, name, frequency_mhz, band, type, group_channel, zone,
-      group_name, is_backup, status, deployed, room_name, deployed_at,
-      deployed_by, sort_order
+      group_name, is_backup, status, deployed, room_name, assigned_to,
+      deployed_at, deployed_by, sort_order
     ) VALUES (
       ${channel.id}, ${channel.showId}, ${channel.name}, ${channel.frequencyMhz},
       ${channel.band}, ${channel.type}, ${channel.groupChannel}, ${channel.zone},
       ${channel.groupName}, ${channel.isBackup}, ${channel.status},
-      ${channel.deployed}, ${channel.roomName}, ${channel.deployedAt},
-      ${channel.deployedBy}, ${channel.sortOrder}
+      ${channel.deployed}, ${channel.roomName}, ${channel.assignedTo},
+      ${channel.deployedAt}, ${channel.deployedBy}, ${channel.sortOrder}
     )
   `;
   return toPublic(nextShow, channels);
@@ -472,6 +481,7 @@ export async function updateChannel(
     deployed: boolean;
     roomName: string | null;
     groupName: string | null;
+    assignedTo: string | null;
     deployedBy: string | null;
   }>,
 ): Promise<ShowPublic | null> {
@@ -482,7 +492,7 @@ export async function updateChannel(
   if (index < 0) return null;
 
   const current = channels[index];
-  let next: Channel = { ...current };
+  const next: Channel = { ...current };
   let nextShow = show;
   let activityKind: ActivityKind = "status";
   let activityMessage = `Updated ${current.name}`;
@@ -527,10 +537,30 @@ export async function updateChannel(
       : `Cleared room for ${next.name}`;
   }
 
+  if (patch.assignedTo !== undefined) {
+    next.assignedTo = patch.assignedTo?.trim() || null;
+    if (
+      typeof patch.deployed !== "boolean" &&
+      !patch.status &&
+      patch.roomName === undefined &&
+      patch.groupName === undefined
+    ) {
+      activityKind = "assign";
+      activityMessage = next.assignedTo
+        ? `${next.name} → ${next.assignedTo}`
+        : `Cleared who on ${next.name}`;
+    }
+  }
+
   if (patch.groupName !== undefined) {
     next.groupName = patch.groupName?.trim() || null;
     nextShow = withGroupCatalog(nextShow, next.groupName);
-    if (typeof patch.deployed !== "boolean" && !patch.status && patch.roomName === undefined) {
+    if (
+      typeof patch.deployed !== "boolean" &&
+      !patch.status &&
+      patch.roomName === undefined &&
+      patch.assignedTo === undefined
+    ) {
       activityKind = "groups";
       activityMessage = next.groupName
         ? `Grouped ${next.name} → ${next.groupName}`
@@ -555,6 +585,7 @@ export async function updateChannel(
       deployed = ${next.deployed},
       room_name = ${next.roomName},
       group_name = ${next.groupName},
+      assigned_to = ${next.assignedTo},
       deployed_at = ${next.deployedAt},
       deployed_by = ${next.deployedBy}
     WHERE id = ${next.id} AND show_id = ${show.id}
