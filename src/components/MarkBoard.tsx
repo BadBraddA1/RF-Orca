@@ -112,6 +112,14 @@ function focusKey(token: string) {
   return `rf-orca-focus:${token}`;
 }
 
+function crewKey(token: string) {
+  return `rf-orca-crew:${token}`;
+}
+
+function flashKey(token: string) {
+  return `rf-orca-flash:${token}`;
+}
+
 function loadFocus(token: string): FocusState {
   try {
     const raw = localStorage.getItem(focusKey(token));
@@ -124,6 +132,57 @@ function loadFocus(token: string): FocusState {
   } catch {
     return { group: "all", room: "" };
   }
+}
+
+function loadBool(key: string, fallback = false): boolean {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw == null) return fallback;
+    return raw === "1" || raw === "true";
+  } catch {
+    return fallback;
+  }
+}
+
+function channelMarkChanged(a: Channel, b: Channel): boolean {
+  return (
+    a.deployed !== b.deployed ||
+    a.roomName !== b.roomName ||
+    a.status !== b.status ||
+    a.groupName !== b.groupName ||
+    a.name !== b.name ||
+    a.frequencyMhz !== b.frequencyMhz ||
+    a.assignedTo !== b.assignedTo ||
+    a.inUse !== b.inUse ||
+    a.micKind !== b.micKind ||
+    a.rackSlot !== b.rackSlot
+  );
+}
+
+type FullscreenEl = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
+
+function requestElFullscreen(el: HTMLElement | null) {
+  if (!el) return;
+  const node = el as FullscreenEl;
+  const req =
+    el.requestFullscreen?.bind(el) ?? node.webkitRequestFullscreen?.bind(el);
+  if (!req) return;
+  void Promise.resolve(req()).catch(() => {});
+}
+
+function exitElFullscreen() {
+  const doc = document as Document & {
+    webkitExitFullscreen?: () => Promise<void> | void;
+    webkitFullscreenElement?: Element | null;
+  };
+  if (!document.fullscreenElement && !doc.webkitFullscreenElement) return;
+  const exit =
+    document.exitFullscreen?.bind(document) ??
+    doc.webkitExitFullscreen?.bind(document);
+  if (!exit) return;
+  void Promise.resolve(exit()).catch(() => {});
 }
 
 export function MarkBoard({
@@ -174,8 +233,14 @@ export function MarkBoard({
   );
   const [undo, setUndo] = useState<UndoToast | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [crewMode, setCrewMode] = useState(false);
+  const [flashChanges, setFlashChanges] = useState(false);
+  const [flashIds, setFlashIds] = useState<Record<string, number>>({});
   const revisionRef = useRef(initialShow.revision ?? 0);
+  const channelsRef = useRef(initialShow.channels);
+  const flashEnabledRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
   const [, startTransition] = useTransition();
 
   const features = show.features;
@@ -184,6 +249,8 @@ export function MarkBoard({
     const focus = loadFocus(token);
     setGroupFilter(focus.group);
     setFocusRoom(focus.room);
+    setCrewMode(loadBool(crewKey(token)));
+    setFlashChanges(loadBool(flashKey(token)));
   }, [token]);
 
   useEffect(() => {
@@ -194,13 +261,57 @@ export function MarkBoard({
   }, [token, groupFilter, focusRoom]);
 
   useEffect(() => {
+    localStorage.setItem(crewKey(token), crewMode ? "1" : "0");
+  }, [token, crewMode]);
+
+  useEffect(() => {
+    localStorage.setItem(flashKey(token), flashChanges ? "1" : "0");
+    flashEnabledRef.current = flashChanges;
+  }, [token, flashChanges]);
+
+  useEffect(() => {
     if (!undo) return;
     const ms = Math.max(0, undo.expiresAt - Date.now());
     const id = window.setTimeout(() => setUndo(null), ms);
     return () => window.clearTimeout(id);
   }, [undo]);
 
+  useEffect(() => {
+    const ids = Object.keys(flashIds);
+    if (ids.length === 0) return;
+    const id = window.setTimeout(() => {
+      const cutoff = Date.now() - 900;
+      setFlashIds((prev) => {
+        const next: Record<string, number> = {};
+        for (const [k, at] of Object.entries(prev)) {
+          if (at > cutoff) next[k] = at;
+        }
+        return next;
+      });
+    }, 950);
+    return () => window.clearTimeout(id);
+  }, [flashIds]);
+
   const applyShow = useCallback((next: ShowPublic, nextAdmin?: boolean) => {
+    if (flashEnabledRef.current) {
+      const prevMap = new Map(
+        channelsRef.current.map((c) => [c.id, c] as const),
+      );
+      const changed: string[] = [];
+      for (const ch of next.channels) {
+        const old = prevMap.get(ch.id);
+        if (!old || channelMarkChanged(old, ch)) changed.push(ch.id);
+      }
+      if (changed.length > 0) {
+        const at = Date.now();
+        setFlashIds((prev) => {
+          const merged = { ...prev };
+          for (const id of changed) merged[id] = at;
+          return merged;
+        });
+      }
+    }
+    channelsRef.current = next.channels;
     setShow(next);
     revisionRef.current = next.revision ?? 0;
     if (typeof nextAdmin === "boolean") setAdmin(nextAdmin);
@@ -210,6 +321,18 @@ export function MarkBoard({
     setCustomCols(String(next.rackCols ?? 4));
     setCustomRows(String(next.rackRows ?? 3));
   }, []);
+
+  function enterCrewMode() {
+    setCrewMode(true);
+    setToolsOpen(false);
+    if (features.assignments) setBoardView("rack");
+    requestElFullscreen(boardRef.current);
+  }
+
+  function exitCrewMode() {
+    setCrewMode(false);
+    exitElFullscreen();
+  }
 
   const refreshFromServer = useCallback(async () => {
     const res = await fetch(`/api/shows/${token}`, { cache: "no-store" });
@@ -670,19 +793,14 @@ export function MarkBoard({
   const slotTotal = rackSlotCount(show);
 
   return (
-    <div className="board">
-      <header className="board-header">
-        <div>
-          <BrandLockup size="header" showTagline />
-          <h1>{show.name}</h1>
-          <p className="board-sub">
-            {features.assignments
-              ? `${show.rackCols}×${show.rackRows} rack — who has which mic`
-              : features.deploy
-                ? "Tap Deploy"
-                : "Frequency board"}
-            {features.rooms && !features.assignments ? ", set the room" : ""}
-            {features.assignments ? ", mark in use" : ""}.
+    <div
+      ref={boardRef}
+      className={`board${crewMode ? " board--crew" : ""}`}
+    >
+      {crewMode ? (
+        <header className="crew-bar">
+          <div className="crew-bar-main">
+            <strong className="crew-show-name">{show.name}</strong>
             <span className={`live-pill${live ? " on" : ""}`}>
               {live
                 ? transport === "ably"
@@ -690,38 +808,103 @@ export function MarkBoard({
                   : "Live · poll"
                 : "Reconnecting…"}
             </span>
-            {show.storageMode === "memory" ? (
-              <span className="demo-pill"> Demo storage</span>
+            {features.assignments ? (
+              <span className="crew-progress">
+                {counts.inuse}/{counts.all} in use · {counts.assigned} who
+              </span>
+            ) : features.deploy ? (
+              <span className="crew-progress">
+                {counts.deployed}/{counts.all}
+                {counts.all > 0 ? ` · ${pct}%` : ""}
+              </span>
             ) : null}
-          </p>
-        </div>
-        <div className="board-actions">
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={() => downloadShowCsv(show)}
-          >
-            Export CSV
-          </button>
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={() => void copyLink()}
-          >
-            {copied ? "Copied" : "Copy link"}
-          </button>
-          <button
-            type="button"
-            className={`btn-quiet${toolsOpen ? " active" : ""}`}
-            onClick={() => setToolsOpen((v) => !v)}
-            aria-expanded={toolsOpen}
-          >
-            {admin ? "Tools" : "Coordinator"}
-          </button>
-        </div>
-      </header>
+          </div>
+          <div className="crew-bar-actions">
+            <label className="crew-toggle">
+              <input
+                type="checkbox"
+                checked={flashChanges}
+                onChange={(e) => setFlashChanges(e.target.checked)}
+              />
+              <span>Flash changes</span>
+            </label>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => exitCrewMode()}
+            >
+              Exit Crew
+            </button>
+          </div>
+        </header>
+      ) : (
+        <header className="board-header">
+          <div>
+            <BrandLockup size="header" showTagline />
+            <h1>{show.name}</h1>
+            <p className="board-sub">
+              {features.assignments
+                ? `${show.rackCols}×${show.rackRows} rack — who has which mic`
+                : features.deploy
+                  ? "Tap Deploy"
+                  : "Frequency board"}
+              {features.rooms && !features.assignments ? ", set the room" : ""}
+              {features.assignments ? ", mark in use" : ""}.
+              <span className={`live-pill${live ? " on" : ""}`}>
+                {live
+                  ? transport === "ably"
+                    ? "Live"
+                    : "Live · poll"
+                  : "Reconnecting…"}
+              </span>
+              {show.storageMode === "memory" ? (
+                <span className="demo-pill"> Demo storage</span>
+              ) : null}
+            </p>
+          </div>
+          <div className="board-actions">
+            <label className="crew-toggle">
+              <input
+                type="checkbox"
+                checked={flashChanges}
+                onChange={(e) => setFlashChanges(e.target.checked)}
+              />
+              <span>Flash changes</span>
+            </label>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => enterCrewMode()}
+            >
+              Crew
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => downloadShowCsv(show)}
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => void copyLink()}
+            >
+              {copied ? "Copied" : "Copy link"}
+            </button>
+            <button
+              type="button"
+              className={`btn-quiet${toolsOpen ? " active" : ""}`}
+              onClick={() => setToolsOpen((v) => !v)}
+              aria-expanded={toolsOpen}
+            >
+              {admin ? "Tools" : "Coordinator"}
+            </button>
+          </div>
+        </header>
+      )}
 
-      {features.deploy ? (
+      {!crewMode && features.deploy ? (
         <div className="progress-hud" role="status">
           <div className="progress-hud-top">
             <strong>
@@ -751,7 +934,7 @@ export function MarkBoard({
             </div>
           ) : null}
         </div>
-      ) : features.assignments ? (
+      ) : !crewMode && features.assignments ? (
         <div className="progress-hud" role="status">
           <div className="progress-hud-top">
             <strong>
@@ -794,7 +977,7 @@ export function MarkBoard({
         </div>
       ) : null}
 
-      {(show.activity?.length ?? 0) > 0 ? (
+      {!crewMode && (show.activity?.length ?? 0) > 0 ? (
         <div className="activity-strip" aria-label="Recent activity">
           {show.activity.slice(0, 6).map((a) => (
             <div key={a.id} className="activity-item">
@@ -807,6 +990,7 @@ export function MarkBoard({
         </div>
       ) : null}
 
+      {!crewMode ? (
       <div className="board-toolbar">
         <label className="search-field">
           <span className="sr-only">Search channels</span>
@@ -864,8 +1048,9 @@ export function MarkBoard({
           </label>
         ) : null}
       </div>
+      ) : null}
 
-      {toolsOpen ? (
+      {!crewMode && toolsOpen ? (
         <aside className="tools-panel" aria-label="Coordinator tools">
           {!admin ? (
             <form className="tools-unlock" onSubmit={(e) => void unlock(e)}>
@@ -1171,7 +1356,8 @@ export function MarkBoard({
         </datalist>
       ) : null}
 
-      {features.groups &&
+      {!crewMode &&
+      features.groups &&
       (groupNames.length > 0 || show.channels.some((c) => !c.groupName)) ? (
         <div className="filters group-filters" aria-label="Channel groups">
           <button
@@ -1203,7 +1389,7 @@ export function MarkBoard({
         </div>
       ) : null}
 
-      {filterOptions.length > 1 ? (
+      {!crewMode && filterOptions.length > 1 ? (
         <div className="filters">
           {filterOptions.map(([key, label]) => (
             <button
@@ -1218,7 +1404,10 @@ export function MarkBoard({
         </div>
       ) : null}
 
-      {admin && features.status && visibleWithRoomFocus.length > 0 ? (
+      {!crewMode &&
+      admin &&
+      features.status &&
+      visibleWithRoomFocus.length > 0 ? (
         <div
           className="bulk-bar"
           role="group"
@@ -1277,22 +1466,33 @@ export function MarkBoard({
           features={features}
           admin={admin}
           assigneeNames={assigneeNames}
-          search={search}
+          search={crewMode ? "" : search}
           filterInUse={
-            filter === "inuse" ? "inuse" : filter === "spare" ? "spare" : "all"
+            crewMode
+              ? "all"
+              : filter === "inuse"
+                ? "inuse"
+                : filter === "spare"
+                  ? "spare"
+                  : "all"
           }
           filterWho={
-            filter === "assigned"
-              ? "assigned"
-              : filter === "unassigned"
-                ? "unassigned"
-                : "all"
+            crewMode
+              ? "all"
+              : filter === "assigned"
+                ? "assigned"
+                : filter === "unassigned"
+                  ? "unassigned"
+                  : "all"
           }
+          flashIds={flashIds}
           onPatch={async (id, patch) => {
             await patchChannel(id, patch);
           }}
           onFillEmpty={
-            admin ? async () => patchRack({ fillEmpty: true }) : undefined
+            admin && !crewMode
+              ? async () => patchRack({ fillEmpty: true })
+              : undefined
           }
           fillBusy={rackBusy}
         />
@@ -1373,6 +1573,7 @@ export function MarkBoard({
                     admin={admin}
                     features={features}
                     highlighted={highlightId === channel.id}
+                    flashing={Boolean(flashIds[channel.id])}
                     conflicted={show.conflicts?.some((c) =>
                       c.channels.some((x) => x.id === channel.id),
                     )}
@@ -1431,6 +1632,7 @@ function ChannelRow({
   admin,
   features,
   highlighted,
+  flashing,
   conflicted,
   onPatch,
 }: {
@@ -1440,6 +1642,7 @@ function ChannelRow({
   admin: boolean;
   features: ShowFeatures;
   highlighted?: boolean;
+  flashing?: boolean;
   conflicted?: boolean;
   onPatch: (
     id: string,
@@ -1485,7 +1688,7 @@ function ChannelRow({
   return (
     <li
       id={`ch-${channel.id}`}
-      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${conflicted ? " is-conflict" : ""}`}
+      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${flashing ? " is-flash" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
         <div className="channel-main">

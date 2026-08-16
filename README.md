@@ -29,6 +29,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Mic rack (A2)** — custom grid (4×1, 3×3, …); **Handheld / Lav**; **saved names** roster with drop-in Who menu; set Who; toggle In use; live via Ably
+- **Crew mode** — header **Crew** button: fullscreen-friendly view of the mic rack only (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
+- **Flash changes** — toggle in the header (and Crew bar): pulse a rack cell / channel card when it updates locally or via live sync
 - **Import preview** — Workbench CSV shows a confirm table before replacing the board
 - **Search** — name / who / MHz jump (Enter scrolls to first match)
 - **My room** focus — filter to the room you’re dressing (persists in localStorage)

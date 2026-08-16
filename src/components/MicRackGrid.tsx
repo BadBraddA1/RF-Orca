@@ -22,6 +22,7 @@ export function MicRackGrid({
   search,
   filterInUse,
   filterWho,
+  flashIds,
   onPatch,
   onFillEmpty,
   fillBusy,
@@ -35,6 +36,7 @@ export function MicRackGrid({
   search: string;
   filterInUse: "all" | "inuse" | "spare";
   filterWho?: "all" | "assigned" | "unassigned";
+  flashIds?: Record<string, number>;
   onPatch: (id: string, patch: Patch) => Promise<void>;
   onFillEmpty?: () => Promise<void>;
   fillBusy?: boolean;
@@ -113,6 +115,7 @@ export function MicRackGrid({
             admin={admin}
             frozen={features.crewLocked && !admin}
             assigneeNames={assigneeNames}
+            flashing={Boolean(channel && flashIds?.[channel.id])}
             onPatch={onPatch}
           />
         ))}
@@ -136,6 +139,7 @@ function RackCell({
   admin,
   frozen,
   assigneeNames,
+  flashing,
   onPatch,
 }: {
   slot: number;
@@ -144,6 +148,7 @@ function RackCell({
   admin: boolean;
   frozen: boolean;
   assigneeNames: string[];
+  flashing?: boolean;
   onPatch: (id: string, patch: Patch) => Promise<void>;
 }) {
   const [whoDraft, setWhoDraft] = useState(channel?.assignedTo ?? "");
@@ -182,7 +187,7 @@ function RackCell({
   return (
     <div
       id={`ch-${channel.id}`}
-      className={`rack-cell${channel.inUse ? " is-inuse" : " is-spare"}${channel.assignedTo ? " has-who" : ""}${channel.micKind ? ` kind-${channel.micKind}` : ""}`}
+      className={`rack-cell${channel.inUse ? " is-inuse" : " is-spare"}${channel.assignedTo ? " has-who" : ""}${channel.micKind ? ` kind-${channel.micKind}` : ""}${flashing ? " is-flash" : ""}`}
       role="listitem"
     >
       <div className="rack-cell-top">
