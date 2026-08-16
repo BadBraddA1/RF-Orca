@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminUnlocked } from "@/lib/admin";
-import { updateShowFeatures } from "@/lib/store";
+import { fillRackSlots, setRackSize } from "@/lib/store";
 
 const bodySchema = z.object({
-  deploy: z.boolean().optional(),
-  rooms: z.boolean().optional(),
-  assignments: z.boolean().optional(),
-  groups: z.boolean().optional(),
-  status: z.boolean().optional(),
-  lockDeployed: z.boolean().optional(),
-  crewLocked: z.boolean().optional(),
+  rackSize: z.union([z.literal(12), z.literal(24)]).optional(),
+  fillEmpty: z.boolean().optional(),
 });
 
 export async function PUT(
@@ -25,10 +20,16 @@ export async function PUT(
   const json = await request.json().catch(() => null);
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid settings." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid rack settings." }, { status: 400 });
   }
 
-  const show = await updateShowFeatures(token, parsed.data);
+  let show = null;
+  if (parsed.data.rackSize) {
+    show = await setRackSize(token, parsed.data.rackSize);
+  }
+  if (parsed.data.fillEmpty) {
+    show = await fillRackSlots(token);
+  }
   if (!show) {
     return NextResponse.json({ error: "Show not found." }, { status: 404 });
   }

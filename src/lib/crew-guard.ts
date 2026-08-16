@@ -7,6 +7,9 @@ type CrewPatch = {
   deployed?: boolean;
   roomName?: string | null;
   groupName?: string | null;
+  assignedTo?: string | null;
+  inUse?: boolean;
+  name?: string;
 };
 
 /**
@@ -21,7 +24,9 @@ export function crewPatchBlocked(
   if (features.crewLocked) {
     if (
       typeof patch.deployed === "boolean" ||
-      patch.roomName !== undefined
+      patch.roomName !== undefined ||
+      patch.assignedTo !== undefined ||
+      typeof patch.inUse === "boolean"
     ) {
       return "Board is locked for crew. Coordinator can unlock in Tools → Show options.";
     }
@@ -33,6 +38,17 @@ export function crewPatchBlocked(
 
   if (!features.rooms && patch.roomName !== undefined) {
     return "Rooms are turned off for this show.";
+  }
+
+  if (
+    !features.assignments &&
+    (patch.assignedTo !== undefined || typeof patch.inUse === "boolean")
+  ) {
+    return "Mic assignments are turned off for this show.";
+  }
+
+  if (patch.name !== undefined) {
+    return "Renaming channels requires coordinator unlock.";
   }
 
   if (features.lockDeployed && channel.deployed) {

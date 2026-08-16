@@ -24,12 +24,12 @@ export default function PrivacyPage() {
       <div className="hero-support" style={{ display: "grid", gap: "0.9rem" }}>
         <p>
           {siteName} stores show data you create (show name, channels,
-          rooms/groups, deploy marks) so crews can share a mark board. Admin
+          rooms/groups, mic assignments, deploy marks) so crews can share a mark board. Admin
           passwords are stored hashed, not in plain text.
         </p>
         <p>
           Share links are unguessable tokens. Anyone with a link can view and
-          update deploy/room marks for that show. Coordinator tools require the
+          update deploy/room/who marks for that show. Coordinator tools require the
           admin password set when the show was created.
         </p>
         <p>

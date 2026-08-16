@@ -3,6 +3,7 @@ import type { Channel, ShowPublic } from "./types";
 /** CSV snapshot of the mark board for post-show / client handoff. */
 export function buildShowExportCsv(show: ShowPublic): string {
   const headers = [
+    "rack_slot",
     "name",
     "frequency_mhz",
     "band",
@@ -11,6 +12,8 @@ export function buildShowExportCsv(show: ShowPublic): string {
     "status",
     "deployed",
     "room",
+    "assigned_to",
+    "in_use",
     "deployed_at",
     "backup",
   ];
@@ -18,6 +21,7 @@ export function buildShowExportCsv(show: ShowPublic): string {
   for (const ch of show.channels) {
     lines.push(
       [
+        ch.rackSlot ?? "",
         csv(ch.name),
         ch.frequencyMhz.toFixed(3),
         csv(ch.band),
@@ -26,6 +30,8 @@ export function buildShowExportCsv(show: ShowPublic): string {
         ch.status,
         ch.deployed ? "yes" : "no",
         csv(ch.roomName),
+        csv(ch.assignedTo),
+        ch.inUse ? "yes" : "no",
         csv(ch.deployedAt),
         ch.isBackup ? "yes" : "no",
       ].join(","),
@@ -73,6 +79,7 @@ export function channelMatchesQuery(ch: Channel, q: string): boolean {
     ch.groupName,
     ch.groupChannel,
     ch.roomName,
+    ch.assignedTo,
     ch.zone,
     ch.type,
   ]

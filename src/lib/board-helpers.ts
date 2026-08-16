@@ -5,6 +5,7 @@ export function findFreqConflicts(channels: Channel[]): FreqConflict[] {
   const byFreq = new Map<number, Channel[]>();
   for (const ch of channels) {
     if (!ch.deployed) continue;
+    if (!(ch.frequencyMhz > 0)) continue;
     const key = Math.round(ch.frequencyMhz * 1000) / 1000;
     const list = byFreq.get(key) ?? [];
     list.push(ch);

@@ -16,7 +16,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - Create with an **admin password**
 - Crews open the show link → **mark view** (Deploy + room), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
-- **Show options** (toggles): Deploy, Rooms, Groups, Allow/Block, **Lock after deploy**, **Lock board for crew** — turn on only what the floor needs
+- **Show options** (toggles): Deploy, Rooms, **Mic rack assignments**, Groups, Allow/Block, **Lock after deploy**, **Lock board for crew** — turn on only what the floor needs
+- Tools → **12-ch / 24-ch** rack + **Fill empty slots**; default **Rack** view for A2s
 - Bulk status: set all **visible** (filter/group) channels to Allowed / Blocked / Unreviewed, or per group heading
 
 **Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room after a short **undo grace** (~8s / toast Undo). Coordinator can still change anytime with Tools unlocked.
@@ -26,13 +27,14 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 ## Floor speed features
 
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
+- **Mic rack (A2)** — 12 or 24-channel grid; set **Who** (e.g. Bradd has Handheld 3), toggle **In use / Not in use**; Fill empty slots; Rack/List view toggle; live via Ably
 - **Import preview** — Workbench CSV shows a confirm table before replacing the board
-- **Search** — name / MHz jump (Enter scrolls to first match)
+- **Search** — name / who / MHz jump (Enter scrolls to first match)
 - **My room** focus — filter to the room you’re dressing (persists in localStorage)
-- **Progress HUD** — sticky deployed count + per-group progress
-- **Activity strip** — recent deploy / import / settings events
+- **Progress HUD** — sticky deployed + in-use + assignment counts
+- **Activity strip** — recent deploy / assign / in-use / import / settings events
 - **Conflict ping** — same frequency deployed more than once
-- **Export CSV** — snapshot of the board
+- **Export CSV** — snapshot of the board (includes `rack_slot`, `assigned_to`, `in_use`)
 
 ## Channel groups
 
@@ -45,7 +47,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - With `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`: durable shared shows (production)
 - Without them: in-memory demo store (local only; resets on cold start)
-- Schema v3: each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
+- Schema v5: shows have `rack_size` (12/24); channels have `assigned_to`, `in_use`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
 
 ## Develop
 

@@ -7,6 +7,7 @@ import {
 import { mergeFeatures, parseFeatures } from "./features";
 import { findFreqConflicts, parseActivity } from "./board-helpers";
 import { publishShowUpdate } from "./ably";
+import { assignActivityMessage, defaultSlotName, nextOpenRackSlot } from "./rack";
 import type {
   ActivityEvent,
   ActivityKind,
@@ -16,16 +17,22 @@ import type {
   ChannelStatus,
   ManualChannelInput,
   ParsedChannelRow,
+  RackSize,
   Room,
   Show,
   ShowFeatures,
   ShowPublic,
 } from "./types";
-import { ACTIVE_SHOW_HOME_DAYS, DEFAULT_SHOW_FEATURES } from "./types";
+import {
+  ACTIVE_SHOW_HOME_DAYS,
+  DEFAULT_RACK_SIZE,
+  DEFAULT_SHOW_FEATURES,
+  parseRackSize,
+} from "./types";
 
 type StoreMode = "memory" | "turso";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 5;
 
 type GlobalStore = {
   shows: Map<string, Show>;
@@ -88,6 +95,9 @@ async function ensureSchema(): Promise<void> {
       status TEXT NOT NULL DEFAULT 'unreviewed',
       deployed INTEGER NOT NULL DEFAULT 0,
       room_name TEXT,
+      assigned_to TEXT,
+      in_use INTEGER NOT NULL DEFAULT 0,
+      rack_slot INTEGER,
       deployed_at TEXT,
       deployed_by TEXT,
       sort_order INTEGER NOT NULL DEFAULT 0
@@ -114,9 +124,29 @@ async function ensureSchema(): Promise<void> {
     `ALTER TABLE shows ADD COLUMN activity TEXT NOT NULL DEFAULT '[]'`,
   );
   await ensureColumn(
+    "shows",
+    "rack_size",
+    `ALTER TABLE shows ADD COLUMN rack_size INTEGER NOT NULL DEFAULT 12`,
+  );
+  await ensureColumn(
     "channels",
     "group_name",
     `ALTER TABLE channels ADD COLUMN group_name TEXT`,
+  );
+  await ensureColumn(
+    "channels",
+    "assigned_to",
+    `ALTER TABLE channels ADD COLUMN assigned_to TEXT`,
+  );
+  await ensureColumn(
+    "channels",
+    "in_use",
+    `ALTER TABLE channels ADD COLUMN in_use INTEGER NOT NULL DEFAULT 0`,
+  );
+  await ensureColumn(
+    "channels",
+    "rack_slot",
+    `ALTER TABLE channels ADD COLUMN rack_slot INTEGER`,
   );
   await db.query(
     `CREATE INDEX IF NOT EXISTS channels_show_id_idx ON channels(show_id)`,
@@ -164,6 +194,12 @@ function mapChannelRow(row: Record<string, unknown>): Channel {
     status: row.status as ChannelStatus,
     deployed: Boolean(row.deployed),
     roomName: (row.room_name as string) ?? null,
+    assignedTo: (row.assigned_to as string) ?? null,
+    inUse: Boolean(row.in_use),
+    rackSlot:
+      row.rack_slot == null || row.rack_slot === ""
+        ? null
+        : Number(row.rack_slot),
     deployedAt: row.deployed_at
       ? new Date(row.deployed_at as string).toISOString()
       : null,
@@ -203,6 +239,7 @@ async function persistShowMeta(show: Show): Promise<void> {
       rooms = ${JSON.stringify(show.rooms)},
       groups = ${JSON.stringify(show.groups)},
       features = ${JSON.stringify(show.features)},
+      rack_size = ${show.rackSize},
       revision = ${show.revision},
       activity = ${JSON.stringify(show.activity)}
     WHERE id = ${show.id}
@@ -223,6 +260,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
         return {
           ...show,
           features: parseFeatures(show.features ?? DEFAULT_SHOW_FEATURES),
+          rackSize: parseRackSize(show.rackSize ?? DEFAULT_RACK_SIZE),
           revision: show.revision ?? 0,
           activity: parseActivity(show.activity ?? []),
         };
@@ -233,7 +271,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
   const db = getSql();
   const rows = await db`
     SELECT id, name, share_token, admin_password_hash, rooms, groups, features,
-           revision, activity, created_at
+           rack_size, revision, activity, created_at
     FROM shows WHERE share_token = ${shareToken} LIMIT 1
   `;
   const row = rows[0];
@@ -246,6 +284,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     rooms: parseJsonList<Room>(row.rooms),
     groups: parseJsonList<ChannelGroup>(row.groups),
     features: parseFeatures(row.features),
+    rackSize: parseRackSize(row.rack_size),
     revision: Number(row.revision ?? 0),
     activity: parseActivity(row.activity),
     createdAt: new Date(row.created_at as string).toISOString(),
@@ -290,6 +329,7 @@ export async function createShow(input: {
     rooms: [],
     groups: [],
     features: { ...DEFAULT_SHOW_FEATURES },
+    rackSize: DEFAULT_RACK_SIZE,
     revision: 0,
     activity: [],
     createdAt: new Date().toISOString(),
@@ -306,7 +346,7 @@ export async function createShow(input: {
   await db`
     INSERT INTO shows (
       id, name, share_token, admin_password_hash, rooms, groups, features,
-      revision, activity, created_at
+      rack_size, revision, activity, created_at
     )
     VALUES (
       ${show.id},
@@ -316,6 +356,7 @@ export async function createShow(input: {
       ${JSON.stringify(show.rooms)},
       ${JSON.stringify(show.groups)},
       ${JSON.stringify(show.features)},
+      ${show.rackSize},
       ${show.revision},
       ${JSON.stringify(show.activity)},
       ${show.createdAt}
@@ -368,6 +409,9 @@ export async function replaceChannelsFromImport(
     status: "unreviewed" as const,
     deployed: false,
     roomName: null,
+    assignedTo: null,
+    inUse: false,
+    rackSlot: index + 1,
     deployedAt: null,
     deployedBy: null,
     sortOrder: index,
@@ -376,6 +420,10 @@ export async function replaceChannelsFromImport(
   let nextShow = show;
   for (const ch of channels) {
     nextShow = withGroupCatalog(nextShow, ch.groupName);
+  }
+  // Grow rack if import needs more than current size.
+  if (channels.length > nextShow.rackSize) {
+    nextShow = { ...nextShow, rackSize: channels.length > 12 ? 24 : 12 };
   }
   nextShow = touchShow(
     nextShow,
@@ -396,12 +444,13 @@ export async function replaceChannelsFromImport(
     await db`
       INSERT INTO channels (
         id, show_id, name, frequency_mhz, band, type, group_channel, zone,
-        group_name, is_backup, status, deployed, room_name, deployed_at,
-        deployed_by, sort_order
+        group_name, is_backup, status, deployed, room_name, assigned_to,
+        in_use, rack_slot, deployed_at, deployed_by, sort_order
       ) VALUES (
         ${ch.id}, ${ch.showId}, ${ch.name}, ${ch.frequencyMhz}, ${ch.band},
         ${ch.type}, ${ch.groupChannel}, ${ch.zone}, ${ch.groupName},
         ${ch.isBackup}, ${ch.status}, ${ch.deployed}, ${ch.roomName},
+        ${ch.assignedTo}, ${ch.inUse ? 1 : 0}, ${ch.rackSlot},
         ${ch.deployedAt}, ${ch.deployedBy}, ${ch.sortOrder}
       )
     `;
@@ -417,6 +466,8 @@ export async function addManualChannel(
   if (!show) return null;
   const existing = await getChannels(show.id);
   const groupName = input.groupName?.trim() || null;
+  const rackSlot =
+    nextOpenRackSlot(existing, show.rackSize) ?? existing.length + 1;
   const channel: Channel = {
     id: createId("ch"),
     showId: show.id,
@@ -431,6 +482,9 @@ export async function addManualChannel(
     status: "unreviewed",
     deployed: false,
     roomName: null,
+    assignedTo: null,
+    inUse: false,
+    rackSlot,
     deployedAt: null,
     deployedBy: null,
     sortOrder: existing.length,
@@ -451,14 +505,15 @@ export async function addManualChannel(
   await db`
     INSERT INTO channels (
       id, show_id, name, frequency_mhz, band, type, group_channel, zone,
-      group_name, is_backup, status, deployed, room_name, deployed_at,
-      deployed_by, sort_order
+      group_name, is_backup, status, deployed, room_name, assigned_to,
+      in_use, rack_slot, deployed_at, deployed_by, sort_order
     ) VALUES (
       ${channel.id}, ${channel.showId}, ${channel.name}, ${channel.frequencyMhz},
       ${channel.band}, ${channel.type}, ${channel.groupChannel}, ${channel.zone},
       ${channel.groupName}, ${channel.isBackup}, ${channel.status},
-      ${channel.deployed}, ${channel.roomName}, ${channel.deployedAt},
-      ${channel.deployedBy}, ${channel.sortOrder}
+      ${channel.deployed}, ${channel.roomName}, ${channel.assignedTo},
+      ${channel.inUse ? 1 : 0}, ${channel.rackSlot},
+      ${channel.deployedAt}, ${channel.deployedBy}, ${channel.sortOrder}
     )
   `;
   return toPublic(nextShow, channels);
@@ -472,6 +527,9 @@ export async function updateChannel(
     deployed: boolean;
     roomName: string | null;
     groupName: string | null;
+    assignedTo: string | null;
+    inUse: boolean;
+    name: string;
     deployedBy: string | null;
   }>,
 ): Promise<ShowPublic | null> {
@@ -482,10 +540,15 @@ export async function updateChannel(
   if (index < 0) return null;
 
   const current = channels[index];
-  let next: Channel = { ...current };
+  const next: Channel = { ...current };
   let nextShow = show;
   let activityKind: ActivityKind = "status";
   let activityMessage = `Updated ${current.name}`;
+
+  if (patch.name !== undefined) {
+    const name = patch.name.trim();
+    if (name) next.name = name;
+  }
 
   if (patch.status) {
     next.status = patch.status;
@@ -527,14 +590,44 @@ export async function updateChannel(
       : `Cleared room for ${next.name}`;
   }
 
+  if (patch.assignedTo !== undefined) {
+    next.assignedTo = patch.assignedTo?.trim() || null;
+  }
+
+  if (typeof patch.inUse === "boolean") {
+    next.inUse = patch.inUse;
+  }
+
   if (patch.groupName !== undefined) {
     next.groupName = patch.groupName?.trim() || null;
     nextShow = withGroupCatalog(nextShow, next.groupName);
-    if (typeof patch.deployed !== "boolean" && !patch.status && patch.roomName === undefined) {
+  }
+
+  // Prefer A2-facing activity copy when assignment / in-use changed.
+  const onlyMeta =
+    typeof patch.deployed !== "boolean" &&
+    !patch.status &&
+    patch.roomName === undefined;
+  if (onlyMeta) {
+    if (patch.assignedTo !== undefined) {
+      activityKind = "assign";
+      activityMessage = assignActivityMessage(next.name, next.assignedTo);
+      if (typeof patch.inUse === "boolean") {
+        activityMessage += next.inUse ? " · in use" : " · not in use";
+      }
+    } else if (typeof patch.inUse === "boolean") {
+      activityKind = "inuse";
+      activityMessage = next.inUse
+        ? `${next.name} in use`
+        : `${next.name} not in use`;
+    } else if (patch.groupName !== undefined) {
       activityKind = "groups";
       activityMessage = next.groupName
         ? `Grouped ${next.name} → ${next.groupName}`
         : `Ungrouped ${next.name}`;
+    } else if (patch.name !== undefined) {
+      activityKind = "settings";
+      activityMessage = `Renamed → ${next.name}`;
     }
   }
 
@@ -551,10 +644,14 @@ export async function updateChannel(
   const db = getSql();
   await db`
     UPDATE channels SET
+      name = ${next.name},
       status = ${next.status},
       deployed = ${next.deployed},
       room_name = ${next.roomName},
       group_name = ${next.groupName},
+      assigned_to = ${next.assignedTo},
+      in_use = ${next.inUse ? 1 : 0},
+      rack_slot = ${next.rackSlot},
       deployed_at = ${next.deployedAt},
       deployed_by = ${next.deployedBy}
     WHERE id = ${next.id} AND show_id = ${show.id}
@@ -696,6 +793,99 @@ export async function updateShowFeatures(
 
   await finishMutation(nextShow);
   return toPublic(nextShow, await getChannels(show.id));
+}
+
+export async function setRackSize(
+  shareToken: string,
+  rackSize: RackSize,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const nextShow = touchShow(
+    { ...show, rackSize },
+    "settings",
+    `Rack set to ${rackSize} channels`,
+  );
+  await finishMutation(nextShow);
+  return toPublic(nextShow, await getChannels(show.id));
+}
+
+/** Fill empty rack slots with placeholder channels (CH 01 …). */
+export async function fillRackSlots(
+  shareToken: string,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const existing = await getChannels(show.id);
+  const bySlot = new Map<number, Channel>();
+  for (const ch of existing) {
+    const slot = ch.rackSlot ?? ch.sortOrder + 1;
+    if (slot >= 1 && slot <= show.rackSize && !bySlot.has(slot)) {
+      bySlot.set(slot, ch);
+    }
+  }
+
+  const added: Channel[] = [];
+  for (let slot = 1; slot <= show.rackSize; slot += 1) {
+    if (bySlot.has(slot)) continue;
+    added.push({
+      id: createId("ch"),
+      showId: show.id,
+      name: defaultSlotName(slot),
+      frequencyMhz: 0,
+      band: null,
+      type: null,
+      groupChannel: null,
+      zone: null,
+      groupName: null,
+      isBackup: false,
+      status: "unreviewed",
+      deployed: false,
+      roomName: null,
+      assignedTo: null,
+      inUse: false,
+      rackSlot: slot,
+      deployedAt: null,
+      deployedBy: null,
+      sortOrder: existing.length + added.length,
+    });
+  }
+
+  if (added.length === 0) {
+    return toPublic(show, existing);
+  }
+
+  const channels = [...existing, ...added];
+  const nextShow = touchShow(
+    show,
+    "add",
+    `Filled ${added.length} empty rack slots`,
+  );
+
+  if (mode() === "memory") {
+    getMemory().channels.set(show.id, channels);
+    await finishMutation(nextShow);
+    return toPublic(nextShow, channels);
+  }
+
+  await finishMutation(nextShow);
+  const db = getSql();
+  for (const ch of added) {
+    await db`
+      INSERT INTO channels (
+        id, show_id, name, frequency_mhz, band, type, group_channel, zone,
+        group_name, is_backup, status, deployed, room_name, assigned_to,
+        in_use, rack_slot, deployed_at, deployed_by, sort_order
+      ) VALUES (
+        ${ch.id}, ${ch.showId}, ${ch.name}, ${ch.frequencyMhz}, ${ch.band},
+        ${ch.type}, ${ch.groupChannel}, ${ch.zone}, ${ch.groupName},
+        ${ch.isBackup}, ${ch.status}, ${ch.deployed}, ${ch.roomName},
+        ${ch.assignedTo}, ${ch.inUse ? 1 : 0}, ${ch.rackSlot},
+        ${ch.deployedAt}, ${ch.deployedBy}, ${ch.sortOrder}
+      )
+    `;
+  }
+  return toPublic(nextShow, channels);
 }
 
 export function getStorageMode(): StoreMode {

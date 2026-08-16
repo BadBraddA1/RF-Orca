@@ -4,7 +4,7 @@ import type {
   Channel,
   ShowPublic,
 } from "@/lib/types"
-import { DEFAULT_SHOW_FEATURES } from "@/lib/types"
+import { DEFAULT_RACK_SIZE, DEFAULT_SHOW_FEATURES } from "@/lib/types"
 
 const SHOW_ID = "show_demo"
 let idSeq = 0
@@ -21,21 +21,24 @@ type SeedChannel = {
   band: string
   groupName: string
   groupChannel?: string
+  assignedTo?: string
+  inUse?: boolean
+  rackSlot?: number
   isBackup?: boolean
   status?: Channel["status"]
 }
 
 const SEED: SeedChannel[] = [
-  { name: "Lead Vocal", frequencyMhz: 518.125, band: "G50", groupName: "Vocals", groupChannel: "1/1", status: "allowed" },
-  { name: "BGV 1", frequencyMhz: 520.250, band: "G50", groupName: "Vocals", groupChannel: "1/2", status: "allowed" },
-  { name: "BGV 2", frequencyMhz: 522.500, band: "G50", groupName: "Vocals", groupChannel: "1/3", status: "allowed" },
-  { name: "Pastor Mic", frequencyMhz: 524.750, band: "G50", groupName: "Vocals", groupChannel: "1/4", status: "allowed" },
-  { name: "IEM Mix A", frequencyMhz: 556.000, band: "H50", groupName: "IEMs", groupChannel: "2/1", status: "allowed" },
-  { name: "IEM Mix B", frequencyMhz: 558.250, band: "H50", groupName: "IEMs", groupChannel: "2/2", status: "allowed" },
-  { name: "IEM Mix C", frequencyMhz: 560.500, band: "H50", groupName: "IEMs", groupChannel: "2/3", status: "unreviewed" },
-  { name: "Comms Lead", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/1", status: "allowed" },
-  { name: "Comms Stage", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/2", status: "allowed" }, // same freq — conflict later
-  { name: "Spare Handheld", frequencyMhz: 530.000, band: "G50", groupName: "Vocals", isBackup: true, status: "blocked" },
+  { name: "Handheld 1", frequencyMhz: 518.125, band: "G50", groupName: "Vocals", groupChannel: "1/1", assignedTo: "Maya Chen", inUse: true, rackSlot: 1, status: "allowed" },
+  { name: "Handheld 2", frequencyMhz: 520.250, band: "G50", groupName: "Vocals", groupChannel: "1/2", assignedTo: "Jordan Lee", inUse: true, rackSlot: 2, status: "allowed" },
+  { name: "Handheld 3", frequencyMhz: 522.500, band: "G50", groupName: "Vocals", groupChannel: "1/3", rackSlot: 3, status: "allowed" },
+  { name: "Pastor Mic", frequencyMhz: 524.750, band: "G50", groupName: "Vocals", groupChannel: "1/4", assignedTo: "Pastor Kim", rackSlot: 4, status: "allowed" },
+  { name: "IEM Mix A", frequencyMhz: 556.000, band: "H50", groupName: "IEMs", groupChannel: "2/1", assignedTo: "Maya Chen", inUse: true, rackSlot: 5, status: "allowed" },
+  { name: "IEM Mix B", frequencyMhz: 558.250, band: "H50", groupName: "IEMs", groupChannel: "2/2", assignedTo: "Jordan Lee", rackSlot: 6, status: "allowed" },
+  { name: "IEM Mix C", frequencyMhz: 560.500, band: "H50", groupName: "IEMs", groupChannel: "2/3", rackSlot: 7, status: "unreviewed" },
+  { name: "Comms Lead", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/1", assignedTo: "A2 Desk", inUse: true, rackSlot: 8, status: "allowed" },
+  { name: "Comms Stage", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/2", rackSlot: 9, status: "allowed" },
+  { name: "Spare Handheld", frequencyMhz: 530.000, band: "G50", groupName: "Vocals", isBackup: true, rackSlot: 10, status: "blocked" },
 ]
 
 function makeChannel(seed: SeedChannel, index: number): Channel {
@@ -53,6 +56,9 @@ function makeChannel(seed: SeedChannel, index: number): Channel {
     status: seed.status ?? "unreviewed",
     deployed: false,
     roomName: null,
+    assignedTo: seed.assignedTo ?? null,
+    inUse: Boolean(seed.inUse),
+    rackSlot: seed.rackSlot ?? index + 1,
     deployedAt: null,
     deployedBy: null,
     sortOrder: index,
@@ -76,6 +82,7 @@ export function buildDemoShow(): ShowPublic {
       { id: "grp_c", name: "Comms" },
     ],
     features: { ...DEFAULT_SHOW_FEATURES },
+    rackSize: DEFAULT_RACK_SIZE,
     revision: 1,
     activity: [
       {
@@ -116,7 +123,9 @@ export function pushActivity(
 export function patchDemoChannel(
   show: ShowPublic,
   channelId: string,
-  patch: Partial<Pick<Channel, "deployed" | "roomName" | "status">>,
+  patch: Partial<
+    Pick<Channel, "deployed" | "roomName" | "status" | "assignedTo" | "inUse">
+  >,
   activityMessage?: string,
 ): ShowPublic {
   const channels = show.channels.map((ch) => {
@@ -139,12 +148,22 @@ export function patchDemoChannel(
     conflicts: findFreqConflicts(channels),
   }
   if (activityMessage) {
-    nextShow = pushActivity(
-      nextShow,
-      patch.deployed === false ? "undeploy" : patch.deployed ? "deploy" : "status",
-      activityMessage,
-      channelId,
-    )
+    const kind =
+      typeof patch.inUse === "boolean" &&
+      patch.assignedTo === undefined &&
+      patch.deployed === undefined &&
+      patch.status === undefined
+        ? "inuse"
+        : patch.assignedTo !== undefined &&
+            patch.deployed === undefined &&
+            patch.status === undefined
+          ? "assign"
+          : patch.deployed === false
+            ? "undeploy"
+            : patch.deployed
+              ? "deploy"
+              : "status"
+    nextShow = pushActivity(nextShow, kind, activityMessage, channelId)
   } else {
     nextShow = { ...nextShow, revision: show.revision + 1 }
   }
@@ -175,10 +194,38 @@ export function buildDemoBeats(): DemoBeat[] {
       },
     },
     {
+      delayMs: 1100,
+      label: "Bradd gets Handheld 3",
+      run: (show) => {
+        const ch = show.channels.find((c) => c.name === "Handheld 3")
+        if (!ch) return show
+        return patchDemoChannel(
+          show,
+          ch.id,
+          { assignedTo: "Bradd", inUse: true },
+          `Bradd has ${ch.name}`,
+        )
+      },
+    },
+    {
+      delayMs: 1000,
+      label: "Pastor mic not in use yet",
+      run: (show) => {
+        const ch = show.channels.find((c) => c.name === "Pastor Mic")
+        if (!ch) return show
+        return patchDemoChannel(
+          show,
+          ch.id,
+          { inUse: false },
+          `${ch.name} not in use`,
+        )
+      },
+    },
+    {
       delayMs: 1400,
       label: "Deploy Lead Vocal",
       run: (show) => {
-        const ch = show.channels.find((c) => c.name === "Lead Vocal")
+        const ch = show.channels.find((c) => c.name === "Handheld 1")
         if (!ch) return show
         return patchDemoChannel(
           show,
@@ -190,10 +237,10 @@ export function buildDemoBeats(): DemoBeat[] {
     },
     {
       delayMs: 1200,
-      label: "Deploy BGVs",
+      label: "Deploy handhelds",
       run: (show) => {
         let next = show
-        for (const name of ["BGV 1", "BGV 2"]) {
+        for (const name of ["Handheld 2", "Handheld 3"]) {
           const ch = next.channels.find((c) => c.name === name)
           if (!ch) continue
           next = patchDemoChannel(
@@ -259,7 +306,7 @@ export function buildDemoBeats(): DemoBeat[] {
         return patchDemoChannel(
           show,
           ch.id,
-          { deployed: true, roomName: "Ballroom B" },
+          { deployed: true, roomName: "Ballroom B", inUse: true },
           `Deployed ${ch.name} → Ballroom B`,
         )
       },
