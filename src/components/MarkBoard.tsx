@@ -280,7 +280,7 @@ export function MarkBoard({
     const ids = Object.keys(flashIds);
     if (ids.length === 0) return;
     const id = window.setTimeout(() => {
-      const cutoff = Date.now() - 900;
+      const cutoff = Date.now() - 2000;
       setFlashIds((prev) => {
         const next: Record<string, number> = {};
         for (const [k, at] of Object.entries(prev)) {
@@ -288,7 +288,7 @@ export function MarkBoard({
         }
         return next;
       });
-    }, 950);
+    }, 2050);
     return () => window.clearTimeout(id);
   }, [flashIds]);
 
