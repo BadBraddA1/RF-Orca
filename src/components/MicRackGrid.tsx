@@ -2,18 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { channelsByRackSlot } from "@/lib/rack";
-import type { Channel, RackSize, ShowFeatures } from "@/lib/types";
-import { formatRackSlot } from "@/lib/types";
+import type { Channel, MicKind, ShowFeatures } from "@/lib/types";
+import { formatRackSlot, micKindLabel, rackSlotCount } from "@/lib/types";
 
 type Patch = Partial<{
   assignedTo: string | null;
   inUse: boolean;
+  micKind: MicKind | null;
   name: string;
 }>;
 
 export function MicRackGrid({
   channels,
-  rackSize,
+  rackCols,
+  rackRows,
   features,
   admin,
   assigneeNames,
@@ -25,7 +27,8 @@ export function MicRackGrid({
   fillBusy,
 }: {
   channels: Channel[];
-  rackSize: RackSize;
+  rackCols: number;
+  rackRows: number;
   features: ShowFeatures;
   admin: boolean;
   assigneeNames: string[];
@@ -36,16 +39,17 @@ export function MicRackGrid({
   onFillEmpty?: () => Promise<void>;
   fillBusy?: boolean;
 }) {
+  const size = rackSlotCount({ rackCols, rackRows });
   const bySlot = useMemo(
-    () => channelsByRackSlot(channels, rackSize),
-    [channels, rackSize],
+    () => channelsByRackSlot(channels, size),
+    [channels, size],
   );
 
   const slots = useMemo(() => {
     const needle = search.trim().toLowerCase();
     const whoFilter = filterWho ?? "all";
     const list: { slot: number; channel: Channel | null }[] = [];
-    for (let slot = 1; slot <= rackSize; slot += 1) {
+    for (let slot = 1; slot <= size; slot += 1) {
       const channel = bySlot.get(slot) ?? null;
       if (filterInUse === "inuse" && (!channel || !channel.inUse)) continue;
       if (filterInUse === "spare" && channel?.inUse) continue;
@@ -55,6 +59,7 @@ export function MicRackGrid({
         const hay = [
           channel.name,
           channel.assignedTo,
+          channel.micKind,
           formatRackSlot(slot),
           channel.frequencyMhz > 0 ? channel.frequencyMhz.toFixed(3) : "",
         ]
@@ -68,16 +73,16 @@ export function MicRackGrid({
       list.push({ slot, channel });
     }
     return list;
-  }, [bySlot, rackSize, search, filterInUse, filterWho]);
+  }, [bySlot, size, search, filterInUse, filterWho]);
 
-  const emptyCount = rackSize - bySlot.size;
+  const emptyCount = size - bySlot.size;
   const inUseCount = channels.filter((c) => c.inUse).length;
 
   return (
     <div className="mic-rack">
       <div className="mic-rack-hud" role="status">
         <strong>
-          {rackSize}-ch rack · {inUseCount} in use
+          {rackCols}×{rackRows} · {size} ch · {inUseCount} in use
         </strong>
         {emptyCount > 0 && admin && onFillEmpty ? (
           <button
@@ -94,9 +99,10 @@ export function MicRackGrid({
       </div>
 
       <div
-        className={`mic-rack-grid rack-${rackSize}`}
+        className="mic-rack-grid"
+        style={{ ["--rack-cols" as string]: String(rackCols) }}
         role="list"
-        aria-label={`${rackSize} channel mic rack`}
+        aria-label={`${rackCols} by ${rackRows} mic rack`}
       >
         {slots.map(({ slot, channel }) => (
           <RackCell
@@ -106,6 +112,7 @@ export function MicRackGrid({
             features={features}
             admin={admin}
             frozen={features.crewLocked && !admin}
+            assigneeNames={assigneeNames}
             onPatch={onPatch}
           />
         ))}
@@ -128,6 +135,7 @@ function RackCell({
   features,
   admin,
   frozen,
+  assigneeNames,
   onPatch,
 }: {
   slot: number;
@@ -135,6 +143,7 @@ function RackCell({
   features: ShowFeatures;
   admin: boolean;
   frozen: boolean;
+  assigneeNames: string[];
   onPatch: (id: string, patch: Patch) => Promise<void>;
 }) {
   const [whoDraft, setWhoDraft] = useState(channel?.assignedTo ?? "");
@@ -162,10 +171,18 @@ function RackCell({
       ? `${channel.assignedTo} · ${channel.name}`
       : channel.name;
 
+  function setKind(kind: MicKind) {
+    if (frozen || !features.assignments) return;
+    // Tap again to clear.
+    void onPatch(channel!.id, {
+      micKind: channel!.micKind === kind ? null : kind,
+    });
+  }
+
   return (
     <div
       id={`ch-${channel.id}`}
-      className={`rack-cell${channel.inUse ? " is-inuse" : " is-spare"}${channel.assignedTo ? " has-who" : ""}`}
+      className={`rack-cell${channel.inUse ? " is-inuse" : " is-spare"}${channel.assignedTo ? " has-who" : ""}${channel.micKind ? ` kind-${channel.micKind}` : ""}`}
       role="listitem"
     >
       <div className="rack-cell-top">
@@ -183,13 +200,38 @@ function RackCell({
 
       <p className="rack-headline">{headline}</p>
 
+      <div className="rack-kind-row" role="group" aria-label="Mic type">
+        <button
+          type="button"
+          className={`rack-kind-btn${channel.micKind === "handheld" ? " on" : ""}`}
+          disabled={frozen || !features.assignments}
+          aria-pressed={channel.micKind === "handheld"}
+          onClick={() => setKind("handheld")}
+        >
+          Handheld
+        </button>
+        <button
+          type="button"
+          className={`rack-kind-btn${channel.micKind === "lav" ? " on" : ""}`}
+          disabled={frozen || !features.assignments}
+          aria-pressed={channel.micKind === "lav"}
+          onClick={() => setKind("lav")}
+        >
+          Lav
+        </button>
+      </div>
+
       {admin ? (
         <label className="rack-field">
           <span className="sr-only">Mic name</span>
           <input
             value={nameDraft}
             disabled={frozen}
-            placeholder="Handheld 3"
+            placeholder={
+              channel.micKind
+                ? `${micKindLabel(channel.micKind)} ${slot}`
+                : "Handheld 3"
+            }
             maxLength={80}
             onChange={(e) => setNameDraft(e.target.value)}
             onBlur={() => {
@@ -205,6 +247,28 @@ function RackCell({
 
       <label className={`rack-field${frozen ? " disabled" : ""}`}>
         <span>Who</span>
+        {assigneeNames.length > 0 ? (
+          <select
+            className="rack-drop-select"
+            value=""
+            disabled={frozen || !features.assignments}
+            aria-label="Drop in saved name"
+            onChange={(e) => {
+              const assignedTo = e.target.value || null;
+              if (!assignedTo) return;
+              setWhoDraft(assignedTo);
+              void onPatch(channel.id, { assignedTo });
+              e.target.value = "";
+            }}
+          >
+            <option value="">Drop in name…</option>
+            {assigneeNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <input
           list="assignee-options"
           value={whoDraft}

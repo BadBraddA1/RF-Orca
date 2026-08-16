@@ -1,10 +1,10 @@
-import type { Channel, RackSize } from "./types";
-import { formatRackSlot } from "./types";
+import type { Channel, MicKind } from "./types";
+import { formatRackSlot, micKindLabel } from "./types";
 
 /** Map channels onto rack slots 1..size (first wins if duplicates). */
 export function channelsByRackSlot(
   channels: Channel[],
-  size: RackSize,
+  size: number,
 ): Map<number, Channel> {
   const map = new Map<number, Channel>();
   const sorted = [...channels].sort((a, b) => {
@@ -22,7 +22,7 @@ export function channelsByRackSlot(
 
 export function nextOpenRackSlot(
   channels: Channel[],
-  size: RackSize,
+  size: number,
 ): number | null {
   const used = new Set(
     channels
@@ -37,6 +37,20 @@ export function nextOpenRackSlot(
 
 export function defaultSlotName(slot: number): string {
   return `CH ${formatRackSlot(slot)}`;
+}
+
+/** Auto name when picking Handheld / Lav on a blank or default slot. */
+export function nameForMicKind(kind: MicKind, slot: number): string {
+  return `${micKindLabel(kind)} ${slot}`;
+}
+
+export function shouldAutonameForMicKind(name: string, slot: number): boolean {
+  const n = name.trim().toLowerCase();
+  if (!n) return true;
+  if (n === defaultSlotName(slot).toLowerCase()) return true;
+  if (/^ch\s*0*\d+$/i.test(n)) return true;
+  if (/^(handheld|hh|lav|lavalier|lapel)\s*0*\d+$/i.test(n)) return true;
+  return false;
 }
 
 /** Activity copy: "Bradd has Handheld 3". */

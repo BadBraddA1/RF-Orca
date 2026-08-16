@@ -4,7 +4,7 @@ import type {
   Channel,
   ShowPublic,
 } from "@/lib/types"
-import { DEFAULT_RACK_SIZE, DEFAULT_SHOW_FEATURES } from "@/lib/types"
+import { DEFAULT_RACK_LAYOUT, DEFAULT_SHOW_FEATURES } from "@/lib/types"
 
 const SHOW_ID = "show_demo"
 let idSeq = 0
@@ -23,22 +23,23 @@ type SeedChannel = {
   groupChannel?: string
   assignedTo?: string
   inUse?: boolean
+  micKind?: Channel["micKind"]
   rackSlot?: number
   isBackup?: boolean
   status?: Channel["status"]
 }
 
 const SEED: SeedChannel[] = [
-  { name: "Handheld 1", frequencyMhz: 518.125, band: "G50", groupName: "Vocals", groupChannel: "1/1", assignedTo: "Maya Chen", inUse: true, rackSlot: 1, status: "allowed" },
-  { name: "Handheld 2", frequencyMhz: 520.250, band: "G50", groupName: "Vocals", groupChannel: "1/2", assignedTo: "Jordan Lee", inUse: true, rackSlot: 2, status: "allowed" },
-  { name: "Handheld 3", frequencyMhz: 522.500, band: "G50", groupName: "Vocals", groupChannel: "1/3", rackSlot: 3, status: "allowed" },
-  { name: "Pastor Mic", frequencyMhz: 524.750, band: "G50", groupName: "Vocals", groupChannel: "1/4", assignedTo: "Pastor Kim", rackSlot: 4, status: "allowed" },
+  { name: "Handheld 1", frequencyMhz: 518.125, band: "G50", groupName: "Vocals", groupChannel: "1/1", assignedTo: "Maya Chen", inUse: true, micKind: "handheld", rackSlot: 1, status: "allowed" },
+  { name: "Handheld 2", frequencyMhz: 520.250, band: "G50", groupName: "Vocals", groupChannel: "1/2", assignedTo: "Jordan Lee", inUse: true, micKind: "handheld", rackSlot: 2, status: "allowed" },
+  { name: "Handheld 3", frequencyMhz: 522.500, band: "G50", groupName: "Vocals", groupChannel: "1/3", micKind: "handheld", rackSlot: 3, status: "allowed" },
+  { name: "Lav 1", frequencyMhz: 524.750, band: "G50", groupName: "Vocals", groupChannel: "1/4", assignedTo: "Pastor Kim", micKind: "lav", rackSlot: 4, status: "allowed" },
   { name: "IEM Mix A", frequencyMhz: 556.000, band: "H50", groupName: "IEMs", groupChannel: "2/1", assignedTo: "Maya Chen", inUse: true, rackSlot: 5, status: "allowed" },
   { name: "IEM Mix B", frequencyMhz: 558.250, band: "H50", groupName: "IEMs", groupChannel: "2/2", assignedTo: "Jordan Lee", rackSlot: 6, status: "allowed" },
   { name: "IEM Mix C", frequencyMhz: 560.500, band: "H50", groupName: "IEMs", groupChannel: "2/3", rackSlot: 7, status: "unreviewed" },
   { name: "Comms Lead", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/1", assignedTo: "A2 Desk", inUse: true, rackSlot: 8, status: "allowed" },
   { name: "Comms Stage", frequencyMhz: 464.550, band: "J50", groupName: "Comms", groupChannel: "3/2", rackSlot: 9, status: "allowed" },
-  { name: "Spare Handheld", frequencyMhz: 530.000, band: "G50", groupName: "Vocals", isBackup: true, rackSlot: 10, status: "blocked" },
+  { name: "Spare Handheld", frequencyMhz: 530.000, band: "G50", groupName: "Vocals", isBackup: true, micKind: "handheld", rackSlot: 10, status: "blocked" },
 ]
 
 function makeChannel(seed: SeedChannel, index: number): Channel {
@@ -58,6 +59,7 @@ function makeChannel(seed: SeedChannel, index: number): Channel {
     roomName: null,
     assignedTo: seed.assignedTo ?? null,
     inUse: Boolean(seed.inUse),
+    micKind: seed.micKind ?? null,
     rackSlot: seed.rackSlot ?? index + 1,
     deployedAt: null,
     deployedBy: null,
@@ -82,7 +84,15 @@ export function buildDemoShow(): ShowPublic {
       { id: "grp_c", name: "Comms" },
     ],
     features: { ...DEFAULT_SHOW_FEATURES },
-    rackSize: DEFAULT_RACK_SIZE,
+    rackCols: DEFAULT_RACK_LAYOUT.cols,
+    rackRows: DEFAULT_RACK_LAYOUT.rows,
+    people: [
+      { id: "per_maya", name: "Maya Chen" },
+      { id: "per_jordan", name: "Jordan Lee" },
+      { id: "per_pastor", name: "Pastor Kim" },
+      { id: "per_bradd", name: "Bradd" },
+      { id: "per_a2", name: "A2 Desk" },
+    ],
     revision: 1,
     activity: [
       {
@@ -124,7 +134,7 @@ export function patchDemoChannel(
   show: ShowPublic,
   channelId: string,
   patch: Partial<
-    Pick<Channel, "deployed" | "roomName" | "status" | "assignedTo" | "inUse">
+    Pick<Channel, "deployed" | "roomName" | "status" | "assignedTo" | "inUse" | "micKind">
   >,
   activityMessage?: string,
 ): ShowPublic {
@@ -202,21 +212,21 @@ export function buildDemoBeats(): DemoBeat[] {
         return patchDemoChannel(
           show,
           ch.id,
-          { assignedTo: "Bradd", inUse: true },
+          { assignedTo: "Bradd", inUse: true, micKind: "handheld" },
           `Bradd has ${ch.name}`,
         )
       },
     },
     {
       delayMs: 1000,
-      label: "Pastor mic not in use yet",
+      label: "Pastor lav not in use yet",
       run: (show) => {
-        const ch = show.channels.find((c) => c.name === "Pastor Mic")
+        const ch = show.channels.find((c) => c.name === "Lav 1")
         if (!ch) return show
         return patchDemoChannel(
           show,
           ch.id,
-          { inUse: false },
+          { inUse: false, micKind: "lav" },
           `${ch.name} not in use`,
         )
       },
@@ -299,9 +309,9 @@ export function buildDemoBeats(): DemoBeat[] {
     },
     {
       delayMs: 1600,
-      label: "Pastor mic to Ballroom B",
+      label: "Pastor lav to Ballroom B",
       run: (show) => {
-        const ch = show.channels.find((c) => c.name === "Pastor Mic")
+        const ch = show.channels.find((c) => c.name === "Lav 1")
         if (!ch) return show
         return patchDemoChannel(
           show,

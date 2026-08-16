@@ -16,11 +16,15 @@ import { useShowLive } from "@/hooks/useShowLive";
 import type {
   Channel,
   ChannelStatus,
-  RackSize,
+  MicKind,
   ShowFeatures,
   ShowPublic,
 } from "@/lib/types";
-import { DEPLOY_UNDO_GRACE_SEC } from "@/lib/types";
+import {
+  DEPLOY_UNDO_GRACE_SEC,
+  RACK_PRESETS,
+  rackSlotCount,
+} from "@/lib/types";
 
 type Filter =
   | "all"
@@ -147,6 +151,9 @@ export function MarkBoard({
   const [groupsText, setGroupsText] = useState(
     initialShow.groups.map((g) => g.name).join("\n"),
   );
+  const [peopleText, setPeopleText] = useState(
+    (initialShow.people ?? []).map((p) => p.name).join("\n"),
+  );
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(
     null,
@@ -159,6 +166,12 @@ export function MarkBoard({
   const [bulkBusy, setBulkBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [rackBusy, setRackBusy] = useState(false);
+  const [customCols, setCustomCols] = useState(
+    String(initialShow.rackCols ?? 4),
+  );
+  const [customRows, setCustomRows] = useState(
+    String(initialShow.rackRows ?? 3),
+  );
   const [undo, setUndo] = useState<UndoToast | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const revisionRef = useRef(initialShow.revision ?? 0);
@@ -193,6 +206,9 @@ export function MarkBoard({
     if (typeof nextAdmin === "boolean") setAdmin(nextAdmin);
     setRoomsText(next.rooms.map((r) => r.name).join("\n"));
     setGroupsText(next.groups.map((g) => g.name).join("\n"));
+    setPeopleText((next.people ?? []).map((p) => p.name).join("\n"));
+    setCustomCols(String(next.rackCols ?? 4));
+    setCustomRows(String(next.rackRows ?? 3));
   }, []);
 
   const refreshFromServer = useCallback(async () => {
@@ -235,11 +251,14 @@ export function MarkBoard({
 
   const assigneeNames = useMemo(() => {
     if (!features.assignments) return [];
-    const names = show.channels
+    const fromRoster = (show.people ?? []).map((p) => p.name.trim());
+    const fromChannels = show.channels
       .map((c) => c.assignedTo?.trim())
       .filter((n): n is string => Boolean(n));
-    return [...new Set(names)].sort((a, b) => a.localeCompare(b));
-  }, [show.channels, features.assignments]);
+    return [...new Set([...fromRoster, ...fromChannels])].sort((a, b) =>
+      a.localeCompare(b),
+    );
+  }, [show.people, show.channels, features.assignments]);
 
   const groupProgress = useMemo(() => {
     if (!features.groups || !features.deploy) return [];
@@ -386,7 +405,8 @@ export function MarkBoard({
   }
 
   async function patchRack(body: {
-    rackSize?: RackSize;
+    cols?: number;
+    rows?: number;
     fillEmpty?: boolean;
   }) {
     if (!admin || rackBusy) return;
@@ -418,6 +438,7 @@ export function MarkBoard({
       groupName: string | null;
       assignedTo: string | null;
       inUse: boolean;
+      micKind: MicKind | null;
       name: string;
     }>,
     opts?: { undoToast?: boolean },
@@ -533,6 +554,24 @@ export function MarkBoard({
     applyShow(data.show);
   }
 
+  async function savePeople() {
+    const people = peopleText
+      .split("\n")
+      .map((r) => r.trim())
+      .filter(Boolean);
+    const res = await fetch(`/api/shows/${token}/people`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ people }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not save names");
+      return;
+    }
+    applyShow(data.show);
+  }
+
   async function addManual(e: React.FormEvent) {
     e.preventDefault();
     setImportMsg(null);
@@ -627,8 +666,8 @@ export function MarkBoard({
     counts.all > 0 ? Math.round((counts.assigned / counts.all) * 100) : 0;
   const usePct =
     counts.all > 0 ? Math.round((counts.inuse / counts.all) * 100) : 0;
-  const showRack =
-    features.assignments && boardView === "rack";
+  const showRack = features.assignments && boardView === "rack";
+  const slotTotal = rackSlotCount(show);
 
   return (
     <div className="board">
@@ -638,7 +677,7 @@ export function MarkBoard({
           <h1>{show.name}</h1>
           <p className="board-sub">
             {features.assignments
-              ? `${show.rackSize}-ch rack — who has which mic`
+              ? `${show.rackCols}×${show.rackRows} rack — who has which mic`
               : features.deploy
                 ? "Tap Deploy"
                 : "Frequency board"}
@@ -883,33 +922,81 @@ export function MarkBoard({
 
               {features.assignments ? (
                 <div className="rack-tools" aria-label="Mic rack size">
-                  <p className="tools-whisper">Mic rack</p>
+                  <p className="tools-whisper">Mic rack grid</p>
                   <div className="rack-size-row">
-                    {([12, 24] as const).map((size) => (
-                      <button
-                        key={size}
-                        type="button"
-                        className={
-                          show.rackSize === size ? "chip active" : "chip"
-                        }
+                    {RACK_PRESETS.map((preset) => {
+                      const active =
+                        show.rackCols === preset.cols &&
+                        show.rackRows === preset.rows;
+                      return (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          className={active ? "chip active" : "chip"}
+                          disabled={rackBusy}
+                          onClick={() =>
+                            void patchRack({
+                              cols: preset.cols,
+                              rows: preset.rows,
+                            })
+                          }
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="rack-custom-row">
+                    <label className="quiet-field">
+                      <span>Cols</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={customCols}
                         disabled={rackBusy}
-                        onClick={() => void patchRack({ rackSize: size })}
-                      >
-                        {size}-ch
-                      </button>
-                    ))}
+                        onChange={(e) => setCustomCols(e.target.value)}
+                      />
+                    </label>
+                    <span className="rack-times" aria-hidden>
+                      ×
+                    </span>
+                    <label className="quiet-field">
+                      <span>Rows</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={customRows}
+                        disabled={rackBusy}
+                        onChange={(e) => setCustomRows(e.target.value)}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="chip"
+                      disabled={rackBusy}
+                      onClick={() =>
+                        void patchRack({
+                          cols: Number(customCols) || 4,
+                          rows: Number(customRows) || 3,
+                        })
+                      }
+                    >
+                      Apply
+                    </button>
                     <button
                       type="button"
                       className="chip"
                       disabled={rackBusy}
                       onClick={() => void patchRack({ fillEmpty: true })}
                     >
-                      Fill empty slots
+                      Fill empty
                     </button>
                   </div>
                   <p className="field-note">
-                    A2 face: CH 01–{show.rackSize}. Fill empty to create blank
-                    slots you can name (Handheld 3) and assign.
+                    Current: {show.rackCols}×{show.rackRows} ({slotTotal}{" "}
+                    slots). Tap Handheld / Lav on a cell; set Who; mark In use.
                   </p>
                 </div>
               ) : null}
@@ -1025,6 +1112,29 @@ export function MarkBoard({
                     >
                       Save groups
                     </button>
+                  </label>
+                ) : null}
+
+                {features.assignments ? (
+                  <label className="field">
+                    <span>Saved names (one per line)</span>
+                    <textarea
+                      rows={4}
+                      value={peopleText}
+                      onChange={(e) => setPeopleText(e.target.value)}
+                      placeholder={"Bradd\nMaya Chen\nJordan Lee"}
+                    />
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => void savePeople()}
+                    >
+                      Save names
+                    </button>
+                    <span className="field-note">
+                      Drop these into any channel’s Who menu. Typing a new Who
+                      also saves the name for reuse.
+                    </span>
                   </label>
                 ) : null}
 
@@ -1162,7 +1272,8 @@ export function MarkBoard({
       {showRack ? (
         <MicRackGrid
           channels={show.channels}
-          rackSize={show.rackSize ?? 12}
+          rackCols={show.rackCols ?? 4}
+          rackRows={show.rackRows ?? 3}
           features={features}
           admin={admin}
           assigneeNames={assigneeNames}
@@ -1258,6 +1369,7 @@ export function MarkBoard({
                     key={channel.id}
                     channel={channel}
                     rooms={show.rooms.map((r) => r.name)}
+                    assigneeNames={assigneeNames}
                     admin={admin}
                     features={features}
                     highlighted={highlightId === channel.id}
@@ -1315,6 +1427,7 @@ function formatAgo(iso: string): string {
 function ChannelRow({
   channel,
   rooms,
+  assigneeNames,
   admin,
   features,
   highlighted,
@@ -1323,6 +1436,7 @@ function ChannelRow({
 }: {
   channel: Channel;
   rooms: string[];
+  assigneeNames: string[];
   admin: boolean;
   features: ShowFeatures;
   highlighted?: boolean;
@@ -1336,6 +1450,7 @@ function ChannelRow({
       groupName: string | null;
       assignedTo: string | null;
       inUse: boolean;
+      micKind: MicKind | null;
       name: string;
     }>,
     opts?: { undoToast?: boolean },
@@ -1517,6 +1632,28 @@ function ChannelRow({
               className={`room-field assign-field${assignDisabled ? " disabled" : ""}`}
             >
               <span>Who</span>
+              {assigneeNames.length > 0 ? (
+                <select
+                  className="rack-drop-select"
+                  value=""
+                  disabled={assignDisabled}
+                  aria-label="Drop in saved name"
+                  onChange={(e) => {
+                    const assignedTo = e.target.value || null;
+                    if (!assignedTo) return;
+                    setWhoDraft(assignedTo);
+                    void onPatch(channel.id, { assignedTo });
+                    e.target.value = "";
+                  }}
+                >
+                  <option value="">Drop in name…</option>
+                  {assigneeNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               <input
                 list="assignee-options"
                 value={whoDraft}

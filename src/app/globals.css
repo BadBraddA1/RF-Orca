@@ -818,22 +818,68 @@ a {
 .mic-rack-grid {
   display: grid;
   gap: 0.65rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--rack-cols, 4), minmax(0, 1fr));
 }
 
-@media (min-width: 640px) {
+@media (max-width: 639px) {
   .mic-rack-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(min(2, var(--rack-cols, 4)), minmax(0, 1fr));
   }
 }
 
-@media (min-width: 960px) {
-  .mic-rack-grid.rack-12 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .mic-rack-grid.rack-24 {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
+.rack-kind-row {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.rack-kind-btn {
+  flex: 1;
+  min-height: 2.1rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 80%, transparent);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rack-kind-btn.on {
+  background: color-mix(in oklab, var(--signal) 28%, transparent);
+  border-color: color-mix(in oklab, var(--signal) 55%, transparent);
+  color: var(--signal-hot);
+}
+
+.rack-cell.kind-handheld {
+  border-color: color-mix(in oklab, var(--sea-bright) 35%, var(--line));
+}
+
+.rack-cell.kind-lav {
+  border-color: color-mix(in oklab, var(--signal) 35%, var(--line));
+}
+
+.rack-custom-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.rack-custom-row .quiet-field {
+  min-width: 4.5rem;
+}
+
+.rack-custom-row .quiet-field input {
+  min-width: 4rem;
+  width: 4.5rem;
+}
+
+.rack-times {
+  padding-bottom: 0.55rem;
+  color: var(--ink-soft);
+  font-weight: 700;
 }
 
 .rack-cell {
@@ -922,6 +968,23 @@ a {
   border-radius: 0.45rem;
   padding: 0.35rem 0.5rem;
   background: #0c1c30;
+}
+
+.rack-drop-select {
+  min-height: 2.4rem;
+  width: 100%;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  background: #0c1c30;
+  margin-bottom: 0.3rem;
+}
+
+.assign-field .rack-drop-select {
+  margin-bottom: 0.35rem;
 }
 
 .rack-field.disabled {

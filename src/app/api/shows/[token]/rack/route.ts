@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminUnlocked } from "@/lib/admin";
-import { fillRackSlots, setRackSize } from "@/lib/store";
+import { fillRackSlots, setRackLayout } from "@/lib/store";
+import {
+  MAX_RACK_DIM,
+  MIN_RACK_DIM,
+  normalizeRackLayout,
+} from "@/lib/types";
 
 const bodySchema = z.object({
-  rackSize: z.union([z.literal(12), z.literal(24)]).optional(),
+  cols: z.number().int().min(MIN_RACK_DIM).max(MAX_RACK_DIM).optional(),
+  rows: z.number().int().min(MIN_RACK_DIM).max(MAX_RACK_DIM).optional(),
+  /** Legacy: total channel count 12/24 maps to a preset layout. */
+  rackSize: z.number().int().min(1).max(48).optional(),
   fillEmpty: z.boolean().optional(),
 });
 
@@ -24,8 +32,17 @@ export async function PUT(
   }
 
   let show = null;
-  if (parsed.data.rackSize) {
-    show = await setRackSize(token, parsed.data.rackSize);
+  if (
+    parsed.data.cols != null ||
+    parsed.data.rows != null ||
+    parsed.data.rackSize != null
+  ) {
+    const layout = normalizeRackLayout({
+      cols: parsed.data.cols,
+      rows: parsed.data.rows,
+      rackSize: parsed.data.rackSize,
+    });
+    show = await setRackLayout(token, layout.cols, layout.rows);
   }
   if (parsed.data.fillEmpty) {
     show = await fillRackSlots(token);
