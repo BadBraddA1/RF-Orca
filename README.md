@@ -17,7 +17,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - Crews open the show link → **mark view** (Deploy + room), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
 - **Show options** (toggles): Deploy, Rooms, **Mic rack assignments**, Groups, Allow/Block, **Lock after deploy**, **Lock board for crew** — turn on only what the floor needs
-- Tools → **12-ch / 24-ch** rack + **Fill empty slots**; default **Rack** view for A2s
+- Tools → rack presets / custom **cols × rows** + **Fill empty**; default **Rack** view for A2s
+- Schema v6: `rack_cols` / `rack_rows`, `mic_kind` (handheld|lav), `assigned_to`, `in_use`, `rack_slot`
 - Bulk status: set all **visible** (filter/group) channels to Allowed / Blocked / Unreviewed, or per group heading
 
 **Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room after a short **undo grace** (~8s / toast Undo). Coordinator can still change anytime with Tools unlocked.
@@ -27,7 +28,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 ## Floor speed features
 
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
-- **Mic rack (A2)** — 12 or 24-channel grid; set **Who** (e.g. Bradd has Handheld 3), toggle **In use / Not in use**; Fill empty slots; Rack/List view toggle; live via Ably
+- **Mic rack (A2)** — custom grid (4×1, 3×3, 4×3, … or any cols×rows); **Handheld / Lav** buttons; set **Who**; toggle **In use**; Fill empty; live via Ably
 - **Import preview** — Workbench CSV shows a confirm table before replacing the board
 - **Search** — name / who / MHz jump (Enter scrolls to first match)
 - **My room** focus — filter to the room you’re dressing (persists in localStorage)
@@ -47,7 +48,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - With `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`: durable shared shows (production)
 - Without them: in-memory demo store (local only; resets on cold start)
-- Schema v5: shows have `rack_size` (12/24); channels have `assigned_to`, `in_use`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
+- Schema v6: `rack_cols` / `rack_rows`, channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
 
 ## Develop
 

@@ -11,6 +11,7 @@ const bodySchema = z.object({
   groupName: z.string().nullable().optional(),
   assignedTo: z.string().max(80).nullable().optional(),
   inUse: z.boolean().optional(),
+  micKind: z.enum(["handheld", "lav"]).nullable().optional(),
   name: z.string().trim().min(1).max(80).optional(),
   deployedBy: z.string().nullable().optional(),
 });
