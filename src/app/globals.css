@@ -1376,6 +1376,28 @@ a {
   animation: mic-flash 0.45s ease-out 4;
 }
 
+.channel-row.is-last-change,
+.rack-cell.is-last-change {
+  background: color-mix(in oklab, var(--signal) 22%, var(--panel));
+  border-color: color-mix(in oklab, var(--signal) 55%, var(--line));
+}
+
+.channel-row.is-last-change.is-inuse,
+.rack-cell.is-last-change.is-inuse {
+  background: color-mix(in oklab, var(--signal) 18%, color-mix(in oklab, #5dffc0 12%, var(--panel)));
+  border-color: color-mix(in oklab, var(--signal) 45%, #5dffc0);
+}
+
+.rack-cell.is-last-change::after {
+  content: "Updated";
+  justify-self: start;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--signal-hot);
+}
+
 @keyframes mic-flash {
   0% {
     box-shadow: 0 0 0 0 color-mix(in oklab, var(--sea-bright) 70%, transparent);

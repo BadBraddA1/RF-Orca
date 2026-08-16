@@ -236,6 +236,7 @@ export function MarkBoard({
   const [crewMode, setCrewMode] = useState(false);
   const [flashChanges, setFlashChanges] = useState(false);
   const [flashIds, setFlashIds] = useState<Record<string, number>>({});
+  const [lastChangeIds, setLastChangeIds] = useState<string[]>([]);
   const revisionRef = useRef(initialShow.revision ?? 0);
   const channelsRef = useRef(initialShow.channels);
   const flashEnabledRef = useRef(false);
@@ -293,16 +294,17 @@ export function MarkBoard({
   }, [flashIds]);
 
   const applyShow = useCallback((next: ShowPublic, nextAdmin?: boolean) => {
-    if (flashEnabledRef.current) {
-      const prevMap = new Map(
-        channelsRef.current.map((c) => [c.id, c] as const),
-      );
-      const changed: string[] = [];
-      for (const ch of next.channels) {
-        const old = prevMap.get(ch.id);
-        if (!old || channelMarkChanged(old, ch)) changed.push(ch.id);
-      }
-      if (changed.length > 0) {
+    const prevMap = new Map(
+      channelsRef.current.map((c) => [c.id, c] as const),
+    );
+    const changed: string[] = [];
+    for (const ch of next.channels) {
+      const old = prevMap.get(ch.id);
+      if (!old || channelMarkChanged(old, ch)) changed.push(ch.id);
+    }
+    if (changed.length > 0) {
+      setLastChangeIds(changed);
+      if (flashEnabledRef.current) {
         const at = Date.now();
         setFlashIds((prev) => {
           const merged = { ...prev };
@@ -1486,6 +1488,7 @@ export function MarkBoard({
                   : "all"
           }
           flashIds={flashIds}
+          lastChangeIds={lastChangeIds}
           onPatch={async (id, patch) => {
             await patchChannel(id, patch);
           }}
@@ -1574,6 +1577,7 @@ export function MarkBoard({
                     features={features}
                     highlighted={highlightId === channel.id}
                     flashing={Boolean(flashIds[channel.id])}
+                    lastChanged={lastChangeIds.includes(channel.id)}
                     conflicted={show.conflicts?.some((c) =>
                       c.channels.some((x) => x.id === channel.id),
                     )}
@@ -1633,6 +1637,7 @@ function ChannelRow({
   features,
   highlighted,
   flashing,
+  lastChanged,
   conflicted,
   onPatch,
 }: {
@@ -1643,6 +1648,7 @@ function ChannelRow({
   features: ShowFeatures;
   highlighted?: boolean;
   flashing?: boolean;
+  lastChanged?: boolean;
   conflicted?: boolean;
   onPatch: (
     id: string,
@@ -1688,7 +1694,7 @@ function ChannelRow({
   return (
     <li
       id={`ch-${channel.id}`}
-      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${flashing ? " is-flash" : ""}${conflicted ? " is-conflict" : ""}`}
+      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
         <div className="channel-main">
