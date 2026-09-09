@@ -201,6 +201,8 @@ export function MarkBoard({
   const [admin, setAdmin] = useState(initialAdmin);
   const [filter, setFilter] = useState<Filter>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [bandFilter, setBandFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Record<string, true>>({});
   const [focusRoom, setFocusRoom] = useState("");
   const [search, setSearch] = useState("");
   const [boardView, setBoardView] = useState<BoardView>(
@@ -372,6 +374,24 @@ export function MarkBoard({
     return [...new Set([...fromShow, ...fromChannels])];
   }, [show.groups, show.channels, features.groups]);
 
+  /** Groups saved in Tools — used for per-channel / bulk dropdowns. */
+  const savedGroupNames = useMemo(
+    () => show.groups.map((g) => g.name).filter(Boolean),
+    [show.groups],
+  );
+
+  const bandNames = useMemo(() => {
+    const bands = show.channels
+      .map((c) => c.band?.trim())
+      .filter((b): b is string => Boolean(b));
+    return [...new Set(bands)].sort((a, b) => a.localeCompare(b));
+  }, [show.channels]);
+
+  const selectedList = useMemo(
+    () => Object.keys(selectedIds).filter((id) => selectedIds[id]),
+    [selectedIds],
+  );
+
   const counts = useMemo(() => {
     const channels = show.channels;
     return {
@@ -422,6 +442,9 @@ export function MarkBoard({
           return false;
         }
       }
+      if (bandFilter !== "all") {
+        if ((c.band?.trim() || "") !== bandFilter) return false;
+      }
       if (filter === "allowed") return features.status && c.status === "allowed";
       if (filter === "blocked") return features.status && c.status === "blocked";
       if (filter === "deployed") return features.deploy && c.deployed;
@@ -446,6 +469,7 @@ export function MarkBoard({
     show.channels,
     filter,
     groupFilter,
+    bandFilter,
     features,
     search,
     focusRoom,
@@ -458,6 +482,7 @@ export function MarkBoard({
       (c) =>
         c.roomName === focusRoom &&
         channelMatchesQuery(c, search) &&
+        (bandFilter === "all" || (c.band?.trim() || "") === bandFilter) &&
         (!features.groups ||
           groupFilter === "all" ||
           (groupFilter === "__ungrouped__"
@@ -473,6 +498,7 @@ export function MarkBoard({
     search,
     features.groups,
     groupFilter,
+    bandFilter,
   ]);
 
   const sections = useMemo(() => {
@@ -850,7 +876,7 @@ export function MarkBoard({
       const res = await fetch(`/api/shows/${token}/channels`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channelIds: ids, status }),
+        body: JSON.stringify({ action: "status", channelIds: ids, status }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -861,6 +887,46 @@ export function MarkBoard({
     } finally {
       setBulkBusy(false);
     }
+  }
+
+  async function bulkGroup(ids: string[], groupName: string | null) {
+    if (!admin || !features.groups || ids.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}/channels`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "group",
+          channelIds: ids,
+          groupName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not set group");
+        return;
+      }
+      applyShow(data.show);
+      setSelectedIds({});
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = { ...prev };
+      if (next[id]) delete next[id];
+      else next[id] = true;
+      return next;
+    });
+  }
+
+  function selectVisible() {
+    const next: Record<string, true> = {};
+    for (const c of visibleWithRoomFocus) next[c.id] = true;
+    setSelectedIds(next);
   }
 
   function jumpToFirstMatch() {
@@ -1459,12 +1525,22 @@ export function MarkBoard({
                     />
                   </div>
                   {features.groups ? (
-                    <input
+                    <select
                       value={manualGroup}
                       onChange={(e) => setManualGroup(e.target.value)}
-                      placeholder="Group (optional)"
-                      list="channel-group-options"
-                    />
+                      aria-label="Group"
+                    >
+                      <option value="">
+                        {savedGroupNames.length
+                          ? "Group (optional)"
+                          : "Save groups in Tools first"}
+                      </option>
+                      {savedGroupNames.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
                   ) : null}
                   <button type="submit" className="btn-secondary">
                     Add channel
@@ -1487,6 +1563,11 @@ export function MarkBoard({
                     >
                       Save groups
                     </button>
+                    <span className="field-note">
+                      Save group names here first, then pick them from the
+                      dropdown on each channel — or highlight several channels
+                      and set the group in bulk.
+                    </span>
                   </label>
                 ) : null}
 
@@ -1590,6 +1671,28 @@ export function MarkBoard({
         </datalist>
       ) : null}
 
+      {!crewMode && bandNames.length > 0 ? (
+        <div className="filters band-filters" aria-label="RF bands">
+          <button
+            type="button"
+            className={bandFilter === "all" ? "filter active" : "filter"}
+            onClick={() => setBandFilter("all")}
+          >
+            All bands
+          </button>
+          {bandNames.map((b) => (
+            <button
+              key={b}
+              type="button"
+              className={bandFilter === b ? "filter active" : "filter"}
+              onClick={() => setBandFilter(b)}
+            >
+              {b}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {!crewMode &&
       features.groups &&
       (groupNames.length > 0 || show.channels.some((c) => !c.groupName)) ? (
@@ -1635,6 +1738,75 @@ export function MarkBoard({
               {label}
             </button>
           ))}
+        </div>
+      ) : null}
+
+      {!crewMode && admin && selectedList.length > 0 ? (
+        <div
+          className="bulk-bar select-bar"
+          role="group"
+          aria-label="Selected channels"
+        >
+          <span className="bulk-label">
+            {selectedList.length} selected
+          </span>
+          <button
+            type="button"
+            className="chip"
+            onClick={() => setSelectedIds({})}
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            className="chip"
+            onClick={() => selectVisible()}
+          >
+            Select visible ({visibleWithRoomFocus.length})
+          </button>
+          {features.groups ? (
+            <label className="bulk-group-pick">
+              <span>Set group</span>
+              <select
+                disabled={bulkBusy || savedGroupNames.length === 0}
+                defaultValue=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  const groupName = value === "__none__" ? null : value;
+                  void bulkGroup(selectedList, groupName);
+                  e.target.value = "";
+                }}
+              >
+                <option value="">
+                  {savedGroupNames.length
+                    ? "Pick group…"
+                    : "Save groups in Tools first"}
+                </option>
+                {savedGroupNames.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+                <option value="__none__">Ungrouped</option>
+              </select>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!crewMode &&
+      admin &&
+      !showRack &&
+      visibleWithRoomFocus.length > 0 &&
+      selectedList.length === 0 ? (
+        <div className="select-hint">
+          <button type="button" className="btn-quiet" onClick={selectVisible}>
+            Select all visible
+          </button>
+          <span className="field-note">
+            Or tap the circle on channels to highlight, then set a group.
+          </span>
         </div>
       ) : null}
 
@@ -1805,14 +1977,19 @@ export function MarkBoard({
                     channel={channel}
                     rooms={show.rooms.map((r) => r.name)}
                     assigneeNames={assigneeNames}
+                    savedGroupNames={savedGroupNames}
                     admin={admin}
                     features={features}
+                    selected={Boolean(selectedIds[channel.id])}
                     highlighted={highlightId === channel.id}
                     flashing={Boolean(flashIds[channel.id])}
                     lastChanged={lastChangeIds.includes(channel.id)}
                     conflicted={show.conflicts?.some((c) =>
                       c.channels.some((x) => x.id === channel.id),
                     )}
+                    onToggleSelect={
+                      admin ? () => toggleSelected(channel.id) : undefined
+                    }
                     onPatch={patchChannel}
                   />
                 ))}
@@ -1865,23 +2042,29 @@ function ChannelRow({
   channel,
   rooms,
   assigneeNames,
+  savedGroupNames,
   admin,
   features,
+  selected,
   highlighted,
   flashing,
   lastChanged,
   conflicted,
+  onToggleSelect,
   onPatch,
 }: {
   channel: Channel;
   rooms: string[];
   assigneeNames: string[];
+  savedGroupNames: string[];
   admin: boolean;
   features: ShowFeatures;
+  selected?: boolean;
   highlighted?: boolean;
   flashing?: boolean;
   lastChanged?: boolean;
   conflicted?: boolean;
+  onToggleSelect?: () => void;
   onPatch: (
     id: string,
     patch: Partial<{
@@ -1908,7 +2091,7 @@ function ChannelRow({
   const markDisabled = blocked || crewFrozen || deployLocked;
   const assignDisabled = crewFrozen;
   const [roomDraft, setRoomDraft] = useState(channel.roomName ?? "");
-  const [groupDraft, setGroupDraft] = useState(channel.groupName ?? "");
+  const [nameDraft, setNameDraft] = useState(channel.name);
   const [whoDraft, setWhoDraft] = useState(channel.assignedTo ?? "");
 
   useEffect(() => {
@@ -1916,8 +2099,8 @@ function ChannelRow({
   }, [channel.roomName]);
 
   useEffect(() => {
-    setGroupDraft(channel.groupName ?? "");
-  }, [channel.groupName]);
+    setNameDraft(channel.name);
+  }, [channel.name]);
 
   useEffect(() => {
     setWhoDraft(channel.assignedTo ?? "");
@@ -1926,9 +2109,18 @@ function ChannelRow({
   return (
     <li
       id={`ch-${channel.id}`}
-      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${conflicted ? " is-conflict" : ""}`}
+      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${selected ? " is-selected" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
+        {onToggleSelect ? (
+          <button
+            type="button"
+            className={`select-toggle${selected ? " on" : ""}`}
+            aria-pressed={Boolean(selected)}
+            aria-label={selected ? "Deselect channel" : "Select channel"}
+            onClick={onToggleSelect}
+          />
+        ) : null}
         <div className="channel-main">
           <div className="channel-title">
             {channel.rackSlot != null ? (
@@ -1936,7 +2128,25 @@ function ChannelRow({
                 CH {String(channel.rackSlot).padStart(2, "0")}
               </span>
             ) : null}
-            <strong>{channel.name}</strong>
+            {admin ? (
+              <input
+                className="channel-name-input"
+                value={nameDraft}
+                maxLength={80}
+                aria-label="Channel name"
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={() => {
+                  const name = nameDraft.trim();
+                  if (!name || name === channel.name) {
+                    setNameDraft(channel.name);
+                    return;
+                  }
+                  void onPatch(channel.id, { name });
+                }}
+              />
+            ) : (
+              <strong>{channel.name}</strong>
+            )}
             <span className="freq">
               {channel.band ? (
                 <span className="band-tag">{channel.band}</span>
@@ -2055,17 +2265,32 @@ function ChannelRow({
           {features.groups ? (
             <label className="quiet-field">
               <span>Group</span>
-              <input
-                list="channel-group-options"
-                value={groupDraft}
-                placeholder="e.g. Vocals"
-                onChange={(e) => setGroupDraft(e.target.value)}
-                onBlur={() => {
-                  const groupName = groupDraft.trim() || null;
-                  if (groupName === (channel.groupName ?? null)) return;
+              <select
+                value={channel.groupName ?? ""}
+                disabled={savedGroupNames.length === 0 && !channel.groupName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const groupName = value ? value : null;
                   void onPatch(channel.id, { groupName });
                 }}
-              />
+              >
+                <option value="">
+                  {savedGroupNames.length
+                    ? "Ungrouped"
+                    : "Save groups in Tools first"}
+                </option>
+                {savedGroupNames.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+                {channel.groupName &&
+                !savedGroupNames.includes(channel.groupName) ? (
+                  <option value={channel.groupName}>
+                    {channel.groupName} (not in list)
+                  </option>
+                ) : null}
+              </select>
             </label>
           ) : null}
         </div>

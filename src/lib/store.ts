@@ -819,6 +819,50 @@ export async function bulkSetChannelStatus(
   return toPublic(nextShow, next);
 }
 
+export async function bulkSetChannelGroup(
+  shareToken: string,
+  channelIds: string[],
+  groupName: string | null,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const idSet = new Set(channelIds);
+  if (idSet.size === 0) {
+    return toPublic(show, await getChannels(show.id));
+  }
+
+  const nextName = groupName?.trim() || null;
+  const channels = await getChannels(show.id);
+  const next = channels.map((ch) =>
+    idSet.has(ch.id) ? { ...ch, groupName: nextName } : ch,
+  );
+
+  let nextShow = withGroupCatalog(show, nextName);
+  nextShow = touchShow(
+    nextShow,
+    "groups",
+    nextName
+      ? `Grouped ${idSet.size} channels → ${nextName}`
+      : `Ungrouped ${idSet.size} channels`,
+  );
+
+  if (mode() === "memory") {
+    getMemory().channels.set(show.id, next);
+    await finishMutation(nextShow);
+    return toPublic(nextShow, next);
+  }
+
+  await finishMutation(nextShow);
+  const db = getSql();
+  for (const id of idSet) {
+    await db`
+      UPDATE channels SET group_name = ${nextName}
+      WHERE id = ${id} AND show_id = ${show.id}
+    `;
+  }
+  return toPublic(nextShow, next);
+}
+
 export async function setRooms(
   shareToken: string,
   roomNames: string[],

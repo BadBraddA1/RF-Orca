@@ -32,6 +32,10 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 ## Floor speed features
 
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
+- **Band filters** — All bands / G50 / H50 / G57+ chips after import
+- **Select → group** — unlock Tools, tap the circle on any channels (or Select all visible), then **Set group** from the sticky bar
+- **Rename channels** — with Tools unlocked, edit the channel name inline on the list
+- **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
 - **Mic rack (A2)** — custom grid (4×1, 3×3, …); **Handheld / Lav**; **saved names** roster with drop-in Who menu; set Who; toggle In use; shows **band** (G50 / H50 / G57+) next to MHz; live via Ably
 - **Crew mode** — header **Crew** button: fullscreen-friendly view of the mic rack only (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
 - **Flash changes** — toggle in the header (and Crew bar): pulse a rack cell / channel card four times when it updates locally or via live sync; the most recently changed cell(s) keep an orange “Updated” tint until something else changes

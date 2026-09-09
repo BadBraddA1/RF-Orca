@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminUnlocked } from "@/lib/admin";
-import { addManualChannel, bulkSetChannelStatus } from "@/lib/store";
+import {
+  addManualChannel,
+  bulkSetChannelGroup,
+  bulkSetChannelStatus,
+} from "@/lib/store";
 
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -10,10 +14,18 @@ const bodySchema = z.object({
   band: z.string().trim().min(1).max(80).nullable().optional(),
 });
 
-const bulkSchema = z.object({
-  channelIds: z.array(z.string().min(1)).min(1).max(500),
-  status: z.enum(["allowed", "blocked", "unreviewed"]),
-});
+const bulkSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("status"),
+    channelIds: z.array(z.string().min(1)).min(1).max(500),
+    status: z.enum(["allowed", "blocked", "unreviewed"]),
+  }),
+  z.object({
+    action: z.literal("group"),
+    channelIds: z.array(z.string().min(1)).min(1).max(500),
+    groupName: z.string().trim().min(1).max(80).nullable(),
+  }),
+]);
 
 /** Add a channel by hand when there’s no Workbench CSV for this show. */
 export async function POST(
@@ -46,7 +58,7 @@ export async function POST(
   return NextResponse.json({ show });
 }
 
-/** Bulk status for selected / filtered channels. */
+/** Bulk status or group for selected / filtered channels. */
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ token: string }> },
@@ -57,12 +69,32 @@ export async function PATCH(
   }
 
   const json = await request.json().catch(() => null);
-  const parsed = bulkSchema.safeParse(json);
+  // Back-compat: old clients send { channelIds, status } without action
+  const normalized =
+    json &&
+    typeof json === "object" &&
+    !("action" in (json as object)) &&
+    "status" in (json as object)
+      ? { ...(json as object), action: "status" as const }
+      : json;
+  const parsed = bulkSchema.safeParse(normalized);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid bulk status payload." },
+      { error: "Invalid bulk payload." },
       { status: 400 },
     );
+  }
+
+  if (parsed.data.action === "group") {
+    const show = await bulkSetChannelGroup(
+      token,
+      parsed.data.channelIds,
+      parsed.data.groupName,
+    );
+    if (!show) {
+      return NextResponse.json({ error: "Show not found." }, { status: 404 });
+    }
+    return NextResponse.json({ show, updated: parsed.data.channelIds.length });
   }
 
   const show = await bulkSetChannelStatus(
