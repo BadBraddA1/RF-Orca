@@ -8,6 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { useRouter } from "next/navigation";
 import { BrandLockup } from "@/components/BrandLockup";
 import { MicRackGrid } from "@/components/MicRackGrid";
 import { withinDeployGrace } from "@/lib/board-helpers";
@@ -194,6 +195,7 @@ export function MarkBoard({
   initialShow: ShowPublic;
   initialAdmin: boolean;
 }) {
+  const router = useRouter();
   const [show, setShow] = useState(initialShow);
   const [admin, setAdmin] = useState(initialAdmin);
   const [filter, setFilter] = useState<Filter>("all");
@@ -218,6 +220,10 @@ export function MarkBoard({
     null,
   );
   const [importBusy, setImportBusy] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [roomsMsg, setRoomsMsg] = useState<string | null>(null);
   const [manualName, setManualName] = useState("");
   const [manualFreq, setManualFreq] = useState("");
   const [manualGroup, setManualGroup] = useState("");
@@ -682,6 +688,7 @@ export function MarkBoard({
   }
 
   async function saveRooms() {
+    setRoomsMsg(null);
     const rooms = roomsText
       .split("\n")
       .map((r) => r.trim())
@@ -693,10 +700,37 @@ export function MarkBoard({
     });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.error || "Could not save rooms");
+      setRoomsMsg(data.error || "Could not save rooms");
       return;
     }
     applyShow(data.show);
+    setRoomsMsg("Rooms saved. Renames update channels already marked in that room.");
+  }
+
+  async function deleteThisShow() {
+    setDeleteError(null);
+    if (deleteConfirm !== show.name) {
+      setDeleteError("Type the show name exactly to confirm.");
+      return;
+    }
+    setDeleteBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmName: deleteConfirm }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDeleteError(data.error || "Could not delete show");
+        return;
+      }
+      router.push("/");
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Could not delete show");
+    } finally {
+      setDeleteBusy(false);
+    }
   }
 
   async function saveGroups() {
@@ -1399,7 +1433,7 @@ export function MarkBoard({
 
                 {features.rooms ? (
                   <label className="field">
-                    <span>Rooms (one per line)</span>
+                    <span>Rooms (one per line — edit a line to rename)</span>
                     <textarea
                       rows={3}
                       value={roomsText}
@@ -1413,8 +1447,53 @@ export function MarkBoard({
                     >
                       Save rooms
                     </button>
+                    <span className="field-note">
+                      Rename by editing the line, then Save. Deployed channels
+                      keep the new name. Delete a line to remove that room
+                      (clears it from channels).
+                    </span>
+                    {roomsMsg ? (
+                      <p
+                        className={
+                          roomsMsg.startsWith("Rooms saved")
+                            ? "form-hint"
+                            : "form-error"
+                        }
+                      >
+                        {roomsMsg}
+                      </p>
+                    ) : null}
                   </label>
                 ) : null}
+              </div>
+
+              <div className="danger-zone" aria-label="Danger zone">
+                <p className="tools-whisper">Danger zone</p>
+                <p className="field-note">
+                  Delete this show permanently (channels, assignments, and the
+                  share link). Type the show name to confirm.
+                </p>
+                <div className="admin-row">
+                  <input
+                    type="text"
+                    value={deleteConfirm}
+                    onChange={(e) => setDeleteConfirm(e.target.value)}
+                    placeholder={show.name}
+                    autoComplete="off"
+                    aria-label="Type show name to confirm delete"
+                  />
+                  <button
+                    type="button"
+                    className="btn-danger"
+                    disabled={
+                      deleteBusy || deleteConfirm !== show.name
+                    }
+                    onClick={() => void deleteThisShow()}
+                  >
+                    {deleteBusy ? "Deleting…" : "Delete show"}
+                  </button>
+                </div>
+                {deleteError ? <p className="form-error">{deleteError}</p> : null}
               </div>
             </div>
           )}

@@ -520,6 +520,30 @@ a {
   width: fit-content;
 }
 
+.btn-danger {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--danger) 55%, transparent);
+  background: color-mix(in oklab, var(--danger) 22%, transparent);
+  color: #ffd0d5;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  width: fit-content;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btn-danger:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: color-mix(in oklab, var(--danger) 34%, transparent);
+}
+
+.btn-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-ghost {
   background: transparent;
   border-color: var(--line);
@@ -1105,6 +1129,16 @@ a {
 .tools-grid {
   display: grid;
   gap: 1rem;
+}
+
+.danger-zone {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--danger) 40%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--danger) 8%, transparent);
 }
 
 .feature-toggles {

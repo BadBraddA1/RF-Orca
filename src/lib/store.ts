@@ -815,22 +815,116 @@ export async function setRooms(
 ): Promise<ShowPublic | null> {
   const show = await getShowByToken(shareToken);
   if (!show) return null;
-  const rooms: Room[] = roomNames
-    .map((n) => n.trim())
-    .filter(Boolean)
-    .map((name) => ({ id: createId("room"), name }));
 
-  const nextShow = touchShow({ ...show, rooms }, "rooms", "Updated rooms");
+  const incoming = roomNames.map((n) => n.trim()).filter(Boolean);
+  const oldRooms = show.rooms;
+  const usedOld = new Set<number>();
+  const renameMap = new Map<string, string>(); // old name → new name
+  const rooms: Room[] = [];
+
+  // 1) Keep existing rooms whose names still appear (case-insensitive).
+  for (const name of incoming) {
+    const matchIdx = oldRooms.findIndex(
+      (r, i) =>
+        !usedOld.has(i) && r.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (matchIdx >= 0) {
+      usedOld.add(matchIdx);
+      const old = oldRooms[matchIdx];
+      rooms.push({ id: old.id, name });
+      if (old.name !== name) renameMap.set(old.name, name);
+      continue;
+    }
+    rooms.push({ id: createId("room"), name });
+  }
+
+  // 2) Positional rename — unmatched old → newly added names in order
+  //    (covers editing a line in the rooms list without an exact match).
+  const unmatchedOld = oldRooms.filter((_, i) => !usedOld.has(i));
+  const keptIds = new Set(
+    rooms
+      .filter((r) =>
+        oldRooms.some((o, oi) => usedOld.has(oi) && o.id === r.id),
+      )
+      .map((r) => r.id),
+  );
+  const brandNewOrRenamed = rooms.filter((r) => !keptIds.has(r.id));
+  const pairCount = Math.min(unmatchedOld.length, brandNewOrRenamed.length);
+  for (let i = 0; i < pairCount; i++) {
+    const from = unmatchedOld[i].name;
+    const to = brandNewOrRenamed[i].name;
+    if (from !== to) renameMap.set(from, to);
+    const roomIdx = rooms.findIndex((r) => r.id === brandNewOrRenamed[i].id);
+    if (roomIdx >= 0) {
+      rooms[roomIdx] = { id: unmatchedOld[i].id, name: to };
+    }
+  }
+
+  const removedNames = unmatchedOld.slice(pairCount).map((r) => r.name);
+
+  const channels = await getChannels(show.id);
+  let touched = 0;
+  const nextChannels = channels.map((ch) => {
+    if (!ch.roomName) return ch;
+    if (renameMap.has(ch.roomName)) {
+      touched += 1;
+      return { ...ch, roomName: renameMap.get(ch.roomName)! };
+    }
+    if (removedNames.includes(ch.roomName)) {
+      touched += 1;
+      return { ...ch, roomName: null };
+    }
+    // Case-only rename already in renameMap; also handle if room list
+    // kept the name via case change through renameMap.
+    return ch;
+  });
+
+  const renameNote =
+    renameMap.size > 0
+      ? ` · renamed ${[...renameMap.entries()].map(([a, b]) => `${a}→${b}`).join(", ")}`
+      : "";
+  const nextShow = touchShow(
+    { ...show, rooms },
+    "rooms",
+    `Updated rooms${renameNote}`,
+  );
 
   if (mode() === "memory") {
+    getMemory().channels.set(show.id, nextChannels);
     await finishMutation(nextShow);
-    const channels = await getChannels(show.id);
-    return toPublic(nextShow, channels);
+    return toPublic(nextShow, nextChannels);
   }
 
   await finishMutation(nextShow);
-  const channels = await getChannels(show.id);
-  return toPublic(nextShow, channels);
+  if (touched > 0) {
+    const db = getSql();
+    for (const ch of nextChannels) {
+      const prev = channels.find((c) => c.id === ch.id);
+      if (!prev || prev.roomName === ch.roomName) continue;
+      await db`
+        UPDATE channels SET room_name = ${ch.roomName}
+        WHERE id = ${ch.id} AND show_id = ${show.id}
+      `;
+    }
+  }
+  return toPublic(nextShow, nextChannels);
+}
+
+export async function deleteShow(shareToken: string): Promise<boolean> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return false;
+
+  if (mode() === "memory") {
+    const mem = getMemory();
+    mem.shows.delete(show.id);
+    mem.channels.delete(show.id);
+    return true;
+  }
+
+  const db = getSql();
+  await db`DELETE FROM channels WHERE show_id = ${show.id}`;
+  await db`DELETE FROM shows WHERE id = ${show.id}`;
+  return true;
 }
 
 export async function setGroups(
