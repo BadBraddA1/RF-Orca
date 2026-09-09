@@ -262,6 +262,7 @@ async function persistShowMeta(show: Show): Promise<void> {
   const db = getSql();
   await db`
     UPDATE shows SET
+      name = ${show.name},
       rooms = ${JSON.stringify(show.rooms)},
       groups = ${JSON.stringify(show.groups)},
       people = ${JSON.stringify(show.people)},
@@ -980,6 +981,26 @@ export async function setPeople(
     { ...show, people },
     "people",
     `Saved ${people.length} names`,
+  );
+  await finishMutation(nextShow);
+  return toPublic(nextShow, await getChannels(show.id));
+}
+
+export async function renameShow(
+  shareToken: string,
+  name: string,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const nextName = name.trim();
+  if (!nextName) return null;
+  if (nextName === show.name) {
+    return toPublic(show, await getChannels(show.id));
+  }
+  const nextShow = touchShow(
+    { ...show, name: nextName },
+    "settings",
+    `Renamed show → ${nextName}`,
   );
   await finishMutation(nextShow);
   return toPublic(nextShow, await getChannels(show.id));

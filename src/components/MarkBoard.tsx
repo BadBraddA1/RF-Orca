@@ -223,6 +223,9 @@ export function MarkBoard({
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showNameDraft, setShowNameDraft] = useState(initialShow.name);
+  const [renameBusy, setRenameBusy] = useState(false);
+  const [renameMsg, setRenameMsg] = useState<string | null>(null);
   const [roomsMsg, setRoomsMsg] = useState<string | null>(null);
   const [manualName, setManualName] = useState("");
   const [manualFreq, setManualFreq] = useState("");
@@ -324,6 +327,7 @@ export function MarkBoard({
     setShow(next);
     revisionRef.current = next.revision ?? 0;
     if (typeof nextAdmin === "boolean") setAdmin(nextAdmin);
+    setShowNameDraft(next.name);
     setRoomsText(next.rooms.map((r) => r.name).join("\n"));
     setGroupsText(next.groups.map((g) => g.name).join("\n"));
     setPeopleText((next.people ?? []).map((p) => p.name).join("\n"));
@@ -684,6 +688,39 @@ export function MarkBoard({
       setImportMsg(err instanceof Error ? err.message : "Import failed.");
     } finally {
       setImportBusy(false);
+    }
+  }
+
+  async function saveShowName(e?: React.FormEvent) {
+    e?.preventDefault();
+    setRenameMsg(null);
+    const name = showNameDraft.trim();
+    if (!name) {
+      setRenameMsg("Show name required.");
+      return;
+    }
+    if (name === show.name) {
+      setRenameMsg("Name unchanged.");
+      return;
+    }
+    setRenameBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRenameMsg(data.error || "Could not rename show");
+        return;
+      }
+      applyShow(data.show);
+      setRenameMsg("Show renamed.");
+    } catch (err) {
+      setRenameMsg(err instanceof Error ? err.message : "Could not rename show");
+    } finally {
+      setRenameBusy(false);
     }
   }
 
@@ -1161,6 +1198,44 @@ export function MarkBoard({
                   Lock tools
                 </button>
               </div>
+
+              <form
+                className="field show-name-field"
+                onSubmit={(e) => void saveShowName(e)}
+              >
+                <span>Show name</span>
+                <div className="admin-row">
+                  <input
+                    type="text"
+                    value={showNameDraft}
+                    onChange={(e) => setShowNameDraft(e.target.value)}
+                    maxLength={120}
+                    disabled={renameBusy}
+                    aria-label="Show name"
+                  />
+                  <button
+                    type="submit"
+                    className="btn-secondary"
+                    disabled={
+                      renameBusy || showNameDraft.trim() === show.name
+                    }
+                  >
+                    {renameBusy ? "Saving…" : "Rename"}
+                  </button>
+                </div>
+                {renameMsg ? (
+                  <p
+                    className={
+                      renameMsg === "Show renamed." ||
+                      renameMsg === "Name unchanged."
+                        ? "form-hint"
+                        : "form-error"
+                    }
+                  >
+                    {renameMsg}
+                  </p>
+                ) : null}
+              </form>
 
               <div className="feature-toggles" aria-label="Show options">
                 <p className="tools-whisper">

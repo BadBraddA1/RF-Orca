@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminUnlocked, lockAdmin } from "@/lib/admin";
-import { deleteShow, getShowPublic } from "@/lib/store";
+import { deleteShow, getShowPublic, renameShow } from "@/lib/store";
 
 export async function GET(
   _request: Request,
@@ -14,6 +14,35 @@ export async function GET(
   }
   const admin = await isAdminUnlocked(token);
   return NextResponse.json({ show, admin });
+}
+
+const patchBodySchema = z.object({
+  name: z.string().trim().min(1).max(120),
+});
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ token: string }> },
+) {
+  const { token } = await context.params;
+  if (!(await isAdminUnlocked(token))) {
+    return NextResponse.json({ error: "Admin unlock required." }, { status: 403 });
+  }
+
+  const json = await request.json().catch(() => null);
+  const parsed = patchBodySchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Show name required (1–120 characters)." },
+      { status: 400 },
+    );
+  }
+
+  const show = await renameShow(token, parsed.data.name);
+  if (!show) {
+    return NextResponse.json({ error: "Show not found." }, { status: 404 });
+  }
+  return NextResponse.json({ show });
 }
 
 const deleteBodySchema = z.object({

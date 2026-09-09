@@ -16,6 +16,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - Create with an **admin password**
 - Crews open the show link → **mark view** (Deploy + room), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
+- **Rename show** — Tools → Show name → Rename (share link stays the same)
 - **Rooms** — edit lines in Tools → Save rooms to rename; renames update channels already marked in that room; remove a line to drop a room
 - **Delete show** — Tools → Danger zone; type the show name to confirm (permanent)
 - **Show options** (toggles): Deploy, Rooms, **Mic rack assignments**, Groups, Allow/Block, **Lock after deploy**, **Lock board for crew** — turn on only what the floor needs
