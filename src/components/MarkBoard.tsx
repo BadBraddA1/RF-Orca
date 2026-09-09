@@ -1369,8 +1369,9 @@ export function MarkBoard({
                     </button>
                   </div>
                   <span className="field-note">
-                    Workbench → export Inventory/Coordination as CSV. Choosing a
-                    file builds a preview; then confirm to replace the board.
+                    Workbench Coordination report (paste/export) or Inventory
+                    CSV. Choosing a file builds a preview; then confirm to
+                    replace the board.
                   </span>
                   {importMsg ? (
                     <p

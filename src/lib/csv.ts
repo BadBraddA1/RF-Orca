@@ -5,6 +5,9 @@ function parseFrequency(raw: string): number | null {
   const cleaned = raw.replace(/mhz/i, "").replace(/,/g, "").trim();
   const value = Number.parseFloat(cleaned);
   if (!Number.isFinite(value) || value <= 0) return null;
+  // RF mics live roughly 470–698 MHz (US TV band) plus some IFB/comms;
+  // reject tiny integers that aren't frequencies (e.g. "74" from "Primary frequencies (74)").
+  if (value < 100 || value > 1000) return null;
   return value;
 }
 
@@ -49,7 +52,6 @@ export function decodeCsvBytes(bytes: ArrayBuffer | Uint8Array): string {
   if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
     return new TextDecoder("utf-8").decode(buf);
   }
-  // UTF-16LE without BOM: lots of NUL bytes in the first line
   const sample = buf.subarray(0, Math.min(buf.length, 200));
   let nuls = 0;
   for (const b of sample) if (b === 0) nuls += 1;
@@ -79,7 +81,6 @@ function headerScore(line: string, delimiter: string): number {
   if (/\btype\b/.test(lower)) score += 2;
   if (/\bgroup\b/.test(lower)) score += 2;
   if (/\bname\b/.test(lower)) score += 2;
-  // Title / section rows are usually one short phrase
   if (parts.length === 1) score = 0;
   return score;
 }
@@ -102,11 +103,6 @@ function detectDelimiter(lines: string[]): string {
   return best;
 }
 
-/**
- * Workbench exports often start with a show title / "Primary Frequencies"
- * row before the real column header. Skip preamble so Papa doesn't lock to
- * one column ("expected 1 fields but parsed 6").
- */
 function sliceFromHeader(text: string): {
   csv: string;
   delimiter: string;
@@ -125,7 +121,6 @@ function sliceFromHeader(text: string): {
       bestIdx = i;
     }
   }
-  // Prefer a scored header; otherwise first line with 3+ fields
   if (best < 5) {
     for (let i = 0; i < Math.min(lines.length, 50); i++) {
       const line = lines[i]?.trim() ?? "";
@@ -142,10 +137,101 @@ function sliceFromHeader(text: string): {
   };
 }
 
-function rowsFromParsed(
-  data: Record<string, unknown>[],
-  warnings: string[],
-): ParsedChannelRow[] {
+/**
+ * Shure Workbench "Coordination report" paste/export — multi-space columns:
+ *   AD/Standard  G57+  BK 01  G:-- Ch:--  521.675 MHz
+ *   ULXD/Standard  G50    G:-- Ch:--  533.125 MHz
+ *   ULXD/Standard  H50  Shure  G:-- Ch:--  534.975 MHz
+ */
+const COORD_ROW_RE =
+  /^([A-Za-z0-9]+)\/([A-Za-z0-9]+)\s+([A-Z]\d+\+?)\s+(.*?)\s+(G:\S*\s+Ch:\S*)\s+(\d+(?:\.\d+)?)\s*MHz\s*$/i;
+
+function looksLikeCoordinationReport(text: string): boolean {
+  const lower = text.toLowerCase();
+  if (lower.includes("coordination report")) return true;
+  if (lower.includes("primary frequencies")) return true;
+  if (lower.includes("rf zone:")) return true;
+  const lines = splitLines(text);
+  let hits = 0;
+  for (const line of lines.slice(0, 80)) {
+    if (COORD_ROW_RE.test(line.trim())) hits += 1;
+  }
+  return hits >= 3;
+}
+
+function parseCoordinationReport(text: string): {
+  rows: ParsedChannelRow[];
+  warnings: string[];
+} {
+  const warnings: string[] = [];
+  const rows: ParsedChannelRow[] = [];
+  let currentZone: string | null = null;
+  let currentIsBackup = false;
+  let inBackup = false;
+
+  for (const rawLine of splitLines(text)) {
+    const line = rawLine.trim().replace(/^"+|"+$/g, "");
+    if (!line) continue;
+    const lower = line.toLowerCase();
+
+    if (/^rf zone:\s*(.+)$/i.test(line)) {
+      currentZone = line.replace(/^rf zone:\s*/i, "").trim() || null;
+      continue;
+    }
+    if (lower.includes("backup frequencies")) {
+      inBackup = true;
+      currentIsBackup = true;
+      continue;
+    }
+    if (lower.includes("primary frequencies")) {
+      inBackup = false;
+      currentIsBackup = false;
+      continue;
+    }
+    // Skip section titles / column headers
+    if (
+      lower.startsWith("coordination") ||
+      lower.startsWith("type") ||
+      lower.includes("inclusion group") ||
+      lower.includes("channel name")
+    ) {
+      continue;
+    }
+
+    const m = line.match(COORD_ROW_RE);
+    if (!m) continue;
+
+    const type = `${m[1]}/${m[2]}`;
+    const band = m[3];
+    const nameRaw = m[4].trim();
+    const groupChannel = m[5].replace(/\s+/g, " ").trim();
+    const frequencyMhz = parseFrequency(m[6]);
+    if (frequencyMhz == null) continue;
+
+    rows.push({
+      name: nameRaw || `CH ${frequencyMhz.toFixed(3)}`,
+      frequencyMhz,
+      band,
+      type,
+      groupChannel,
+      zone: currentZone,
+      isBackup: inBackup || currentIsBackup,
+    });
+  }
+
+  if (rows.length) {
+    const primary = rows.filter((r) => !r.isBackup).length;
+    const backup = rows.length - primary;
+    warnings.push(
+      backup > 0
+        ? `Parsed Workbench coordination report (${primary} primary, ${backup} backup).`
+        : `Parsed Workbench coordination report (${rows.length} channels).`,
+    );
+  }
+  return { rows, warnings };
+}
+
+function rowsFromParsed(data: Record<string, unknown>[]): ParsedChannelRow[] {
   const rows: ParsedChannelRow[] = [];
   let currentZone: string | null = null;
   let currentIsBackup = false;
@@ -190,7 +276,6 @@ function rowsFromParsed(
     const frequencyMhz = parseFrequency(freqRaw);
     if (frequencyMhz == null) continue;
 
-    // Avoid treating a lone frequency cell's neighbor numbers as "name"
     const name =
       pick(row, [
         "channel name",
@@ -229,8 +314,7 @@ function rowsFromParsed(
 }
 
 /**
- * Parses Shure WWB inventory / coordination-style CSV exports.
- * Tolerates title/preamble rows and section markers (Primary/Backup/zone).
+ * Parses Shure WWB inventory CSV or Coordination report text.
  */
 export function parseWwbCsv(text: string): {
   rows: ParsedChannelRow[];
@@ -238,6 +322,19 @@ export function parseWwbCsv(text: string): {
 } {
   const warnings: string[] = [];
   const cleaned = text.replace(/^\uFEFF/, "");
+
+  // Prefer coordination-report layout when it matches (space columns + MHz).
+  if (looksLikeCoordinationReport(cleaned)) {
+    const report = parseCoordinationReport(cleaned);
+    if (report.rows.length > 0) {
+      return report;
+    }
+    warnings.push(
+      ...report.warnings,
+      "Looked like a coordination report but no frequency rows matched.",
+    );
+  }
+
   const { csv, delimiter, skipped } = sliceFromHeader(cleaned);
   if (skipped > 0) {
     warnings.push(
@@ -253,8 +350,6 @@ export function parseWwbCsv(text: string): {
     transformHeader: (h) => String(h ?? "").trim(),
   });
 
-  // Field-count mismatches after a bad header — don't surface those as user warnings
-  // if we still recover rows. Keep other Papa issues.
   const usefulErrors = parsed.errors.filter(
     (e) => !/too many fields/i.test(e.message || ""),
   );
@@ -264,9 +359,8 @@ export function parseWwbCsv(text: string): {
     );
   }
 
-  let rows = rowsFromParsed(parsed.data, warnings);
+  let rows = rowsFromParsed(parsed.data);
 
-  // Second pass: headerless / wrong header — parse as arrays and find freq column
   if (rows.length === 0 || rows.every((r) => r.name.startsWith("CH "))) {
     const raw = Papa.parse<string[]>(csv, {
       header: false,
@@ -289,19 +383,18 @@ export function parseWwbCsv(text: string): {
       const asObjects = matrix.slice(headerIdx + 1).map((cells) => {
         const obj: Record<string, unknown> = {};
         headers.forEach((h, i) => {
-          const key = h || `col_${i}`;
-          obj[key] = cells[i] ?? "";
+          obj[h || `col_${i}`] = cells[i] ?? "";
         });
-        // Also keep positional values for freq sniffing
         cells.forEach((c, i) => {
           obj[`__${i}`] = c;
         });
         return obj;
       });
-      const recovered = rowsFromParsed(asObjects, warnings);
+      const recovered = rowsFromParsed(asObjects);
       const recoveredNamed = recovered.filter((r) => !r.name.startsWith("CH "));
       if (
-        recoveredNamed.length > rows.filter((r) => !r.name.startsWith("CH ")).length
+        recoveredNamed.length >
+        rows.filter((r) => !r.name.startsWith("CH ")).length
       ) {
         rows = recovered;
       } else if (recovered.length > rows.length) {
@@ -310,14 +403,25 @@ export function parseWwbCsv(text: string): {
     }
   }
 
-  // Last resort: bare frequency tokens only
+  // Try coordination parser even if header sniff missed (e.g. weird export).
+  if (rows.length === 0 || rows.every((r) => r.name.startsWith("CH "))) {
+    const report = parseCoordinationReport(cleaned);
+    if (
+      report.rows.length > rows.length ||
+      report.rows.some((r) => !r.name.startsWith("CH "))
+    ) {
+      return {
+        rows: report.rows,
+        warnings: [...warnings, ...report.warnings],
+      };
+    }
+  }
+
+  // Last resort: tokens that look like "518.200 MHz" only (not bare "74").
   if (rows.length === 0) {
-    const bare = cleaned
-      .split(/[\n,;\t]+/)
-      .map((p) => p.trim())
-      .filter(Boolean);
-    for (const part of bare) {
-      const frequencyMhz = parseFrequency(part);
+    const mhzTokens = cleaned.match(/\d{3}(?:\.\d+)?\s*MHz/gi) ?? [];
+    for (const token of mhzTokens) {
+      const frequencyMhz = parseFrequency(token);
       if (frequencyMhz == null) continue;
       rows.push({
         name: `CH ${frequencyMhz.toFixed(3)}`,
@@ -336,7 +440,7 @@ export function parseWwbCsv(text: string): {
 
   if (rows.length === 0) {
     warnings.push(
-      "No frequency rows found. Export Inventory or Coordination as CSV from Workbench (not a .wwb project file).",
+      "No frequency rows found. Paste a Workbench Coordination report or export Inventory/Coordination as CSV.",
     );
   }
 

@@ -35,8 +35,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Mic rack (A2)** — custom grid (4×1, 3×3, …); **Handheld / Lav**; **saved names** roster with drop-in Who menu; set Who; toggle In use; shows **band** (G50 / H50 / G57+) next to MHz; live via Ably
 - **Crew mode** — header **Crew** button: fullscreen-friendly view of the mic rack only (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
 - **Flash changes** — toggle in the header (and Crew bar): pulse a rack cell / channel card four times when it updates locally or via live sync; the most recently changed cell(s) keep an orange “Updated” tint until something else changes
-- **Import preview** — Workbench CSV (Inventory/Coordination export): **Choose CSV** → preview table → confirm replace; skips title/preamble rows; UTF-16 / tab-separated exports supported; errors show under the picker
-- **Search** — name / who / MHz jump (Enter scrolls to first match)
+- **Import preview** — Workbench **Coordination report** (space columns) or Inventory CSV: **Choose CSV** → preview → confirm; keeps band (G50 / H50 / G57+) and channel names; skips title rows; UTF-16 supported
+- **Search** — name / who / MHz / band jump (Enter scrolls to first match)
 - **My room** focus — filter to the room you’re dressing (persists in localStorage)
 - **Progress HUD** — sticky deployed + in-use + assignment counts
 - **Activity strip** — recent deploy / assign / in-use / import / settings events

@@ -1,0 +1,79 @@
+Coordination report
+RF zone: Default
+Primary frequencies (74)
+"Type  Band  Channel name  Group & Channel  Frequency
+No Inclusion Group (74)
+AD/Standard  G57+  BK 01  G:-- Ch:--  521.675 MHz
+AD/Standard  G57+  BK 02  G:-- Ch:--  555.825 MHz
+AD/Standard  G57+  BK 03  G:-- Ch:--  571.225 MHz
+AD/Standard  G57+  BK 04  G:-- Ch:--  580.250 MHz
+AD/Standard  G57+  BK 05  G:-- Ch:--  590.275 MHz
+AD/Standard  G57+  BK 06  G:-- Ch:--  600.725 MHz
+AD/Standard  G57+  BK 07  G:-- Ch:--  601.200 MHz
+AD/Standard  G57+  BK 08  G:-- Ch:--  603.475 MHz
+AD/Standard  G57+  BK 09  G:-- Ch:--  474.075 MHz
+AD/Standard  G57+  BK 10  G:-- Ch:--  480.825 MHz
+AD/Standard  G57+  BK 11  G:-- Ch:--  491.525 MHz
+AD/Standard  G57+  BK 12  G:-- Ch:--  514.525 MHz
+ULXD/Standard  G50    G:-- Ch:--  533.125 MHz
+ULXD/Standard  G50    G:-- Ch:--  533.775 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  473.175 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  475.525 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  476.650 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  478.300 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  478.875 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  480.000 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  481.975 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  483.225 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  484.375 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  485.050 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  486.600 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  487.050 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  492.450 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  493.750 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  495.425 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  496.175 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  496.875 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  498.425 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  499.900 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  500.675 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  501.150 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  502.775 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  512.425 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  517.575 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  520.050 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  520.400 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  520.950 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  525.950 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  529.700 MHz
+ULXD/Standard  G50  Shure  G:-- Ch:--  532.075 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  534.975 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  535.525 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  536.825 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  540.550 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  542.300 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  547.100 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  548.375 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  550.750 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  552.250 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  552.675 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  554.525 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  557.350 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  561.500 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  563.075 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  563.750 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  565.275 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  570.600 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  572.350 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  574.975 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  577.275 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  577.700 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  581.150 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  584.100 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  585.850 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  589.175 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  591.550 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  591.900 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  593.325 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  595.000 MHz
+ULXD/Standard  H50  Shure  G:-- Ch:--  595.650 MHz
