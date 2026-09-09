@@ -67,9 +67,11 @@ export type ShowFeatures = {
 export const DEFAULT_SHOW_FEATURES: ShowFeatures = {
   deploy: true,
   rooms: true,
-  assignments: true,
+  /** Off until the floor needs A2 who/in-use rack marking */
+  assignments: false,
   groups: true,
-  status: true,
+  /** Off until the coordinator wants Allowed/Blocked workflow */
+  status: false,
   lockDeployed: true,
   crewLocked: false,
 };

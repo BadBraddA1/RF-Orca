@@ -83,7 +83,11 @@ export function buildDemoShow(): ShowPublic {
       { id: "grp_i", name: "IEMs" },
       { id: "grp_c", name: "Comms" },
     ],
-    features: { ...DEFAULT_SHOW_FEATURES },
+    features: {
+      ...DEFAULT_SHOW_FEATURES,
+      assignments: true,
+      status: true,
+    },
     rackCols: DEFAULT_RACK_LAYOUT.cols,
     rackRows: DEFAULT_RACK_LAYOUT.rows,
     people: [

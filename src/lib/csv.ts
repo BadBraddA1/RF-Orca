@@ -140,23 +140,25 @@ function sliceFromHeader(text: string): {
 /**
  * Shure Workbench "Coordination report" paste/export — multi-space columns:
  *   AD/Standard  G57+  BK 01  G:-- Ch:--  521.675 MHz
- *   ULXD/Standard  G50    G:-- Ch:--  533.125 MHz
- *   ULXD/Standard  H50  Shure  G:-- Ch:--  534.975 MHz
+ * Also accepts comma/tab CSV versions of the same columns.
  */
 const COORD_ROW_RE =
   /^([A-Za-z0-9]+)\/([A-Za-z0-9]+)\s+([A-Z]\d+\+?)\s+(.*?)\s+(G:\S*\s+Ch:\S*)\s+(\d+(?:\.\d+)?)\s*MHz\s*$/i;
 
-function looksLikeCoordinationReport(text: string): boolean {
-  const lower = text.toLowerCase();
-  if (lower.includes("coordination report")) return true;
-  if (lower.includes("primary frequencies")) return true;
-  if (lower.includes("rf zone:")) return true;
-  const lines = splitLines(text);
+const COORD_CSV_ROW_RE =
+  /^([A-Za-z0-9]+)\/([A-Za-z0-9]+)[,;\t]+([A-Z]\d+\+?)[,;\t]+(.*?)[,;\t]+(G:\S*(?:\s+Ch:\S*|Ch:\S*))[,;\t]+(\d+(?:\.\d+)?)\s*MHz?\s*$/i;
+
+function matchCoordRow(line: string): RegExpMatchArray | null {
+  const cleaned = line.trim().replace(/^"+|"+$/g, "");
+  return cleaned.match(COORD_ROW_RE) ?? cleaned.match(COORD_CSV_ROW_RE);
+}
+
+function countCoordHits(text: string): number {
   let hits = 0;
-  for (const line of lines.slice(0, 80)) {
-    if (COORD_ROW_RE.test(line.trim())) hits += 1;
+  for (const line of splitLines(text)) {
+    if (matchCoordRow(line)) hits += 1;
   }
-  return hits >= 3;
+  return hits;
 }
 
 function parseCoordinationReport(text: string): {
@@ -188,17 +190,16 @@ function parseCoordinationReport(text: string): {
       currentIsBackup = false;
       continue;
     }
-    // Skip section titles / column headers
     if (
       lower.startsWith("coordination") ||
       lower.startsWith("type") ||
       lower.includes("inclusion group") ||
-      lower.includes("channel name")
+      (lower.includes("channel name") && lower.includes("frequency"))
     ) {
       continue;
     }
 
-    const m = line.match(COORD_ROW_RE);
+    const m = matchCoordRow(line);
     if (!m) continue;
 
     const type = `${m[1]}/${m[2]}`;
@@ -320,27 +321,20 @@ export function parseWwbCsv(text: string): {
   rows: ParsedChannelRow[];
   warnings: string[];
 } {
-  const warnings: string[] = [];
   const cleaned = text.replace(/^\uFEFF/, "");
 
-  // Prefer coordination-report layout when it matches (space columns + MHz).
-  if (looksLikeCoordinationReport(cleaned)) {
+  // Only take the coordination-report path when real data rows match —
+  // preamble text like "Primary frequencies (74)" alone is not enough
+  // (CSV exports often include that phrase and then fail the space regex).
+  if (countCoordHits(cleaned) >= 3) {
     const report = parseCoordinationReport(cleaned);
     if (report.rows.length > 0) {
       return report;
     }
-    warnings.push(
-      ...report.warnings,
-      "Looked like a coordination report but no frequency rows matched.",
-    );
   }
 
+  const warnings: string[] = [];
   const { csv, delimiter, skipped } = sliceFromHeader(cleaned);
-  if (skipped > 0) {
-    warnings.push(
-      `Skipped ${skipped} preamble line${skipped === 1 ? "" : "s"} before the column header.`,
-    );
-  }
 
   const parsed = Papa.parse<Record<string, unknown>>(csv, {
     header: true,
@@ -349,15 +343,6 @@ export function parseWwbCsv(text: string): {
     dynamicTyping: false,
     transformHeader: (h) => String(h ?? "").trim(),
   });
-
-  const usefulErrors = parsed.errors.filter(
-    (e) => !/too many fields/i.test(e.message || ""),
-  );
-  if (usefulErrors.length) {
-    warnings.push(
-      ...usefulErrors.slice(0, 5).map((e) => e.message || "CSV parse issue"),
-    );
-  }
 
   let rows = rowsFromParsed(parsed.data);
 
@@ -403,26 +388,26 @@ export function parseWwbCsv(text: string): {
     }
   }
 
-  // Try coordination parser even if header sniff missed (e.g. weird export).
+  // Coordination parser as recovery when CSV only found bare CH names
   if (rows.length === 0 || rows.every((r) => r.name.startsWith("CH "))) {
     const report = parseCoordinationReport(cleaned);
     if (
       report.rows.length > rows.length ||
       report.rows.some((r) => !r.name.startsWith("CH "))
     ) {
-      return {
-        rows: report.rows,
-        warnings: [...warnings, ...report.warnings],
-      };
+      return report;
     }
   }
 
-  // Last resort: tokens that look like "518.200 MHz" only (not bare "74").
   if (rows.length === 0) {
     const mhzTokens = cleaned.match(/\d{3}(?:\.\d+)?\s*MHz/gi) ?? [];
+    const seen = new Set<number>();
     for (const token of mhzTokens) {
       const frequencyMhz = parseFrequency(token);
       if (frequencyMhz == null) continue;
+      const key = Math.round(frequencyMhz * 1000);
+      if (seen.has(key)) continue;
+      seen.add(key);
       rows.push({
         name: `CH ${frequencyMhz.toFixed(3)}`,
         frequencyMhz,
@@ -441,6 +426,24 @@ export function parseWwbCsv(text: string): {
   if (rows.length === 0) {
     warnings.push(
       "No frequency rows found. Paste a Workbench Coordination report or export Inventory/Coordination as CSV.",
+    );
+    // Surface Papa issues only when we truly failed
+    const usefulErrors = parsed.errors
+      .filter(
+        (e) =>
+          !/too many fields/i.test(e.message || "") &&
+          !/too few fields/i.test(e.message || ""),
+      )
+      .slice(0, 3)
+      .map((e) => e.message || "CSV parse issue");
+    warnings.push(...usefulErrors);
+    if (skipped > 0) {
+      warnings.push(`Skipped ${skipped} preamble line(s) before the header.`);
+    }
+  } else if (skipped > 0 && rows.every((r) => r.name.startsWith("CH "))) {
+    // Soft hint only when names look wrong
+    warnings.push(
+      "Channel names look generic — try exporting as Coordination report text or Inventory CSV.",
     );
   }
 

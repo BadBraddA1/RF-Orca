@@ -203,7 +203,9 @@ export function MarkBoard({
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [focusRoom, setFocusRoom] = useState("");
   const [search, setSearch] = useState("");
-  const [boardView, setBoardView] = useState<BoardView>("rack");
+  const [boardView, setBoardView] = useState<BoardView>(
+    initialShow.features.assignments ? "rack" : "list",
+  );
   const [toolsOpen, setToolsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);

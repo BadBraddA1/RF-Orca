@@ -19,8 +19,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Rename show** — Tools → Show name → Rename (share link stays the same)
 - **Rooms** — edit lines in Tools → Save rooms to rename; renames update channels already marked in that room; remove a line to drop a room
 - **Delete show** — Tools → Danger zone; type the show name to confirm (permanent)
-- **Show options** (toggles): Deploy, Rooms, **Mic rack assignments**, Groups, Allow/Block, **Lock after deploy**, **Lock board for crew** — turn on only what the floor needs
-- Tools → rack presets / custom **cols × rows** + **Fill empty**; default **Rack** view for A2s
+- **Show options** (toggles): Deploy, Rooms, Groups on by default; **Mic rack assignments** and **Allow/Block** off until you need them; **Lock after deploy** on; **Lock board for crew** off
+- Tools → rack presets / custom **cols × rows** + **Fill empty** (when Mic rack assignments is on)
 - Schema v6: `rack_cols` / `rack_rows`, `mic_kind` (handheld|lav), `assigned_to`, `in_use`, `rack_slot`
 - Rack grids up to **20×20** (200 slots) so large Workbench imports fit; import grows the rack automatically
 - Bulk status: set all **visible** (filter/group) channels to Allowed / Blocked / Unreviewed, or per group heading
