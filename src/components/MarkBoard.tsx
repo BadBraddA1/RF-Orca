@@ -41,6 +41,7 @@ type Filter =
   | "spare";
 
 type BoardView = "rack" | "list";
+type ListSort = "group" | "room" | "flat";
 
 type FocusState = {
   group: string;
@@ -121,6 +122,30 @@ function crewKey(token: string) {
 
 function flashKey(token: string) {
   return `rf-orca-flash:${token}`;
+}
+
+function listSortKey(token: string) {
+  return `rf-orca-list-sort:${token}`;
+}
+
+function loadListSort(token: string, features: ShowFeatures): ListSort {
+  try {
+    const raw = localStorage.getItem(listSortKey(token));
+    if (raw === "group" || raw === "room" || raw === "flat") {
+      if (raw === "group" && !features.groups) {
+        return features.rooms ? "room" : "flat";
+      }
+      if (raw === "room" && !features.rooms) {
+        return features.groups ? "group" : "flat";
+      }
+      return raw;
+    }
+  } catch {
+    /* ignore */
+  }
+  if (features.groups) return "group";
+  if (features.rooms) return "room";
+  return "flat";
 }
 
 function loadFocus(token: string): FocusState {
@@ -207,6 +232,9 @@ export function MarkBoard({
   const [focusRoom, setFocusRoom] = useState("");
   const [search, setSearch] = useState("");
   const [boardView, setBoardView] = useState<BoardView>("list");
+  const [listSort, setListSort] = useState<ListSort>(() =>
+    loadListSort(token, initialShow.features),
+  );
   const [toolsOpen, setToolsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -266,7 +294,25 @@ export function MarkBoard({
     setFocusRoom(focus.room);
     setCrewMode(loadBool(crewKey(token)));
     setFlashChanges(loadBool(flashKey(token)));
-  }, [token]);
+    setListSort(loadListSort(token, initialShow.features));
+  }, [token, initialShow.features]);
+
+  useEffect(() => {
+    // Coerce if feature toggles remove the active sort mode
+    if (listSort === "group" && !features.groups) {
+      setListSort(features.rooms ? "room" : "flat");
+    } else if (listSort === "room" && !features.rooms) {
+      setListSort(features.groups ? "group" : "flat");
+    }
+  }, [features.groups, features.rooms, listSort]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(listSortKey(token), listSort);
+    } catch {
+      /* ignore */
+    }
+  }, [token, listSort]);
 
   useEffect(() => {
     localStorage.setItem(
@@ -512,6 +558,32 @@ export function MarkBoard({
 
   const sections = useMemo(() => {
     const list = visibleWithRoomFocus;
+    if (listSort === "flat" || (!features.groups && !features.rooms)) {
+      return [{ name: "", channels: list }];
+    }
+
+    if (listSort === "room" && features.rooms) {
+      const map = new Map<string, Channel[]>();
+      for (const ch of list) {
+        const key = ch.roomName?.trim() || "No room";
+        const bucket = map.get(key) ?? [];
+        bucket.push(ch);
+        map.set(key, bucket);
+      }
+      const orderedKeys = [
+        ...show.rooms.map((r) => r.name).filter((n) => map.has(n)),
+        ...[...map.keys()]
+          .filter(
+            (k) =>
+              k !== "No room" &&
+              !show.rooms.some((r) => r.name === k),
+          )
+          .sort((a, b) => a.localeCompare(b)),
+        ...(map.has("No room") ? ["No room"] : []),
+      ];
+      return orderedKeys.map((name) => ({ name, channels: map.get(name)! }));
+    }
+
     if (!features.groups) {
       return [{ name: "", channels: list }];
     }
@@ -530,7 +602,14 @@ export function MarkBoard({
       if (!orderedKeys.includes(key)) orderedKeys.push(key);
     }
     return orderedKeys.map((name) => ({ name, channels: map.get(name)! }));
-  }, [visibleWithRoomFocus, groupNames, features.groups]);
+  }, [
+    visibleWithRoomFocus,
+    groupNames,
+    features.groups,
+    features.rooms,
+    listSort,
+    show.rooms,
+  ]);
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -1254,6 +1333,35 @@ export function MarkBoard({
               onClick={() => setBoardView("list")}
             >
               List
+            </button>
+          </div>
+        ) : null}
+        {!showRack && (features.groups || features.rooms) ? (
+          <div className="view-toggle" role="group" aria-label="List sort">
+            {features.groups ? (
+              <button
+                type="button"
+                className={listSort === "group" ? "chip active" : "chip"}
+                onClick={() => setListSort("group")}
+              >
+                By group
+              </button>
+            ) : null}
+            {features.rooms ? (
+              <button
+                type="button"
+                className={listSort === "room" ? "chip active" : "chip"}
+                onClick={() => setListSort("room")}
+              >
+                By room
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={listSort === "flat" ? "chip active" : "chip"}
+              onClick={() => setListSort("flat")}
+            >
+              Flat
             </button>
           </div>
         ) : null}
@@ -1986,7 +2094,8 @@ export function MarkBoard({
         <div className="group-sections">
           {sections.map((section) => (
             <section key={section.name || "all"} className="group-section">
-              {features.groups && section.name ? (
+              {(listSort === "group" || listSort === "room") &&
+              section.name ? (
                 <div className="group-heading-row">
                   <h2 className="group-heading">
                     {section.name}
