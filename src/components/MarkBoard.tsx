@@ -1396,7 +1396,10 @@ export function MarkBoard({
                       {importPreview.rows.slice(0, 12).map((r, i) => (
                         <div key={`${r.name}-${i}`} className="import-row">
                           <strong>{r.name}</strong>
-                          <span>{r.frequencyMhz.toFixed(3)} MHz</span>
+                          <span>
+                            {r.band ? `${r.band} · ` : ""}
+                            {r.frequencyMhz.toFixed(3)} MHz
+                          </span>
                           <span>{r.zone || "—"}</span>
                         </div>
                       ))}
@@ -1931,7 +1934,13 @@ function ChannelRow({
               </span>
             ) : null}
             <strong>{channel.name}</strong>
-            <span className="freq">{channel.frequencyMhz.toFixed(3)} MHz</span>
+            <span className="freq">
+              {channel.band ? (
+                <span className="band-tag">{channel.band}</span>
+              ) : null}
+              {channel.band ? " · " : ""}
+              {channel.frequencyMhz.toFixed(3)} MHz
+            </span>
           </div>
           {features.assignments && channel.assignedTo ? (
             <p className="channel-who">
@@ -1939,7 +1948,6 @@ function ChannelRow({
             </p>
           ) : null}
           <div className="channel-meta">
-            {channel.band ? <span>{channel.band}</span> : null}
             {channel.groupChannel ? (
               <span>G/Ch {channel.groupChannel}</span>
             ) : null}

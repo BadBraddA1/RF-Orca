@@ -208,6 +208,10 @@ export function DemoBoard() {
                         <div className="channel-title">
                           <strong>{channel.name}</strong>
                           <span className="freq">
+                            {channel.band ? (
+                              <span className="band-tag">{channel.band}</span>
+                            ) : null}
+                            {channel.band ? " · " : ""}
                             {channel.frequencyMhz.toFixed(3)} MHz
                           </span>
                         </div>
@@ -222,7 +226,6 @@ export function DemoBoard() {
                               CH {String(channel.rackSlot).padStart(2, "0")}
                             </span>
                           ) : null}
-                          {channel.band ? <span>{channel.band}</span> : null}
                           {channel.groupChannel ? (
                             <span>G/Ch {channel.groupChannel}</span>
                           ) : null}

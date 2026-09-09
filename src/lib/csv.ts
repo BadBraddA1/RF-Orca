@@ -204,7 +204,14 @@ function rowsFromParsed(
     rows.push({
       name,
       frequencyMhz,
-      band: pick(row, ["band"]),
+      band: pick(row, [
+        "band",
+        "rf band",
+        "tx band",
+        "frequency band",
+        "tuner band",
+        "wwb band",
+      ]),
       type: pick(row, ["type"]),
       groupChannel: pick(row, [
         "group & channel",

@@ -1039,6 +1039,18 @@ a {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: color-mix(in oklab, var(--sea) 85%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem;
+}
+
+.rack-band,
+.band-tag {
+  font-family: var(--font-mono);
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--signal);
 }
 
 .deploy-btn.use-btn {

@@ -66,6 +66,7 @@ export function MicRackGrid({
           channel.micKind,
           formatRackSlot(slot),
           channel.frequencyMhz > 0 ? channel.frequencyMhz.toFixed(3) : "",
+          channel.band,
         ]
           .filter(Boolean)
           .join(" ")
@@ -297,8 +298,18 @@ function RackCell({
         />
       </label>
 
-      {channel.frequencyMhz > 0 ? (
-        <span className="rack-freq">{channel.frequencyMhz.toFixed(3)} MHz</span>
+      {channel.frequencyMhz > 0 || channel.band ? (
+        <span className="rack-freq">
+          {channel.band ? (
+            <span className="rack-band">{channel.band}</span>
+          ) : null}
+          {channel.frequencyMhz > 0 ? (
+            <span>
+              {channel.band ? " · " : ""}
+              {channel.frequencyMhz.toFixed(3)} MHz
+            </span>
+          ) : null}
+        </span>
       ) : null}
     </div>
   );
