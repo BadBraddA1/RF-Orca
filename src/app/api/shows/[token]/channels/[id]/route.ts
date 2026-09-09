@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminUnlocked } from "@/lib/admin";
 import { crewPatchBlocked } from "@/lib/crew-guard";
-import { getShowPublic, updateChannel } from "@/lib/store";
+import { deleteChannels, getShowPublic, updateChannel } from "@/lib/store";
 
 const bodySchema = z.object({
   status: z.enum(["allowed", "blocked", "unreviewed"]).optional(),
@@ -63,4 +63,21 @@ export async function PATCH(
       error instanceof Error ? error.message : "Could not update channel.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
+}
+
+/** Delete one frequency from the show (Tools unlocked). */
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ token: string; id: string }> },
+) {
+  const { token, id } = await context.params;
+  if (!(await isAdminUnlocked(token))) {
+    return NextResponse.json({ error: "Admin unlock required." }, { status: 403 });
+  }
+
+  const show = await deleteChannels(token, [id]);
+  if (!show) {
+    return NextResponse.json({ error: "Show not found." }, { status: 404 });
+  }
+  return NextResponse.json({ show });
 }

@@ -1159,6 +1159,20 @@ a {
   background: color-mix(in oklab, var(--danger) 8%, transparent);
 }
 
+.chip.danger-chip {
+  border-color: color-mix(in oklab, var(--danger) 55%, transparent);
+  color: color-mix(in oklab, var(--danger) 85%, white);
+}
+
+.chip.danger-chip:hover {
+  background: color-mix(in oklab, var(--danger) 22%, transparent);
+}
+
+.channel-delete {
+  color: color-mix(in oklab, var(--danger) 80%, white) !important;
+  font-weight: 700;
+}
+
 .feature-toggles {
   display: grid;
   gap: 0.55rem;

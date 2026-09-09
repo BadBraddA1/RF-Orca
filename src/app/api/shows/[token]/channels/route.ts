@@ -6,6 +6,7 @@ import {
   bulkSetChannelGroup,
   bulkSetChannelRoom,
   bulkSetChannelStatus,
+  deleteChannels,
 } from "@/lib/store";
 
 const bodySchema = z.object({
@@ -30,6 +31,10 @@ const bulkSchema = z.discriminatedUnion("action", [
     action: z.literal("room"),
     channelIds: z.array(z.string().min(1)).min(1).max(500),
     roomName: z.string().trim().min(1).max(80).nullable(),
+  }),
+  z.object({
+    action: z.literal("delete"),
+    channelIds: z.array(z.string().min(1)).min(1).max(500),
   }),
 ]);
 
@@ -113,6 +118,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Show not found." }, { status: 404 });
     }
     return NextResponse.json({ show, updated: parsed.data.channelIds.length });
+  }
+
+  if (parsed.data.action === "delete") {
+    const show = await deleteChannels(token, parsed.data.channelIds);
+    if (!show) {
+      return NextResponse.json({ error: "Show not found." }, { status: 404 });
+    }
+    return NextResponse.json({ show, deleted: parsed.data.channelIds.length });
   }
 
   const show = await bulkSetChannelStatus(

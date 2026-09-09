@@ -91,7 +91,8 @@ export type ActivityKind =
   | "settings"
   | "groups"
   | "rooms"
-  | "people";
+  | "people"
+  | "delete";
 
 export type ActivityEvent = {
   id: string;

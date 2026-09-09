@@ -1097,6 +1097,35 @@ export function MarkBoard({
     }
   }
 
+  async function deleteChannelsById(ids: string[]) {
+    if (!admin || ids.length === 0 || bulkBusy) return;
+    const label =
+      ids.length === 1
+        ? "Delete this frequency from the show?"
+        : `Delete ${ids.length} frequencies from the show?`;
+    if (!window.confirm(label)) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}/channels`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete",
+          channelIds: ids,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not delete");
+        return;
+      }
+      applyShow(data.show);
+      setSelectedIds({});
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
       const next = { ...prev };
@@ -2073,6 +2102,14 @@ export function MarkBoard({
                   </select>
                 </label>
               ) : null}
+              <button
+                type="button"
+                className="chip danger-chip"
+                disabled={bulkBusy}
+                onClick={() => void deleteChannelsById(selectedList)}
+              >
+                Delete {selectedList.length}
+              </button>
             </>
           ) : (
             <span className="field-note">
@@ -2292,6 +2329,11 @@ export function MarkBoard({
                       admin ? () => toggleSelected(channel.id) : undefined
                     }
                     onPatch={patchChannel}
+                    onDelete={
+                      admin
+                        ? () => void deleteChannelsById([channel.id])
+                        : undefined
+                    }
                   />
                 ))}
               </ul>
@@ -2355,6 +2397,7 @@ function ChannelRow({
   conflicted,
   onToggleSelect,
   onPatch,
+  onDelete,
 }: {
   channel: Channel;
   rooms: string[];
@@ -2382,6 +2425,7 @@ function ChannelRow({
     }>,
     opts?: { undoToast?: boolean },
   ) => Promise<void>;
+  onDelete?: () => void;
 }) {
   const blocked = features.status && channel.status === "blocked";
   const crewFrozen = features.crewLocked && !admin;
@@ -2557,7 +2601,7 @@ function ChannelRow({
         ) : null}
       </div>
 
-      {admin && (features.status || features.groups) ? (
+      {admin ? (
         <div className="admin-inline">
           {features.status ? (
             <label className="quiet-field">
@@ -2606,6 +2650,15 @@ function ChannelRow({
                 ) : null}
               </select>
             </label>
+          ) : null}
+          {onDelete ? (
+            <button
+              type="button"
+              className="btn-quiet channel-delete"
+              onClick={onDelete}
+            >
+              Delete freq
+            </button>
           ) : null}
         </div>
       ) : null}

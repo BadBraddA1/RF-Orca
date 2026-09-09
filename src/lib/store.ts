@@ -912,6 +912,49 @@ export async function bulkSetChannelRoom(
   return toPublic(nextShow, next);
 }
 
+/** Remove one or more frequencies from the show (admin). */
+export async function deleteChannels(
+  shareToken: string,
+  channelIds: string[],
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const idSet = new Set(channelIds.filter(Boolean));
+  if (idSet.size === 0) {
+    return toPublic(show, await getChannels(show.id));
+  }
+
+  const channels = await getChannels(show.id);
+  const removed = channels.filter((ch) => idSet.has(ch.id));
+  if (removed.length === 0) {
+    return toPublic(show, channels);
+  }
+  const next = channels.filter((ch) => !idSet.has(ch.id));
+
+  const label =
+    removed.length === 1
+      ? `Deleted ${removed[0].name} (${removed[0].frequencyMhz} MHz)`
+      : `Deleted ${removed.length} frequencies`;
+
+  const nextShow = touchShow(show, "delete", label);
+
+  if (mode() === "memory") {
+    getMemory().channels.set(show.id, next);
+    await finishMutation(nextShow);
+    return toPublic(nextShow, next);
+  }
+
+  await finishMutation(nextShow);
+  const db = getSql();
+  for (const id of idSet) {
+    await db`
+      DELETE FROM channels
+      WHERE id = ${id} AND show_id = ${show.id}
+    `;
+  }
+  return toPublic(nextShow, next);
+}
+
 export async function setRooms(
   shareToken: string,
   roomNames: string[],
