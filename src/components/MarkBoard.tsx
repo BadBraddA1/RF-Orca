@@ -2206,7 +2206,7 @@ export function MarkBoard({
                     onClick={() => toggleSectionCollapsed(section.name)}
                   >
                     <span className="section-caret" aria-hidden>
-                      {isCollapsed ? "▸" : "▾"}
+                      {isCollapsed ? "▶" : "▼"}
                     </span>
                     <h2 className="group-heading">
                       {section.name}
