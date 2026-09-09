@@ -4,6 +4,7 @@ import { isAdminUnlocked } from "@/lib/admin";
 import {
   addManualChannel,
   bulkSetChannelGroup,
+  bulkSetChannelRoom,
   bulkSetChannelStatus,
 } from "@/lib/store";
 
@@ -24,6 +25,11 @@ const bulkSchema = z.discriminatedUnion("action", [
     action: z.literal("group"),
     channelIds: z.array(z.string().min(1)).min(1).max(500),
     groupName: z.string().trim().min(1).max(80).nullable(),
+  }),
+  z.object({
+    action: z.literal("room"),
+    channelIds: z.array(z.string().min(1)).min(1).max(500),
+    roomName: z.string().trim().min(1).max(80).nullable(),
   }),
 ]);
 
@@ -90,6 +96,18 @@ export async function PATCH(
       token,
       parsed.data.channelIds,
       parsed.data.groupName,
+    );
+    if (!show) {
+      return NextResponse.json({ error: "Show not found." }, { status: 404 });
+    }
+    return NextResponse.json({ show, updated: parsed.data.channelIds.length });
+  }
+
+  if (parsed.data.action === "room") {
+    const show = await bulkSetChannelRoom(
+      token,
+      parsed.data.channelIds,
+      parsed.data.roomName,
     );
     if (!show) {
       return NextResponse.json({ error: "Show not found." }, { status: 404 });

@@ -240,9 +240,13 @@ export function DemoBoard() {
                           ) : (
                             <span className="tag">Not in use</span>
                           )}
-                          {channel.deployed && channel.roomName ? (
-                            <span className="tag deployed-room">
-                              {channel.roomName}
+                          {channel.roomName ? (
+                            <span
+                              className={`tag${channel.deployed ? " deployed-room" : " staged-room"}`}
+                            >
+                              {channel.deployed
+                                ? channel.roomName
+                                : `Staged · ${channel.roomName}`}
                             </span>
                           ) : null}
                           {conflicted ? (

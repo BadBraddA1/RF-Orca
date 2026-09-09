@@ -152,7 +152,7 @@ export function patchDemoChannel(
     if (patch.deployed === false) {
       next.deployedAt = null
       next.deployedBy = null
-      next.roomName = null
+      // Keep roomName so undeploy returns to prestaged plan
     }
     return next
   })

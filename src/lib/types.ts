@@ -50,7 +50,7 @@ export type Person = {
 export type ShowFeatures = {
   /** Crew can mark Deploy / Deployed */
   deploy: boolean;
-  /** Room assignment on deploy */
+  /** Room assignment — prestage before deploy, or move when deployed */
   rooms: boolean;
   /** Who is on each mic / pack (A2 talent assignments) + rack grid */
   assignments: boolean;

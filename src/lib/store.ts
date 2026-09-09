@@ -636,9 +636,9 @@ export async function updateChannel(
     activityMessage = `Set ${next.name} → ${patch.status}`;
     if (patch.status === "blocked" && next.deployed) {
       next.deployed = false;
-      next.roomName = null;
       next.deployedAt = null;
       next.deployedBy = null;
+      // Keep roomName so a blocked channel can stay prestaged
     }
   }
 
@@ -658,16 +658,23 @@ export async function updateChannel(
     } else {
       next.deployedAt = null;
       next.deployedBy = null;
-      next.roomName = null;
+      // Keep roomName so undeploy returns to prestaged (planned room)
+      if (patch.roomName !== undefined) next.roomName = patch.roomName;
       activityKind = "undeploy";
-      activityMessage = `Undeployed ${next.name}`;
+      activityMessage = next.roomName
+        ? `Undeployed ${next.name} (staged → ${next.roomName})`
+        : `Undeployed ${next.name}`;
     }
   } else if (patch.roomName !== undefined) {
     next.roomName = patch.roomName;
     activityKind = "room";
-    activityMessage = patch.roomName
-      ? `Moved ${next.name} → ${patch.roomName}`
-      : `Cleared room for ${next.name}`;
+    if (patch.roomName) {
+      activityMessage = next.deployed
+        ? `Moved ${next.name} → ${patch.roomName}`
+        : `Staged ${next.name} → ${patch.roomName}`;
+    } else {
+      activityMessage = `Cleared room for ${next.name}`;
+    }
   }
 
   if (patch.assignedTo !== undefined) {
@@ -776,7 +783,6 @@ export async function bulkSetChannelStatus(
     const updated: Channel = { ...ch, status };
     if (status === "blocked" && updated.deployed) {
       updated.deployed = false;
-      updated.roomName = null;
       updated.deployedAt = null;
       updated.deployedBy = null;
     }
@@ -804,7 +810,6 @@ export async function bulkSetChannelStatus(
         UPDATE channels SET
           status = ${status},
           deployed = 0,
-          room_name = NULL,
           deployed_at = NULL,
           deployed_by = NULL
         WHERE id = ${id} AND show_id = ${show.id}
@@ -857,6 +862,50 @@ export async function bulkSetChannelGroup(
   for (const id of idSet) {
     await db`
       UPDATE channels SET group_name = ${nextName}
+      WHERE id = ${id} AND show_id = ${show.id}
+    `;
+  }
+  return toPublic(nextShow, next);
+}
+
+/** Prestage (or clear) room on many channels without deploying. */
+export async function bulkSetChannelRoom(
+  shareToken: string,
+  channelIds: string[],
+  roomName: string | null,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const idSet = new Set(channelIds);
+  if (idSet.size === 0) {
+    return toPublic(show, await getChannels(show.id));
+  }
+
+  const nextRoom = roomName?.trim() || null;
+  const channels = await getChannels(show.id);
+  const next = channels.map((ch) =>
+    idSet.has(ch.id) ? { ...ch, roomName: nextRoom } : ch,
+  );
+
+  const nextShow = touchShow(
+    show,
+    "rooms",
+    nextRoom
+      ? `Staged ${idSet.size} channels → ${nextRoom}`
+      : `Cleared room on ${idSet.size} channels`,
+  );
+
+  if (mode() === "memory") {
+    getMemory().channels.set(show.id, next);
+    await finishMutation(nextShow);
+    return toPublic(nextShow, next);
+  }
+
+  await finishMutation(nextShow);
+  const db = getSql();
+  for (const id of idSet) {
+    await db`
+      UPDATE channels SET room_name = ${nextRoom}
       WHERE id = ${id} AND show_id = ${show.id}
     `;
   }

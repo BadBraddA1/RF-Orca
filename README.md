@@ -14,10 +14,10 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - Home → **New Show** + **Happening now** (shows created in the last 10 days; older ones drop off the list but are not deleted)
 - Create with an **admin password**
-- Crews open the show link → **mark view** (Deploy + room), no login
+- Crews open the show link → **mark view** (stage room + Deploy), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
 - **Rename show** — Tools → Show name → Rename (share link stays the same)
-- **Rooms** — edit lines in Tools → Save rooms to rename; renames update channels already marked in that room; remove a line to drop a room
+- **Rooms** — edit lines in Tools → Save rooms; stage channels before Deploy; renames update staged/deployed channels; remove a line to drop a room
 - **Delete show** — Tools → Danger zone; type the show name to confirm (permanent)
 - **Show options** (toggles): Deploy, Rooms, Groups on by default; **Mic rack assignments** and **Allow/Block** off until you need them; **Lock after deploy** on; **Lock board for crew** off
 - Tools → rack presets / custom **cols × rows** + **Fill empty** (when Mic rack assignments is on)
@@ -34,7 +34,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — All bands / G50 / H50 / G57+ chips after import
 - **Select → group** — unlock Tools, tap the circle on any channels (or Select all visible), then **Set group** from the sticky bar
-- **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); then Set group
+- **Prestage rooms** — pick **Stage room** on a channel (or Select all → Stage room) before Deploy; undeploy keeps the staged room; filter **Staged**
+- **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); then Set group / Stage room
 - **Rename channels** — with Tools unlocked, edit the channel name inline on the list
 - **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
 - **Mic rack (A2)** — custom grid (4×1, 3×3, …); **Handheld / Lav**; **saved names** roster with drop-in Who menu; set Who; toggle In use; shows **band** (G50 / H50 / G57+) next to MHz; live via Ably

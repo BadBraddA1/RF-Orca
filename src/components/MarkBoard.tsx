@@ -34,6 +34,7 @@ type Filter =
   | "blocked"
   | "deployed"
   | "open"
+  | "staged"
   | "assigned"
   | "unassigned"
   | "inuse"
@@ -81,7 +82,7 @@ const FEATURE_TOGGLES: {
   {
     key: "rooms",
     label: "Rooms",
-    hint: "Assign a room or zone when deploying",
+    hint: "Prestage a room, then Deploy when it’s on the floor",
   },
   {
     key: "assignments",
@@ -398,6 +399,9 @@ export function MarkBoard({
       deployed: channels.filter((c) => c.deployed).length,
       open: channels.filter((c) => !c.deployed && c.status !== "blocked")
         .length,
+      staged: channels.filter(
+        (c) => !c.deployed && Boolean(c.roomName?.trim()),
+      ).length,
       assigned: channels.filter((c) => Boolean(c.assignedTo?.trim())).length,
       unassigned: channels.filter((c) => !c.assignedTo?.trim()).length,
       inuse: channels.filter((c) => c.inUse).length,
@@ -428,9 +432,10 @@ export function MarkBoard({
   const visible = useMemo(() => {
     return show.channels.filter((c) => {
       if (!channelMatchesQuery(c, search)) return false;
-      if (focusRoom && (c.roomName ?? "") !== focusRoom) {
-        // Focus room: show deployed-in-room OR undeployed (still need to place)
-        if (c.deployed) return false;
+      if (focusRoom) {
+        const rn = (c.roomName ?? "").trim();
+        // This room (staged or deployed), or still unassigned (can stage here)
+        if (rn !== focusRoom && (c.deployed || rn)) return false;
       }
       if (features.groups && groupFilter !== "all") {
         if (groupFilter === "__ungrouped__") {
@@ -445,6 +450,13 @@ export function MarkBoard({
       if (filter === "allowed") return features.status && c.status === "allowed";
       if (filter === "blocked") return features.status && c.status === "blocked";
       if (filter === "deployed") return features.deploy && c.deployed;
+      if (filter === "staged") {
+        return (
+          features.rooms &&
+          !c.deployed &&
+          Boolean(c.roomName?.trim())
+        );
+      }
       if (filter === "open") {
         return (
           features.deploy &&
@@ -910,6 +922,31 @@ export function MarkBoard({
     }
   }
 
+  async function bulkRoom(ids: string[], roomName: string | null) {
+    if (!admin || !features.rooms || ids.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}/channels`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "room",
+          channelIds: ids,
+          roomName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not stage room");
+        return;
+      }
+      applyShow(data.show);
+      setSelectedIds({});
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
       const next = { ...prev };
@@ -951,6 +988,9 @@ export function MarkBoard({
         ? (["unassigned", `No who (${counts.unassigned})`] as const)
         : null,
       features.deploy ? (["open", `Open (${counts.open})`] as const) : null,
+      features.rooms
+        ? (["staged", `Staged (${counts.staged})`] as const)
+        : null,
       features.deploy
         ? (["deployed", `Deployed (${counts.deployed})`] as const)
         : null,
@@ -1611,9 +1651,10 @@ export function MarkBoard({
                       Save rooms
                     </button>
                     <span className="field-note">
-                      Rename by editing the line, then Save. Deployed channels
-                      keep the new name. Delete a line to remove that room
-                      (clears it from channels).
+                      Rename by editing the line, then Save. Staged and deployed
+                      channels keep the new name. Delete a line to remove that
+                      room (clears it from channels). Stage rooms on channels
+                      before Deploy — picking a room no longer marks Deployed.
                     </span>
                     {roomsMsg ? (
                       <p
@@ -1802,6 +1843,34 @@ export function MarkBoard({
                       </option>
                     ))}
                     <option value="__none__">Ungrouped</option>
+                  </select>
+                </label>
+              ) : null}
+              {features.rooms ? (
+                <label className="bulk-group-pick">
+                  <span>Stage room</span>
+                  <select
+                    disabled={bulkBusy || show.rooms.length === 0}
+                    defaultValue=""
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (!value) return;
+                      const roomName = value === "__none__" ? null : value;
+                      void bulkRoom(selectedList, roomName);
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">
+                      {show.rooms.length
+                        ? "Pick room…"
+                        : "Save rooms in Tools first"}
+                    </option>
+                    {show.rooms.map((r) => (
+                      <option key={r.id} value={r.name}>
+                        {r.name}
+                      </option>
+                    ))}
+                    <option value="__none__">Clear room</option>
                   </select>
                 </label>
               ) : null}
@@ -2174,8 +2243,14 @@ function ChannelRow({
                 {channel.status}
               </span>
             ) : null}
-            {features.rooms && channel.deployed && channel.roomName ? (
-              <span className="tag deployed-room">{channel.roomName}</span>
+            {features.rooms && channel.roomName ? (
+              <span
+                className={`tag${channel.deployed ? " deployed-room" : " staged-room"}`}
+              >
+                {channel.deployed
+                  ? channel.roomName
+                  : `Staged · ${channel.roomName}`}
+              </span>
             ) : null}
             {conflicted ? <span className="tag conflict-tag">Conflict</span> : null}
             {deployLocked ? (
@@ -2196,7 +2271,7 @@ function ChannelRow({
             onClick={() => {
               if (markDisabled) return;
               if (channel.deployed) {
-                void onPatch(channel.id, { deployed: false, roomName: null });
+                void onPatch(channel.id, { deployed: false });
                 return;
               }
               if (!features.rooms) {
@@ -2209,21 +2284,26 @@ function ChannelRow({
               }
               const roomName = channel.roomName || roomDraft.trim() || null;
               if (!roomName && rooms.length === 0) {
-                const room = window.prompt("Room?");
-                if (!room?.trim()) return;
-                setRoomDraft(room.trim());
+                const room = window.prompt("Room? (optional — cancel to deploy without)");
+                if (room === null) return;
+                const trimmed = room.trim();
                 void onPatch(
                   channel.id,
-                  { deployed: true, roomName: room.trim() },
+                  { deployed: true, roomName: trimmed || null },
                   { undoToast: true },
                 );
+                return;
+              }
+              if (!roomName && rooms.length > 0) {
+                // Prefer prestage: ask if nothing staged yet
+                alert("Stage a room first (Room menu), then Deploy.");
                 return;
               }
               void onPatch(
                 channel.id,
                 {
                   deployed: true,
-                  roomName: roomName || (rooms[0] ?? null),
+                  roomName,
                 },
                 { undoToast: true },
               );
@@ -2347,20 +2427,17 @@ function ChannelRow({
           ) : null}
           {features.rooms ? (
             <label className={`room-field${markDisabled ? " disabled" : ""}`}>
-              <span>Room</span>
+              <span>{channel.deployed ? "Room" : "Stage room"}</span>
               {rooms.length > 0 ? (
                 <select
                   value={channel.roomName ?? ""}
                   disabled={markDisabled}
                   onChange={(e) => {
                     const roomName = e.target.value || null;
-                    void onPatch(channel.id, {
-                      roomName,
-                      deployed: Boolean(roomName) || channel.deployed,
-                    });
+                    void onPatch(channel.id, { roomName });
                   }}
                 >
-                  <option value="">Select room</option>
+                  <option value="">No room yet</option>
                   {rooms.map((room) => (
                     <option key={room} value={room}>
                       {room}
@@ -2376,10 +2453,7 @@ function ChannelRow({
                   onBlur={() => {
                     const roomName = roomDraft.trim() || null;
                     if (roomName === (channel.roomName ?? null)) return;
-                    void onPatch(channel.id, {
-                      roomName,
-                      deployed: Boolean(roomName) || channel.deployed,
-                    });
+                    void onPatch(channel.id, { roomName });
                   }}
                 />
               )}

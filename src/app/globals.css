@@ -785,6 +785,12 @@ a {
   color: var(--signal-hot);
 }
 
+.tag.staged-room {
+  background: color-mix(in oklab, var(--sea) 18%, transparent);
+  color: var(--sea-bright);
+  border: 1px dashed color-mix(in oklab, var(--sea) 45%, transparent);
+}
+
 .channel-who {
   margin: 0.15rem 0 0;
   font-size: 1rem;
