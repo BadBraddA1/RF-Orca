@@ -168,8 +168,9 @@ function parseCoordinationReport(text: string): {
   const warnings: string[] = [];
   const rows: ParsedChannelRow[] = [];
   let currentZone: string | null = null;
-  let currentIsBackup = false;
+  /** Floor board only needs primary coordinated freqs — skip Backup section. */
   let inBackup = false;
+  let skippedBackup = 0;
 
   for (const rawLine of splitLines(text)) {
     const line = rawLine.trim().replace(/^"+|"+$/g, "");
@@ -182,12 +183,10 @@ function parseCoordinationReport(text: string): {
     }
     if (lower.includes("backup frequencies")) {
       inBackup = true;
-      currentIsBackup = true;
       continue;
     }
     if (lower.includes("primary frequencies")) {
       inBackup = false;
-      currentIsBackup = false;
       continue;
     }
     if (
@@ -201,6 +200,11 @@ function parseCoordinationReport(text: string): {
 
     const m = matchCoordRow(line);
     if (!m) continue;
+
+    if (inBackup) {
+      skippedBackup += 1;
+      continue;
+    }
 
     const type = `${m[1]}/${m[2]}`;
     const band = m[3];
@@ -216,26 +220,36 @@ function parseCoordinationReport(text: string): {
       type,
       groupChannel,
       zone: currentZone,
-      isBackup: inBackup || currentIsBackup,
+      isBackup: false,
     });
   }
 
-  if (rows.length) {
-    const primary = rows.filter((r) => !r.isBackup).length;
-    const backup = rows.length - primary;
-    warnings.push(
-      backup > 0
-        ? `Parsed Workbench coordination report (${primary} primary, ${backup} backup).`
-        : `Parsed Workbench coordination report (${rows.length} channels).`,
-    );
+  // Dedupe identical frequencies (keep first / primary name)
+  const seen = new Set<number>();
+  const deduped = rows.filter((r) => {
+    const key = Math.round(r.frequencyMhz * 1000);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  if (deduped.length) {
+    let msg = `Parsed Workbench coordination report (${deduped.length} primary channels).`;
+    if (skippedBackup > 0) {
+      msg += ` Skipped ${skippedBackup} backup frequencies.`;
+    }
+    if (deduped.length !== rows.length) {
+      msg += ` Removed ${rows.length - deduped.length} duplicate freqs.`;
+    }
+    warnings.push(msg);
   }
-  return { rows, warnings };
+  return { rows: deduped, warnings };
 }
 
 function rowsFromParsed(data: Record<string, unknown>[]): ParsedChannelRow[] {
   const rows: ParsedChannelRow[] = [];
   let currentZone: string | null = null;
-  let currentIsBackup = false;
+  let skipBackup = false;
 
   for (const row of data) {
     const values = Object.values(row).map((v) => cellText(v));
@@ -252,13 +266,15 @@ function rowsFromParsed(data: Record<string, unknown>[]): ParsedChannelRow[] {
           firstLower.includes("zone") ||
           firstLower.includes("frequencies")))
     ) {
-      if (firstLower.includes("backup")) currentIsBackup = true;
-      if (firstLower.includes("primary")) currentIsBackup = false;
+      if (firstLower.includes("backup")) skipBackup = true;
+      if (firstLower.includes("primary")) skipBackup = false;
       if (!firstLower.includes("frequencies")) {
         currentZone = first.replace(/[:\-–].*$/, "").trim() || currentZone;
       }
       continue;
     }
+
+    if (skipBackup) continue;
 
     const freqRaw =
       pick(row, [
@@ -307,7 +323,7 @@ function rowsFromParsed(data: Record<string, unknown>[]): ParsedChannelRow[] {
         "group",
       ]),
       zone: currentZone,
-      isBackup: currentIsBackup,
+      isBackup: false,
     });
   }
 
