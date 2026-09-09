@@ -10,8 +10,9 @@ export type RackLayout = {
 };
 
 export const MIN_RACK_DIM = 1;
-export const MAX_RACK_DIM = 12;
-export const MAX_RACK_SLOTS = 48;
+export const MAX_RACK_DIM = 20;
+/** Enough for large Workbench imports (e.g. 103 ch → 8×13). */
+export const MAX_RACK_SLOTS = 200;
 
 export const DEFAULT_RACK_LAYOUT: RackLayout = { cols: 4, rows: 3 };
 

@@ -489,9 +489,16 @@ export async function replaceChannelsFromImport(
   }
   // Grow rack if import needs more slots than current layout.
   if (channels.length > rackSlotCount(nextShow)) {
-    const cols = channels.length <= 9 ? 3 : channels.length <= 12 ? 4 : 6;
-    const rows = Math.ceil(channels.length / cols);
-    const layout = normalizeRackLayout({ cols, rows });
+    const cols =
+      channels.length <= 9
+        ? 3
+        : channels.length <= 12
+          ? 4
+          : channels.length <= 48
+            ? 6
+            : 8;
+    const rowsNeeded = Math.ceil(channels.length / cols);
+    const layout = normalizeRackLayout({ cols, rows: rowsNeeded });
     nextShow = { ...nextShow, rackCols: layout.cols, rackRows: layout.rows };
   }
   nextShow = touchShow(
@@ -508,7 +515,8 @@ export async function replaceChannelsFromImport(
 
   const db = getSql();
   await db`DELETE FROM channels WHERE show_id = ${show.id}`;
-  await finishMutation(nextShow);
+  // Insert everything first, then bump revision / Ably — otherwise live
+  // clients "pop in" channels as each row lands mid-import.
   for (const ch of channels) {
     await db`
       INSERT INTO channels (
@@ -524,6 +532,7 @@ export async function replaceChannelsFromImport(
       )
     `;
   }
+  await finishMutation(nextShow);
   return toPublic(nextShow, channels);
 }
 

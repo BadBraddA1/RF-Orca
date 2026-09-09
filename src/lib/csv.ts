@@ -59,57 +59,102 @@ export function decodeCsvBytes(bytes: ArrayBuffer | Uint8Array): string {
   return new TextDecoder("utf-8").decode(buf);
 }
 
-function detectDelimiter(text: string): string {
-  const first = (text.split(/\r?\n/).find((l) => l.trim()) ?? "").slice(0, 400);
-  const tabs = (first.match(/\t/g) ?? []).length;
-  const commas = (first.match(/,/g) ?? []).length;
-  const semis = (first.match(/;/g) ?? []).length;
-  if (tabs > commas && tabs >= semis) return "\t";
-  if (semis > commas && semis >= tabs) return ";";
-  return ",";
+function splitLines(text: string): string[] {
+  return text.replace(/^\uFEFF/, "").split(/\r\n|\n|\r/);
+}
+
+/** Score a line as a likely WWB/CSV header (not a title or section label). */
+function headerScore(line: string, delimiter: string): number {
+  const parts = line.split(delimiter).map((p) => p.trim());
+  if (parts.length < 2) return 0;
+  const lower = line.toLowerCase();
+  let score = parts.length;
+  if (/\bfreq(uency)?\b/.test(lower)) score += 8;
+  if (/\bchannel\s*name\b/.test(lower) || /\bdevice\s*name\b/.test(lower)) {
+    score += 6;
+  } else if (/\bchannel\b/.test(lower)) {
+    score += 3;
+  }
+  if (/\bband\b/.test(lower)) score += 2;
+  if (/\btype\b/.test(lower)) score += 2;
+  if (/\bgroup\b/.test(lower)) score += 2;
+  if (/\bname\b/.test(lower)) score += 2;
+  // Title / section rows are usually one short phrase
+  if (parts.length === 1) score = 0;
+  return score;
+}
+
+function detectDelimiter(lines: string[]): string {
+  const candidates = [",", "\t", ";"] as const;
+  let best = ",";
+  let bestScore = -1;
+  for (const d of candidates) {
+    let score = 0;
+    for (const line of lines.slice(0, 40)) {
+      if (!line.trim()) continue;
+      score = Math.max(score, headerScore(line, d));
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = d;
+    }
+  }
+  return best;
 }
 
 /**
- * Parses Shure WWB inventory / coordination-style CSV exports.
- * Tolerates section header rows (Primary/Backup/zone labels).
+ * Workbench exports often start with a show title / "Primary Frequencies"
+ * row before the real column header. Skip preamble so Papa doesn't lock to
+ * one column ("expected 1 fields but parsed 6").
  */
-export function parseWwbCsv(text: string): {
-  rows: ParsedChannelRow[];
-  warnings: string[];
+function sliceFromHeader(text: string): {
+  csv: string;
+  delimiter: string;
+  skipped: number;
 } {
-  const warnings: string[] = [];
+  const lines = splitLines(text);
+  const delimiter = detectDelimiter(lines);
+  let bestIdx = 0;
+  let best = -1;
+  for (let i = 0; i < Math.min(lines.length, 50); i++) {
+    const line = lines[i]?.trim() ?? "";
+    if (!line) continue;
+    const score = headerScore(line, delimiter);
+    if (score > best) {
+      best = score;
+      bestIdx = i;
+    }
+  }
+  // Prefer a scored header; otherwise first line with 3+ fields
+  if (best < 5) {
+    for (let i = 0; i < Math.min(lines.length, 50); i++) {
+      const line = lines[i]?.trim() ?? "";
+      if (line.split(delimiter).length >= 3) {
+        bestIdx = i;
+        break;
+      }
+    }
+  }
+  return {
+    csv: lines.slice(bestIdx).join("\n"),
+    delimiter,
+    skipped: bestIdx,
+  };
+}
+
+function rowsFromParsed(
+  data: Record<string, unknown>[],
+  warnings: string[],
+): ParsedChannelRow[] {
+  const rows: ParsedChannelRow[] = [];
   let currentZone: string | null = null;
   let currentIsBackup = false;
 
-  // Strip leftover BOM after decode
-  const cleaned = text.replace(/^\uFEFF/, "");
-  const delimiter = detectDelimiter(cleaned);
-
-  const parsed = Papa.parse<Record<string, unknown>>(cleaned, {
-    header: true,
-    skipEmptyLines: "greedy",
-    delimiter,
-    dynamicTyping: false,
-    transformHeader: (h) => String(h ?? "").trim(),
-  });
-
-  if (parsed.errors.length) {
-    warnings.push(
-      ...parsed.errors.slice(0, 5).map((e) => e.message || "CSV parse issue"),
-    );
-  }
-
-  const rows: ParsedChannelRow[] = [];
-  const data = parsed.data;
-
-  // If headers didn't look right, try scanning raw lines for section markers
-  // and rebuild with flexible column detection.
   for (const row of data) {
     const values = Object.values(row).map((v) => cellText(v));
     const nonEmpty = values.filter(Boolean);
     if (nonEmpty.length === 0) continue;
 
-    // Section / zone markers often land in the first cell only
     const first = nonEmpty[0] ?? "";
     const firstLower = first.toLowerCase();
     if (
@@ -145,6 +190,7 @@ export function parseWwbCsv(text: string): {
     const frequencyMhz = parseFrequency(freqRaw);
     if (frequencyMhz == null) continue;
 
+    // Avoid treating a lone frequency cell's neighbor numbers as "name"
     const name =
       pick(row, [
         "channel name",
@@ -172,7 +218,92 @@ export function parseWwbCsv(text: string): {
     });
   }
 
-  // Fallback: bare frequency list (one MHz value per line / comma-separated)
+  return rows;
+}
+
+/**
+ * Parses Shure WWB inventory / coordination-style CSV exports.
+ * Tolerates title/preamble rows and section markers (Primary/Backup/zone).
+ */
+export function parseWwbCsv(text: string): {
+  rows: ParsedChannelRow[];
+  warnings: string[];
+} {
+  const warnings: string[] = [];
+  const cleaned = text.replace(/^\uFEFF/, "");
+  const { csv, delimiter, skipped } = sliceFromHeader(cleaned);
+  if (skipped > 0) {
+    warnings.push(
+      `Skipped ${skipped} preamble line${skipped === 1 ? "" : "s"} before the column header.`,
+    );
+  }
+
+  const parsed = Papa.parse<Record<string, unknown>>(csv, {
+    header: true,
+    skipEmptyLines: "greedy",
+    delimiter,
+    dynamicTyping: false,
+    transformHeader: (h) => String(h ?? "").trim(),
+  });
+
+  // Field-count mismatches after a bad header — don't surface those as user warnings
+  // if we still recover rows. Keep other Papa issues.
+  const usefulErrors = parsed.errors.filter(
+    (e) => !/too many fields/i.test(e.message || ""),
+  );
+  if (usefulErrors.length) {
+    warnings.push(
+      ...usefulErrors.slice(0, 5).map((e) => e.message || "CSV parse issue"),
+    );
+  }
+
+  let rows = rowsFromParsed(parsed.data, warnings);
+
+  // Second pass: headerless / wrong header — parse as arrays and find freq column
+  if (rows.length === 0 || rows.every((r) => r.name.startsWith("CH "))) {
+    const raw = Papa.parse<string[]>(csv, {
+      header: false,
+      skipEmptyLines: "greedy",
+      delimiter,
+      dynamicTyping: false,
+    });
+    const matrix = raw.data.filter((r) => r.some((c) => cellText(c)));
+    if (matrix.length >= 2) {
+      let headerIdx = 0;
+      let best = -1;
+      for (let i = 0; i < Math.min(matrix.length, 20); i++) {
+        const score = headerScore(matrix[i].join(delimiter), delimiter);
+        if (score > best) {
+          best = score;
+          headerIdx = i;
+        }
+      }
+      const headers = matrix[headerIdx].map((h) => cellText(h));
+      const asObjects = matrix.slice(headerIdx + 1).map((cells) => {
+        const obj: Record<string, unknown> = {};
+        headers.forEach((h, i) => {
+          const key = h || `col_${i}`;
+          obj[key] = cells[i] ?? "";
+        });
+        // Also keep positional values for freq sniffing
+        cells.forEach((c, i) => {
+          obj[`__${i}`] = c;
+        });
+        return obj;
+      });
+      const recovered = rowsFromParsed(asObjects, warnings);
+      const recoveredNamed = recovered.filter((r) => !r.name.startsWith("CH "));
+      if (
+        recoveredNamed.length > rows.filter((r) => !r.name.startsWith("CH ")).length
+      ) {
+        rows = recovered;
+      } else if (recovered.length > rows.length) {
+        rows = recovered;
+      }
+    }
+  }
+
+  // Last resort: bare frequency tokens only
   if (rows.length === 0) {
     const bare = cleaned
       .split(/[\n,;\t]+/)

@@ -23,6 +23,7 @@ import type {
 } from "@/lib/types";
 import {
   DEPLOY_UNDO_GRACE_SEC,
+  MAX_RACK_DIM,
   RACK_PRESETS,
   rackSlotCount,
 } from "@/lib/types";
@@ -1292,7 +1293,7 @@ export function MarkBoard({
                       <input
                         type="number"
                         min={1}
-                        max={12}
+                        max={MAX_RACK_DIM}
                         value={customCols}
                         disabled={rackBusy}
                         onChange={(e) => setCustomCols(e.target.value)}
@@ -1306,7 +1307,7 @@ export function MarkBoard({
                       <input
                         type="number"
                         min={1}
-                        max={12}
+                        max={MAX_RACK_DIM}
                         value={customRows}
                         disabled={rackBusy}
                         onChange={(e) => setCustomRows(e.target.value)}
