@@ -12,13 +12,24 @@ function normalizeHeader(header: string): string {
   return header.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function cellText(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value).trim();
+  }
+  return String(value).trim();
+}
+
 function pick(
-  row: Record<string, string>,
+  row: Record<string, unknown>,
   aliases: string[],
 ): string | null {
   for (const alias of aliases) {
     const key = Object.keys(row).find((k) => normalizeHeader(k) === alias);
-    if (key && row[key]?.trim()) return row[key].trim();
+    if (!key) continue;
+    const text = cellText(row[key]);
+    if (text) return text;
   }
   return null;
 }
@@ -74,11 +85,12 @@ export function parseWwbCsv(text: string): {
   const cleaned = text.replace(/^\uFEFF/, "");
   const delimiter = detectDelimiter(cleaned);
 
-  const parsed = Papa.parse<Record<string, string>>(cleaned, {
+  const parsed = Papa.parse<Record<string, unknown>>(cleaned, {
     header: true,
     skipEmptyLines: "greedy",
     delimiter,
-    transformHeader: (h) => h.trim(),
+    dynamicTyping: false,
+    transformHeader: (h) => String(h ?? "").trim(),
   });
 
   if (parsed.errors.length) {
@@ -93,7 +105,7 @@ export function parseWwbCsv(text: string): {
   // If headers didn't look right, try scanning raw lines for section markers
   // and rebuild with flexible column detection.
   for (const row of data) {
-    const values = Object.values(row).map((v) => (v ?? "").trim());
+    const values = Object.values(row).map((v) => cellText(v));
     const nonEmpty = values.filter(Boolean);
     if (nonEmpty.length === 0) continue;
 
