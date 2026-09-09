@@ -205,9 +205,7 @@ export function MarkBoard({
   const [selectedIds, setSelectedIds] = useState<Record<string, true>>({});
   const [focusRoom, setFocusRoom] = useState("");
   const [search, setSearch] = useState("");
-  const [boardView, setBoardView] = useState<BoardView>(
-    initialShow.features.assignments ? "rack" : "list",
-  );
+  const [boardView, setBoardView] = useState<BoardView>("list");
   const [toolsOpen, setToolsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -343,7 +341,6 @@ export function MarkBoard({
   function enterCrewMode() {
     setCrewMode(true);
     setToolsOpen(false);
-    if (features.assignments) setBoardView("rack");
     requestElFullscreen(boardRef.current);
   }
 
@@ -588,7 +585,6 @@ export function MarkBoard({
         return;
       }
       applyShow(data.show);
-      setBoardView("rack");
     } finally {
       setRackBusy(false);
     }
