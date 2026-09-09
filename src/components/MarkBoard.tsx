@@ -128,6 +128,29 @@ function listSortKey(token: string) {
   return `rf-orca-list-sort:${token}`;
 }
 
+function collapsedKey(token: string) {
+  return `rf-orca-collapsed:${token}`;
+}
+
+function sectionCollapseId(sort: ListSort, name: string) {
+  return `${sort}:${name}`;
+}
+
+function loadCollapsed(token: string): Record<string, true> {
+  try {
+    const raw = localStorage.getItem(collapsedKey(token));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const next: Record<string, true> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (v) next[k] = true;
+    }
+    return next;
+  } catch {
+    return {};
+  }
+}
+
 function loadListSort(token: string, features: ShowFeatures): ListSort {
   try {
     const raw = localStorage.getItem(listSortKey(token));
@@ -235,6 +258,9 @@ export function MarkBoard({
   const [listSort, setListSort] = useState<ListSort>(() =>
     loadListSort(token, initialShow.features),
   );
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<string, true>
+  >({});
   const [toolsOpen, setToolsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -295,6 +321,7 @@ export function MarkBoard({
     setCrewMode(loadBool(crewKey(token)));
     setFlashChanges(loadBool(flashKey(token)));
     setListSort(loadListSort(token, initialShow.features));
+    setCollapsedSections(loadCollapsed(token));
   }, [token, initialShow.features]);
 
   useEffect(() => {
@@ -313,6 +340,27 @@ export function MarkBoard({
       /* ignore */
     }
   }, [token, listSort]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        collapsedKey(token),
+        JSON.stringify(collapsedSections),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [token, collapsedSections]);
+
+  function toggleSectionCollapsed(name: string) {
+    const id = sectionCollapseId(listSort, name);
+    setCollapsedSections((prev) => {
+      const next = { ...prev };
+      if (next[id]) delete next[id];
+      else next[id] = true;
+      return next;
+    });
+  }
 
   useEffect(() => {
     localStorage.setItem(
@@ -610,6 +658,24 @@ export function MarkBoard({
     listSort,
     show.rooms,
   ]);
+
+  function setAllSectionsCollapsed(collapsed: boolean) {
+    setCollapsedSections((prev) => {
+      const next = { ...prev };
+      for (const section of sections) {
+        if (!section.name) continue;
+        const id = sectionCollapseId(listSort, section.name);
+        if (collapsed) next[id] = true;
+        else delete next[id];
+      }
+      return next;
+    });
+  }
+
+  const namedSectionCount = sections.filter((s) => s.name).length;
+  const collapsedNamedCount = sections.filter(
+    (s) => s.name && collapsedSections[sectionCollapseId(listSort, s.name)],
+  ).length;
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -1363,6 +1429,23 @@ export function MarkBoard({
             >
               Flat
             </button>
+            {listSort !== "flat" && namedSectionCount > 0 ? (
+              <button
+                type="button"
+                className="chip"
+                onClick={() =>
+                  setAllSectionsCollapsed(
+                    collapsedNamedCount < namedSectionCount,
+                  )
+                }
+              >
+                {collapsedNamedCount < namedSectionCount
+                  ? listSort === "room"
+                    ? "Close all rooms"
+                    : "Collapse all"
+                  : "Open all"}
+              </button>
+            ) : null}
           </div>
         ) : null}
         {features.rooms && show.rooms.length > 0 ? (
@@ -2092,18 +2175,42 @@ export function MarkBoard({
         </div>
       ) : (
         <div className="group-sections">
-          {sections.map((section) => (
-            <section key={section.name || "all"} className="group-section">
+          {sections.map((section) => {
+            const sectionId = section.name
+              ? sectionCollapseId(listSort, section.name)
+              : "";
+            const isCollapsed = Boolean(
+              section.name && collapsedSections[sectionId],
+            );
+            return (
+            <section
+              key={section.name || "all"}
+              className={`group-section${isCollapsed ? " is-collapsed" : ""}`}
+            >
               {(listSort === "group" || listSort === "room") &&
               section.name ? (
                 <div className="group-heading-row">
-                  <h2 className="group-heading">
-                    {section.name}
-                    <span className="group-count">
-                      {section.channels.length}
+                  <button
+                    type="button"
+                    className="group-heading-toggle"
+                    aria-expanded={!isCollapsed}
+                    aria-controls={`section-${sectionId}`}
+                    onClick={() => toggleSectionCollapsed(section.name)}
+                  >
+                    <span className="section-caret" aria-hidden>
+                      {isCollapsed ? "▸" : "▾"}
                     </span>
-                  </h2>
-                  {admin && features.status ? (
+                    <h2 className="group-heading">
+                      {section.name}
+                      <span className="group-count">
+                        {section.channels.length}
+                      </span>
+                    </h2>
+                    {isCollapsed ? (
+                      <span className="section-closed-hint">closed</span>
+                    ) : null}
+                  </button>
+                  {admin && features.status && !isCollapsed ? (
                     <div
                       className="bulk-inline"
                       role="group"
@@ -2152,7 +2259,11 @@ export function MarkBoard({
                   ) : null}
                 </div>
               ) : null}
-              <ul className="channel-list">
+              {!isCollapsed ? (
+              <ul
+                className="channel-list"
+                id={sectionId ? `section-${sectionId}` : undefined}
+              >
                 {section.channels.map((channel) => (
                   <ChannelRow
                     key={channel.id}
@@ -2176,8 +2287,10 @@ export function MarkBoard({
                   />
                 ))}
               </ul>
+              ) : null}
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
 

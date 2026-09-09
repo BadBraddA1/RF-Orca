@@ -1772,6 +1772,50 @@ a {
   margin-bottom: 0.55rem;
 }
 
+.group-heading-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.2rem 0.35rem 0.2rem 0.15rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.group-heading-toggle:hover {
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+}
+
+.group-heading-toggle .group-heading {
+  margin: 0;
+}
+
+.section-caret {
+  display: inline-block;
+  width: 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--sea-bright);
+}
+
+.section-closed-hint {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  opacity: 0.85;
+}
+
+.group-section.is-collapsed .group-heading-row {
+  margin-bottom: 0;
+  opacity: 0.78;
+}
+
 .group-heading-row .group-heading {
   margin: 0;
 }

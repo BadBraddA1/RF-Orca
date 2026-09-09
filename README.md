@@ -34,7 +34,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — All bands / G50 / H50 / G57+ chips after import
 - **Select → group** — unlock Tools, tap the circle on any channels (or Select all visible), then **Set group** from the sticky bar
-- **List sort** — **By group**, **By room**, or **Flat** (saved per show in the browser)
+- **List sort** — **By group**, **By room**, or **Flat** (saved per show in the browser); caret to close a room/group section while keeping the rest open (**Close all rooms** / **Open all**)
 - **Prestage rooms** — pick **Stage room** on a channel (or Select all → Stage room) before Deploy; undeploy keeps the staged room; filter **Staged**
 - **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); then Set group / Stage room
 - **Rename channels** — with Tools unlocked, edit the channel name inline on the list
