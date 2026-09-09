@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminUnlocked } from "@/lib/admin";
-import { parseWwbCsv } from "@/lib/csv";
+import { decodeCsvBytes, parseWwbCsv } from "@/lib/csv";
 import { replaceChannelsFromImport } from "@/lib/store";
 
 /**
@@ -28,11 +28,15 @@ export async function POST(
     form.get("preview") === "true" ||
     form.get("action") === "preview";
 
-  const text = await file.text();
+  const text = decodeCsvBytes(await file.arrayBuffer());
   const { rows, warnings } = parseWwbCsv(text);
   if (rows.length === 0) {
     return NextResponse.json(
-      { error: "No channels found in file.", warnings },
+      {
+        error:
+          "No channels found in file. Use a Workbench Inventory/Coordination CSV export (UTF-8 or UTF-16).",
+        warnings,
+      },
       { status: 400 },
     );
   }

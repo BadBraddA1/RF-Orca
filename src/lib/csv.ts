@@ -24,6 +24,41 @@ function pick(
 }
 
 /**
+ * Workbench / Excel often save "CSV" as UTF-16 (with or without BOM).
+ * `File.text()` / UTF-8 decode turns those into garbage with no frequencies.
+ */
+export function decodeCsvBytes(bytes: ArrayBuffer | Uint8Array): string {
+  const buf = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return new TextDecoder("utf-16le").decode(buf);
+  }
+  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    return new TextDecoder("utf-16be").decode(buf);
+  }
+  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+    return new TextDecoder("utf-8").decode(buf);
+  }
+  // UTF-16LE without BOM: lots of NUL bytes in the first line
+  const sample = buf.subarray(0, Math.min(buf.length, 200));
+  let nuls = 0;
+  for (const b of sample) if (b === 0) nuls += 1;
+  if (sample.length > 20 && nuls > sample.length / 4) {
+    return new TextDecoder("utf-16le").decode(buf);
+  }
+  return new TextDecoder("utf-8").decode(buf);
+}
+
+function detectDelimiter(text: string): string {
+  const first = (text.split(/\r?\n/).find((l) => l.trim()) ?? "").slice(0, 400);
+  const tabs = (first.match(/\t/g) ?? []).length;
+  const commas = (first.match(/,/g) ?? []).length;
+  const semis = (first.match(/;/g) ?? []).length;
+  if (tabs > commas && tabs >= semis) return "\t";
+  if (semis > commas && semis >= tabs) return ";";
+  return ",";
+}
+
+/**
  * Parses Shure WWB inventory / coordination-style CSV exports.
  * Tolerates section header rows (Primary/Backup/zone labels).
  */
@@ -35,9 +70,14 @@ export function parseWwbCsv(text: string): {
   let currentZone: string | null = null;
   let currentIsBackup = false;
 
-  const parsed = Papa.parse<Record<string, string>>(text, {
+  // Strip leftover BOM after decode
+  const cleaned = text.replace(/^\uFEFF/, "");
+  const delimiter = detectDelimiter(cleaned);
+
+  const parsed = Papa.parse<Record<string, string>>(cleaned, {
     header: true,
     skipEmptyLines: "greedy",
+    delimiter,
     transformHeader: (h) => h.trim(),
   });
 
@@ -77,7 +117,15 @@ export function parseWwbCsv(text: string): {
     }
 
     const freqRaw =
-      pick(row, ["frequency", "freq", "frequency (mhz)", "freq mhz"]) ??
+      pick(row, [
+        "frequency",
+        "freq",
+        "frequency (mhz)",
+        "freq mhz",
+        "frequency mhz",
+        "tx frequency",
+        "rf frequency",
+      ]) ??
       values.find((v) => /\d+(\.\d+)?/.test(v) && /mhz|\d{3}/i.test(v)) ??
       null;
 
@@ -86,8 +134,14 @@ export function parseWwbCsv(text: string): {
     if (frequencyMhz == null) continue;
 
     const name =
-      pick(row, ["channel name", "name", "channel", "label"]) ??
-      `CH ${frequencyMhz.toFixed(3)}`;
+      pick(row, [
+        "channel name",
+        "name",
+        "channel",
+        "label",
+        "device name",
+        "transmitter name",
+      ]) ?? `CH ${frequencyMhz.toFixed(3)}`;
 
     rows.push({
       name,
@@ -108,7 +162,7 @@ export function parseWwbCsv(text: string): {
 
   // Fallback: bare frequency list (one MHz value per line / comma-separated)
   if (rows.length === 0) {
-    const bare = text
+    const bare = cleaned
       .split(/[\n,;\t]+/)
       .map((p) => p.trim())
       .filter(Boolean);
@@ -131,7 +185,9 @@ export function parseWwbCsv(text: string): {
   }
 
   if (rows.length === 0) {
-    warnings.push("No frequency rows found. Check that this is a WWB CSV export.");
+    warnings.push(
+      "No frequency rows found. Export Inventory or Coordination as CSV from Workbench (not a .wwb project file).",
+    );
   }
 
   return { rows, warnings };

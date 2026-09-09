@@ -125,7 +125,10 @@ export function DemoBoard() {
           <span>{counts.pct}%</span>
         </div>
         <div className="progress-track" aria-hidden>
-          <div className="progress-fill" style={{ width: `${counts.pct}%` }} />
+          <div
+            className="progress-fill"
+            style={{ transform: `scaleX(${counts.pct / 100})` }}
+          />
         </div>
         <div className="progress-groups">
           {show.groups.map((g) => {

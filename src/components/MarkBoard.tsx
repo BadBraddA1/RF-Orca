@@ -241,6 +241,7 @@ export function MarkBoard({
   const channelsRef = useRef(initialShow.channels);
   const flashEnabledRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [, startTransition] = useTransition();
 
@@ -591,7 +592,10 @@ export function MarkBoard({
   }
 
   async function onPickImport(file: File | null) {
-    if (!file) return;
+    if (!file) {
+      setImportMsg("Choose a Workbench CSV file first.");
+      return;
+    }
     setImportMsg(null);
     setImportPreview(null);
     setImportBusy(true);
@@ -603,12 +607,31 @@ export function MarkBoard({
         method: "POST",
         body: form,
       });
-      const data = await res.json();
+      let data: { error?: string; warnings?: string[] } & Partial<ImportPreview>;
+      try {
+        data = await res.json();
+      } catch {
+        setImportMsg(
+          res.ok
+            ? "Import preview failed (bad response)."
+            : `Import preview failed (${res.status}).`,
+        );
+        return;
+      }
       if (!res.ok) {
-        setImportMsg(data.error || "Import preview failed");
+        const warn =
+          data.warnings?.length ? ` ${data.warnings.join(" ")}` : "";
+        setImportMsg((data.error || "Import preview failed") + warn);
         return;
       }
       setImportPreview(data as ImportPreview);
+      setImportMsg(
+        `Preview ready — ${data.count ?? 0} channels. Confirm below to replace the board.`,
+      );
+    } catch (err) {
+      setImportMsg(
+        err instanceof Error ? err.message : "Import preview failed.",
+      );
     } finally {
       setImportBusy(false);
     }
@@ -626,18 +649,33 @@ export function MarkBoard({
         method: "POST",
         body: form,
       });
-      const data = await res.json();
+      let data: {
+        error?: string;
+        warnings?: string[];
+        imported?: number;
+        show?: ShowPublic;
+      };
+      try {
+        data = await res.json();
+      } catch {
+        setImportMsg(
+          res.ok ? "Import failed (bad response)." : `Import failed (${res.status}).`,
+        );
+        return;
+      }
       if (!res.ok) {
         setImportMsg(data.error || "Import failed");
         return;
       }
-      applyShow(data.show);
+      if (data.show) applyShow(data.show);
       const warn =
-        data.warnings?.length > 0
+        data.warnings && data.warnings.length > 0
           ? ` Warnings: ${data.warnings.join(" ")}`
           : "";
       setImportMsg(`Imported ${data.imported} channels.${warn}`);
       setImportPreview(null);
+    } catch (err) {
+      setImportMsg(err instanceof Error ? err.message : "Import failed.");
     } finally {
       setImportBusy(false);
     }
@@ -915,7 +953,10 @@ export function MarkBoard({
             <span>{pct}%</span>
           </div>
           <div className="progress-track" aria-hidden>
-            <div className="progress-fill" style={{ width: `${pct}%` }} />
+            <div
+              className="progress-fill"
+              style={{ transform: `scaleX(${pct / 100})` }}
+            />
           </div>
           {features.assignments ? (
             <div className="progress-assign">
@@ -945,7 +986,10 @@ export function MarkBoard({
             <span>{usePct}%</span>
           </div>
           <div className="progress-track" aria-hidden>
-            <div className="progress-fill" style={{ width: `${usePct}%` }} />
+            <div
+              className="progress-fill"
+              style={{ transform: `scaleX(${usePct / 100})` }}
+            />
           </div>
           <div className="progress-assign">
             <strong>
@@ -1189,20 +1233,45 @@ export function MarkBoard({
               ) : null}
 
               <div className="tools-grid">
-                <label className="field">
+                <div className="field import-field">
                   <span>Import Workbench CSV</span>
-                  <input
-                    type="file"
-                    accept=".csv,text/csv,text/plain"
-                    disabled={importBusy}
-                    onChange={(e) =>
-                      void onPickImport(e.target.files?.[0] ?? null)
-                    }
-                  />
+                  <div className="import-pick-row">
+                    <input
+                      ref={importFileRef}
+                      className="import-file-input"
+                      type="file"
+                      accept=".csv,text/csv,text/plain,.txt,.tsv"
+                      disabled={importBusy}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        void onPickImport(file);
+                        // Allow re-picking the same file after a failed attempt
+                        e.target.value = "";
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      disabled={importBusy}
+                      onClick={() => importFileRef.current?.click()}
+                    >
+                      {importBusy ? "Reading…" : "Choose CSV"}
+                    </button>
+                  </div>
                   <span className="field-note">
-                    Preview first — confirm before replacing the board.
+                    Workbench → export Inventory/Coordination as CSV. Choosing a
+                    file builds a preview; then confirm to replace the board.
                   </span>
-                </label>
+                  {importMsg ? (
+                    <p
+                      className={
+                        importPreview ? "form-hint" : "form-error"
+                      }
+                    >
+                      {importMsg}
+                    </p>
+                  ) : null}
+                </div>
 
                 {importPreview ? (
                   <div className="import-preview">
@@ -1242,7 +1311,10 @@ export function MarkBoard({
                         type="button"
                         className="btn-quiet"
                         disabled={importBusy}
-                        onClick={() => setImportPreview(null)}
+                        onClick={() => {
+                          setImportPreview(null);
+                          setImportMsg(null);
+                        }}
                       >
                         Cancel
                       </button>
@@ -1344,7 +1416,6 @@ export function MarkBoard({
                   </label>
                 ) : null}
               </div>
-              {importMsg ? <p className="form-hint">{importMsg}</p> : null}
             </div>
           )}
         </aside>
