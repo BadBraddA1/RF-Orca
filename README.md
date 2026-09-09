@@ -34,6 +34,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — All bands / G50 / H50 / G57+ chips after import
 - **Select → group** — unlock Tools, tap the circle on any channels (or Select all visible), then **Set group** from the sticky bar
+- **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); then Set group
 - **Rename channels** — with Tools unlocked, edit the channel name inline on the list
 - **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
 - **Mic rack (A2)** — custom grid (4×1, 3×3, …); **Handheld / Lav**; **saved names** roster with drop-in Who menu; set Who; toggle In use; shows **band** (G50 / H50 / G57+) next to MHz; live via Ably

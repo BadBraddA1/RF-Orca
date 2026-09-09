@@ -925,6 +925,10 @@ export function MarkBoard({
     setSelectedIds(next);
   }
 
+  const allVisibleSelected =
+    visibleWithRoomFocus.length > 0 &&
+    visibleWithRoomFocus.every((c) => selectedIds[c.id]);
+
   function jumpToFirstMatch() {
     const first = visibleWithRoomFocus[0];
     if (!first) return;
@@ -1737,72 +1741,76 @@ export function MarkBoard({
         </div>
       ) : null}
 
-      {!crewMode && admin && selectedList.length > 0 ? (
-        <div
-          className="bulk-bar select-bar"
-          role="group"
-          aria-label="Selected channels"
-        >
-          <span className="bulk-label">
-            {selectedList.length} selected
-          </span>
-          <button
-            type="button"
-            className="chip"
-            onClick={() => setSelectedIds({})}
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            className="chip"
-            onClick={() => selectVisible()}
-          >
-            Select visible ({visibleWithRoomFocus.length})
-          </button>
-          {features.groups ? (
-            <label className="bulk-group-pick">
-              <span>Set group</span>
-              <select
-                disabled={bulkBusy || savedGroupNames.length === 0}
-                defaultValue=""
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (!value) return;
-                  const groupName = value === "__none__" ? null : value;
-                  void bulkGroup(selectedList, groupName);
-                  e.target.value = "";
-                }}
-              >
-                <option value="">
-                  {savedGroupNames.length
-                    ? "Pick group…"
-                    : "Save groups in Tools first"}
-                </option>
-                {savedGroupNames.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-                <option value="__none__">Ungrouped</option>
-              </select>
-            </label>
-          ) : null}
-        </div>
-      ) : null}
-
       {!crewMode &&
       admin &&
       !showRack &&
-      visibleWithRoomFocus.length > 0 &&
-      selectedList.length === 0 ? (
-        <div className="select-hint">
-          <button type="button" className="btn-quiet" onClick={selectVisible}>
-            Select all visible
+      visibleWithRoomFocus.length > 0 ? (
+        <div
+          className="bulk-bar select-bar"
+          role="group"
+          aria-label="Select channels"
+        >
+          <button
+            type="button"
+            className={`chip${allVisibleSelected ? " active" : ""}`}
+            onClick={() => {
+              if (allVisibleSelected) setSelectedIds({});
+              else selectVisible();
+            }}
+          >
+            {allVisibleSelected
+              ? `Deselect all (${visibleWithRoomFocus.length})`
+              : `Select all (${visibleWithRoomFocus.length})`}
           </button>
-          <span className="field-note">
-            Or tap the circle on channels to highlight, then set a group.
-          </span>
+          {selectedList.length > 0 ? (
+            <>
+              <span className="bulk-label">
+                {selectedList.length} selected
+                {!allVisibleSelected
+                  ? ` · ${visibleWithRoomFocus.length} on screen`
+                  : ""}
+              </span>
+              <button
+                type="button"
+                className="chip"
+                onClick={() => setSelectedIds({})}
+              >
+                Clear
+              </button>
+              {features.groups ? (
+                <label className="bulk-group-pick">
+                  <span>Set group</span>
+                  <select
+                    disabled={bulkBusy || savedGroupNames.length === 0}
+                    defaultValue=""
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (!value) return;
+                      const groupName = value === "__none__" ? null : value;
+                      void bulkGroup(selectedList, groupName);
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">
+                      {savedGroupNames.length
+                        ? "Pick group…"
+                        : "Save groups in Tools first"}
+                    </option>
+                    {savedGroupNames.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                    <option value="__none__">Ungrouped</option>
+                  </select>
+                </label>
+              ) : null}
+            </>
+          ) : (
+            <span className="field-note">
+              Selects everything on screen for the current filters.
+            </span>
+          )}
         </div>
       ) : null}
 
