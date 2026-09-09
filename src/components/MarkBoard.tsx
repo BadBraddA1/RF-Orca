@@ -35,6 +35,7 @@ type Filter =
   | "deployed"
   | "open"
   | "staged"
+  | "unstaged"
   | "assigned"
   | "unassigned"
   | "inuse"
@@ -496,6 +497,7 @@ export function MarkBoard({
       staged: channels.filter(
         (c) => !c.deployed && Boolean(c.roomName?.trim()),
       ).length,
+      unstaged: channels.filter((c) => !c.roomName?.trim()).length,
       assigned: channels.filter((c) => Boolean(c.assignedTo?.trim())).length,
       unassigned: channels.filter((c) => !c.assignedTo?.trim()).length,
       inuse: channels.filter((c) => c.inUse).length,
@@ -550,6 +552,9 @@ export function MarkBoard({
           !c.deployed &&
           Boolean(c.roomName?.trim())
         );
+      }
+      if (filter === "unstaged") {
+        return features.rooms && !c.roomName?.trim();
       }
       if (filter === "open") {
         return (
@@ -1135,6 +1140,9 @@ export function MarkBoard({
       features.deploy ? (["open", `Open (${counts.open})`] as const) : null,
       features.rooms
         ? (["staged", `Staged (${counts.staged})`] as const)
+        : null,
+      features.rooms
+        ? (["unstaged", `No room (${counts.unstaged})`] as const)
         : null,
       features.deploy
         ? (["deployed", `Deployed (${counts.deployed})`] as const)
