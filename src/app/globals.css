@@ -2796,6 +2796,42 @@ a {
   font-weight: 650;
 }
 
+.activity-toasts {
+  position: fixed;
+  top: calc(0.65rem + env(safe-area-inset-top));
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+  gap: 0.4rem;
+  pointer-events: none;
+}
+
+.activity-toast {
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--sea) 40%, var(--line));
+  background: color-mix(in oklab, var(--panel-lift) 94%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  font-size: var(--text-label);
+  font-weight: 650;
+  color: var(--ink);
+  animation: toast-drop 0.28s ease-out;
+}
+
+@keyframes toast-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .undo-toast button {
   border: 0;
   background: color-mix(in oklab, var(--sea-bright) 28%, transparent);
@@ -3120,6 +3156,10 @@ a {
 
   .board-wordmark.phone-only {
     display: block !important;
+  }
+
+  .activity-toasts.phone-only {
+    display: flex !important;
   }
 
   .board-brand-desk {

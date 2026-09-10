@@ -48,6 +48,21 @@ type Filter =
   | "spare";
 
 type BoardView = "rack" | "list";
+
+const PHONE_MQ = "(max-width: 720px)";
+
+function useIsPhone(): boolean {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE_MQ);
+    const apply = () => setPhone(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return phone;
+}
+
 type ListSort = "group" | "room" | "flat";
 
 const GROUP_PROGRESS_PEEK = 4;
@@ -385,6 +400,11 @@ export function MarkBoard({
   const [manualFreq, setManualFreq] = useState("");
   const [manualGroup, setManualGroup] = useState("");
   const [copied, setCopied] = useState(false);
+  const isPhone = useIsPhone();
+  const [activityToasts, setActivityToasts] = useState<
+    { id: string; message: string }[]
+  >([]);
+  const seenActivityIdRef = useRef<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [rackBusy, setRackBusy] = useState(false);
@@ -414,6 +434,8 @@ export function MarkBoard({
 
   const features = { ...show.features, status: false };
   const elevated = admin || boLead;
+  /** Phones stay on List — Rack / Audio Crew are desk-only. */
+  const activeView: BoardView = isPhone ? "list" : boardView;
 
   useEffect(() => {
     const board = boardRef.current;
@@ -650,6 +672,39 @@ export function MarkBoard({
   const { live, transport } = useShowLive(token, () => {
     void refreshFromServer();
   });
+
+  useEffect(() => {
+    if (isPhone && boardView !== "list") setBoardView("list");
+  }, [isPhone, boardView]);
+
+  useEffect(() => {
+    const latest = show.activity?.[0];
+    if (!latest) return;
+    if (seenActivityIdRef.current === null) {
+      seenActivityIdRef.current = latest.id;
+      return;
+    }
+    if (latest.id === seenActivityIdRef.current) return;
+    const fresh: { id: string; message: string }[] = [];
+    for (const event of show.activity ?? []) {
+      if (event.id === seenActivityIdRef.current) break;
+      fresh.push({
+        id: event.id,
+        message: formatActivityMsg(event.message),
+      });
+    }
+    seenActivityIdRef.current = latest.id;
+    if (!isPhone || fresh.length === 0) return;
+    const incoming = fresh.reverse();
+    for (const toast of incoming) {
+      const toastId = toast.id;
+      window.setTimeout(() => {
+        setActivityToasts((prev) => prev.filter((t) => t.id !== toastId));
+      }, 3200);
+    }
+    setActivityToasts((prev) => [...incoming, ...prev].slice(0, 3));
+  }, [show.activity, isPhone]);
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1723,8 +1778,8 @@ export function MarkBoard({
 
   /** Rack is room-first when Rooms is on; otherwise the physical slot map (assignments). */
   const canUseRack = features.rooms || features.assignments;
-  const roomRackMode = features.rooms && boardView === "rack";
-  const showRack = canUseRack && boardView === "rack";
+  const roomRackMode = features.rooms && activeView === "rack";
+  const showRack = canUseRack && activeView === "rack";
   const showRoomPicker = roomRackMode && !focusRoom;
   const showRoomGear = roomRackMode && Boolean(focusRoom);
   const showPhysicalRack =
@@ -1764,6 +1819,15 @@ export function MarkBoard({
       ref={boardRef}
       className={`board${crewMode ? " board--crew" : " board--desk"}${showSelectionDock ? " board--selecting" : ""}`}
     >
+      {activityToasts.length > 0 ? (
+        <div className="activity-toasts phone-only" aria-live="polite">
+          {activityToasts.map((toast) => (
+            <div key={toast.id} className="activity-toast" role="status">
+              {toast.message}
+            </div>
+          ))}
+        </div>
+      ) : null}
       {crewMode ? (
         <header className="crew-bar">
           <div className="crew-bar-main">
@@ -2269,7 +2333,7 @@ export function MarkBoard({
       ) : null}
 
       {!crewMode && (show.activity?.length ?? 0) > 0 ? (
-        <div className="activity-strip" aria-label="Recent activity">
+        <div className="activity-strip desk-only" aria-label="Recent activity">
           {show.activity.slice(0, 4).map((a) => (
             <div key={a.id} className="activity-item">
               <span className="activity-msg">{formatActivityMsg(a.message)}</span>
@@ -2331,7 +2395,7 @@ export function MarkBoard({
 
       {!crewMode ? (
       <div className="board-toolbar">
-        <label className="search-field">
+        <label className="search-field desk-only">
           <span className="sr-only">Search channels</span>
           <input
             ref={searchInputRef}
@@ -2353,7 +2417,7 @@ export function MarkBoard({
           />
         </label>
         {canUseRack ? (
-          <div className="view-toggle" role="group" aria-label="Board view">
+          <div className="view-toggle desk-only" role="group" aria-label="Board view">
             <button
               type="button"
               className={boardView === "rack" ? "chip active" : "chip"}
@@ -3580,16 +3644,20 @@ function ShareIcon() {
 
 function GearIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle
+        cx="12"
+        cy="12"
+        r="3"
         stroke="currentColor"
-        strokeWidth="1.85"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <path
-        d="M19.4 13.1a1.4 1.4 0 0 0 .28 1.54l.06.06a1.7 1.7 0 1 1-2.4 2.4l-.06-.06a1.4 1.4 0 0 0-1.54-.28 1.4 1.4 0 0 0-.84 1.28V18a1.7 1.7 0 1 1-3.4 0v-.08a1.4 1.4 0 0 0-.92-1.28 1.4 1.4 0 0 0-1.54.28l-.06.06a1.7 1.7 0 1 1-2.4-2.4l.06-.06a1.4 1.4 0 0 0 .28-1.54 1.4 1.4 0 0 0-1.28-.84H6a1.7 1.7 0 1 1 0-3.4h.08a1.4 1.4 0 0 0 1.28-.92 1.4 1.4 0 0 0-.28-1.54l-.06-.06a1.7 1.7 0 1 1 2.4-2.4l.06.06a1.4 1.4 0 0 0 1.54.28H11a1.4 1.4 0 0 0 .84-1.28V6a1.7 1.7 0 1 1 3.4 0v.08a1.4 1.4 0 0 0 .84 1.28 1.4 1.4 0 0 0 1.54-.28l.06-.06a1.7 1.7 0 1 1 2.4 2.4l-.06.06a1.4 1.4 0 0 0-.28 1.54V11c0 .55.32 1.05.84 1.28h.08a1.7 1.7 0 1 1 0 3.4h-.08a1.4 1.4 0 0 0-1.28.84Z"
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
         stroke="currentColor"
-        strokeWidth="1.85"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
