@@ -562,7 +562,7 @@ a {
 
   .board--desk > .group-sections .channel-list,
   .board--desk .group-sections .channel-list {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 24rem));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 24rem));
     gap: var(--space-md);
     justify-content: start;
   }
@@ -577,8 +577,8 @@ a {
   }
 
   .board--desk .channel-top-actions .pick-field {
-    min-width: 9rem;
-    max-width: 13rem;
+    min-width: 0;
+    max-width: none;
   }
 
   .board--desk .deploy-btn,
@@ -623,7 +623,7 @@ a {
   }
 
   .board--desk .group-sections .channel-list {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 24rem));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 24rem));
   }
 }
 
@@ -1194,17 +1194,23 @@ a {
   padding: 0;
   display: grid;
   gap: var(--space-md);
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 24rem));
+  /* Fixed track size — auto-fill + grow was letting narrow columns crush the actions row. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 24rem));
   justify-content: start;
 }
 
 .channel-row {
   position: relative;
   z-index: 0;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 0.75rem 0.9rem;
   display: grid;
   gap: var(--space-sm);
   animation: rise 0.45s ease both;
+  /* Menus portal to body; clip any leftover overflow to the card chrome. */
+  overflow: hidden;
 }
 
 /** Open pick menus are portaled; keep row elevation for any in-tree leftovers. */
@@ -1291,26 +1297,31 @@ a {
 
 .channel-top-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-md);
+  justify-content: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .channel-top-actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: end;
   gap: var(--space-sm);
-  flex: 0 1 auto;
+  flex: 1 1 100%;
+  width: 100%;
   max-width: 100%;
-  padding-top: 0.15rem;
+  min-width: 0;
+  padding-top: 0.1rem;
 }
 
 .channel-top-actions .pick-field {
-  min-width: 9rem;
-  max-width: 13rem;
-  flex: 1 1 9rem;
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 10rem;
 }
 
 .channel-top-actions .pick-field-label {
@@ -2836,7 +2847,10 @@ a {
 .admin-inline {
   display: flex;
   flex-wrap: wrap;
+  align-items: end;
   gap: 0.65rem 1rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .quiet-field {
@@ -2845,6 +2859,8 @@ a {
   font-size: var(--text-label);
   font-weight: 650;
   color: var(--ink-soft);
+  min-width: 0;
+  flex: 1 1 8rem;
 }
 
 .quiet-field select,
@@ -2856,7 +2872,10 @@ a {
   border-radius: var(--radius-sm);
   padding: 0.45rem 0.6rem;
   background: var(--input-deep);
-  min-width: 8rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .channel-row.is-deployed {
