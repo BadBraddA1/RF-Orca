@@ -2940,14 +2940,22 @@ function ChannelRow({
             {features.assignments ? (
               <button
                 type="button"
-                className={`deploy-btn use-btn${channel.inUse ? " on" : ""}${assignDisabled ? " disabled" : ""}`}
+                className={`use-toggle${channel.inUse ? " on" : ""}${assignDisabled ? " disabled" : ""}`}
                 disabled={assignDisabled}
                 aria-pressed={channel.inUse}
+                aria-label={
+                  channel.inUse ? "Mic in use" : "Mic spare on rack"
+                }
+                title={
+                  channel.inUse
+                    ? "Mic is on someone — tap to mark spare"
+                    : "Mic is spare on the rack — tap to mark in use"
+                }
                 onClick={() =>
                   void onPatch(channel.id, { inUse: !channel.inUse })
                 }
               >
-                {channel.inUse ? "In use" : "Not in use"}
+                {channel.inUse ? "In use" : "Spare"}
               </button>
             ) : null}
           </div>

@@ -314,12 +314,18 @@ function RackCell({
         {features.assignments ? (
           <button
             type="button"
-            className={`rack-use-btn${ch.inUse ? " on" : ""}`}
+            className={`use-toggle use-toggle--rack${ch.inUse ? " on" : ""}`}
             disabled={frozen}
             aria-pressed={ch.inUse}
+            aria-label={ch.inUse ? "Mic in use" : "Mic spare on rack"}
+            title={
+              ch.inUse
+                ? "Mic is on someone — tap to mark spare"
+                : "Mic is spare on the rack — tap to mark in use"
+            }
             onClick={() => void onPatch(ch.id, { inUse: !ch.inUse })}
           >
-            {ch.inUse ? "In use" : "Not in use"}
+            {ch.inUse ? "In use" : "Spare"}
           </button>
         ) : null}
       </div>

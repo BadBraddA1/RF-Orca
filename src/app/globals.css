@@ -653,6 +653,7 @@ a {
 .btn-danger:focus-visible,
 .rack-kind-btn:focus-visible,
 .rack-use-btn:focus-visible,
+.use-toggle:focus-visible,
 .group-heading-toggle:focus-visible,
 .select-toggle:focus-visible,
 .channel-delete:focus-visible,
@@ -1267,25 +1268,61 @@ a {
   min-width: 5.75rem;
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--sea-bright) 38%, var(--line));
-  background: color-mix(in oklab, var(--sea) 14%, var(--panel));
+  border: 1px solid color-mix(in oklab, var(--sea-bright) 45%, var(--line));
+  background: color-mix(in oklab, var(--sea) 18%, var(--panel));
   color: var(--ink);
   font: inherit;
   font-weight: 750;
   font-size: var(--text-label);
+  letter-spacing: 0.01em;
   cursor: pointer;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--sea-bright) 12%, transparent);
 }
 
 .deploy-btn.on {
   background: color-mix(in oklab, var(--ok) 28%, transparent);
   border-color: color-mix(in oklab, var(--ok) 55%, transparent);
   color: var(--ok-ink);
+  box-shadow: none;
 }
 
 .deploy-btn.disabled,
+.use-toggle.disabled,
 .room-field.disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/** Rack/mic occupancy — quieter toggle, not a twin of Deploy */
+.use-toggle {
+  flex: 0 0 auto;
+  min-height: var(--touch-min);
+  min-width: 4.75rem;
+  margin: 0;
+  padding: 0.45rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px dashed color-mix(in oklab, var(--line) 90%, transparent);
+  background: color-mix(in oklab, var(--foam) 55%, transparent);
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 650;
+  font-size: var(--text-label);
+  cursor: pointer;
+}
+
+.use-toggle.on {
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--ok) 45%, var(--line));
+  background: color-mix(in oklab, var(--ok) 16%, transparent);
+  color: var(--ok-ink);
+  font-weight: 750;
+}
+
+.use-toggle--rack {
+  min-height: 2.2rem;
+  min-width: 0;
+  padding: 0.3rem 0.55rem;
+  font-size: var(--text-caption);
 }
 
 .tag.deployed-room {
@@ -1826,27 +1863,6 @@ a {
   scrollbar-width: thin;
 }
 
-.rack-use-btn {
-  flex: 0 0 auto;
-  min-height: var(--touch-min);
-  min-width: var(--touch-min);
-  padding: 0.35rem 0.65rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: color-mix(in oklab, var(--panel) 80%, transparent);
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: var(--text-caption);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.rack-use-btn.on {
-  background: color-mix(in oklab, var(--ok) 28%, transparent);
-  border-color: color-mix(in oklab, var(--ok) 55%, transparent);
-  color: var(--ok-ink);
-}
-
 .rack-freq {
   font-family: var(--font-mono);
   font-size: var(--text-caption);
@@ -1863,11 +1879,6 @@ a {
   font-weight: 750;
   letter-spacing: 0.02em;
   color: var(--signal);
-}
-
-.deploy-btn.use-btn {
-  min-width: 5.25rem;
-  font-size: var(--text-label);
 }
 
 .channel-floor-fields {
@@ -2547,9 +2558,10 @@ a {
   padding: 0.2rem 0.55rem;
 }
 
-.board--crew .rack-use-btn {
+.board--crew .use-toggle {
   font-size: var(--text-caption);
   padding: 0.25rem 0.45rem;
+  min-height: 1.85rem;
 }
 
 @media (max-height: 900px) and (orientation: landscape) {

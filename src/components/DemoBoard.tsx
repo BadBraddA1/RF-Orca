@@ -250,7 +250,7 @@ export function DemoBoard() {
                           {channel.inUse ? (
                             <span className="tag">In use</span>
                           ) : (
-                            <span className="tag">Not in use</span>
+                            <span className="tag">Spare</span>
                           )}
                           {channel.roomName ? (
                             <span
