@@ -227,17 +227,7 @@ export function DemoBoard() {
                             {channel.frequencyMhz.toFixed(3)} MHz
                           </span>
                         </div>
-                        {channel.assignedTo ? (
-                          <p className="channel-who">
-                            {channel.assignedTo} has {channel.name}
-                          </p>
-                        ) : null}
                         <div className="channel-meta">
-                          {channel.rackSlot != null ? (
-                            <span>
-                              CH {String(channel.rackSlot).padStart(2, "0")}
-                            </span>
-                          ) : null}
                           {channel.groupChannel ? (
                             <span>G/Ch {channel.groupChannel}</span>
                           ) : null}
@@ -252,15 +242,6 @@ export function DemoBoard() {
                           ) : (
                             <span className="tag">Spare</span>
                           )}
-                          {channel.roomName ? (
-                            <span
-                              className={`tag${channel.deployed ? " deployed-room" : " staged-room"}`}
-                            >
-                              {channel.deployed
-                                ? channel.roomName
-                                : `Staged · ${channel.roomName}`}
-                            </span>
-                          ) : null}
                           {conflicted ? (
                             <span className="tag conflict-tag">Conflict</span>
                           ) : null}

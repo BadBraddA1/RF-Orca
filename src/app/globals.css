@@ -567,7 +567,7 @@ a {
   }
 
   .board--desk .channel-row {
-    padding: 0.85rem 0.95rem;
+    padding: 0.75rem 0.85rem;
     gap: var(--space-sm);
   }
 }
@@ -1158,9 +1158,9 @@ a {
 .channel-row {
   position: relative;
   z-index: 0;
-  padding: 1rem;
+  padding: 0.75rem 0.85rem;
   display: grid;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   animation: rise 0.45s ease both;
 }
 
@@ -1883,12 +1883,12 @@ a {
 
 .channel-floor-fields {
   display: grid;
-  gap: 0.55rem;
-  margin-top: 0.15rem;
+  gap: 0.45rem;
+  margin-top: 0;
 }
 
 @media (min-width: 560px) {
-  .channel-floor-fields {
+  .channel-floor-fields:has(.pick-field + .pick-field) {
     grid-template-columns: 1fr 1fr;
     align-items: end;
   }

@@ -11,7 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { BrandLockup } from "@/components/BrandLockup";
 import { MicRackGrid } from "@/components/MicRackGrid";
-import { ChoiceMenu, RoomAssign, WhoAssign } from "@/components/WhoAssign";
+import { ChoiceMenu, RoomAssign } from "@/components/WhoAssign";
 import { withinDeployGrace } from "@/lib/board-helpers";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
 import { useShowLive } from "@/hooks/useShowLive";
@@ -2746,7 +2746,6 @@ export function MarkBoard({
                     key={channel.id}
                     channel={channel}
                     rooms={show.rooms.map((r) => r.name)}
-                    assigneeNames={assigneeNames}
                     savedGroupNames={savedGroupNames}
                     admin={admin}
                     features={features}
@@ -2810,7 +2809,6 @@ function formatAgo(iso: string): string {
 function ChannelRow({
   channel,
   rooms,
-  assigneeNames,
   savedGroupNames,
   admin,
   features,
@@ -2825,7 +2823,6 @@ function ChannelRow({
 }: {
   channel: Channel;
   rooms: string[];
-  assigneeNames: string[];
   savedGroupNames: string[];
   admin: boolean;
   features: ShowFeatures;
@@ -2889,11 +2886,6 @@ function ChannelRow({
         ) : null}
         <div className="channel-main">
           <div className="channel-title">
-            {channel.rackSlot != null ? (
-              <span className="rack-ch-inline">
-                CH {String(channel.rackSlot).padStart(2, "0")}
-              </span>
-            ) : null}
             {admin ? (
               <input
                 className="channel-name-input"
@@ -2921,38 +2913,33 @@ function ChannelRow({
               {channel.frequencyMhz.toFixed(3)} MHz
             </span>
           </div>
-          {features.assignments && channel.assignedTo ? (
-            <p className="channel-who">
-              {channel.assignedTo} has {channel.name}
-            </p>
+          {(channel.groupChannel ||
+            channel.isBackup ||
+            features.status ||
+            conflicted ||
+            deployLocked ||
+            (inGrace && !admin)) ? (
+            <div className="channel-meta">
+              {channel.groupChannel ? (
+                <span>G/Ch {channel.groupChannel}</span>
+              ) : null}
+              {channel.isBackup ? <span className="tag">Backup</span> : null}
+              {features.status ? (
+                <span className={`tag status-${channel.status}`}>
+                  {channel.status}
+                </span>
+              ) : null}
+              {conflicted ? (
+                <span className="tag conflict-tag">Conflict</span>
+              ) : null}
+              {deployLocked ? (
+                <span className="tag locked-tag">Locked</span>
+              ) : null}
+              {inGrace && !admin ? (
+                <span className="tag">Undo ok</span>
+              ) : null}
+            </div>
           ) : null}
-          <div className="channel-meta">
-            {channel.groupChannel ? (
-              <span>G/Ch {channel.groupChannel}</span>
-            ) : null}
-            {channel.isBackup ? <span className="tag">Backup</span> : null}
-            {features.status ? (
-              <span className={`tag status-${channel.status}`}>
-                {channel.status}
-              </span>
-            ) : null}
-            {features.rooms && channel.roomName ? (
-              <span
-                className={`tag${channel.deployed ? " deployed-room" : " staged-room"}`}
-              >
-                {channel.deployed
-                  ? channel.roomName
-                  : `Staged · ${channel.roomName}`}
-              </span>
-            ) : null}
-            {conflicted ? <span className="tag conflict-tag">Conflict</span> : null}
-            {deployLocked ? (
-              <span className="tag locked-tag">Locked</span>
-            ) : null}
-            {inGrace && !admin ? (
-              <span className="tag">Undo ok</span>
-            ) : null}
-          </div>
         </div>
 
         {features.deploy || features.assignments ? (
@@ -3096,29 +3083,17 @@ function ChannelRow({
         </div>
       ) : null}
 
-      {features.assignments || features.rooms ? (
+      {features.rooms ? (
         <div className="channel-floor-fields">
-          {features.assignments ? (
-            <WhoAssign
-              value={channel.assignedTo}
-              names={assigneeNames}
-              disabled={assignDisabled}
-              onAssign={(assignedTo) => {
-                void onPatch(channel.id, { assignedTo });
-              }}
-            />
-          ) : null}
-          {features.rooms ? (
-            <RoomAssign
-              value={channel.roomName}
-              rooms={rooms}
-              disabled={markDisabled}
-              label={channel.deployed ? "Room" : "Stage room"}
-              onAssign={(roomName) => {
-                void onPatch(channel.id, { roomName });
-              }}
-            />
-          ) : null}
+          <RoomAssign
+            value={channel.roomName}
+            rooms={rooms}
+            disabled={markDisabled}
+            label={channel.deployed ? "Room" : "Stage room"}
+            onAssign={(roomName) => {
+              void onPatch(channel.id, { roomName });
+            }}
+          />
         </div>
       ) : null}
     </li>
