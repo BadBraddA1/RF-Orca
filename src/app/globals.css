@@ -1155,10 +1155,18 @@ a {
 }
 
 .channel-row {
+  position: relative;
+  z-index: 0;
   padding: 1rem;
   display: grid;
   gap: var(--space-md);
   animation: rise 0.45s ease both;
+}
+
+/** Who menu must paint above later cards (backdrop-filter / animation stacking). */
+.channel-row:has(.who-menu),
+.rack-cell:has(.who-menu) {
+  z-index: 40;
 }
 
 .channel-row.is-deployed {
@@ -1486,6 +1494,8 @@ a {
 }
 
 .rack-cell {
+  position: relative;
+  z-index: 0;
   display: grid;
   gap: 0.4rem;
   padding: 0.7rem 0.75rem 0.8rem;
@@ -1498,6 +1508,7 @@ a {
       color-mix(in oklab, var(--foam) 88%, transparent)
     );
   min-height: 8.5rem;
+  overflow: visible;
 }
 
 .rack-cell.is-empty {
@@ -1599,11 +1610,6 @@ a {
   display: grid;
   gap: 0.3rem;
   min-width: 0;
-  z-index: 1;
-}
-
-.who-assign:has(.who-menu) {
-  z-index: 20;
 }
 
 .who-assign.disabled {
@@ -1670,7 +1676,7 @@ a {
   left: 0;
   right: 0;
   top: calc(100% + 0.25rem);
-  z-index: 30;
+  z-index: 50;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   max-height: min(18rem, 55dvh);
