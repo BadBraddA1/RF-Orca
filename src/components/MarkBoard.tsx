@@ -1525,6 +1525,7 @@ export function MarkBoard({
             <button
               type="button"
               className="btn-ghost"
+              title="Copy link with current view, sort, and filters"
               onClick={() => void copyLink()}
             >
               {copied ? "Copied" : "Copy link"}
