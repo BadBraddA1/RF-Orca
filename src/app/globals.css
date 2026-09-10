@@ -1163,9 +1163,9 @@ a {
   animation: rise 0.45s ease both;
 }
 
-/** Who menu must paint above later cards (backdrop-filter / animation stacking). */
-.channel-row:has(.who-menu),
-.rack-cell:has(.who-menu) {
+/** Open pick menus are portaled; keep row elevation for any in-tree leftovers. */
+.channel-row:has(.pick-menu),
+.rack-cell:has(.pick-menu) {
   z-index: 40;
 }
 
@@ -1605,29 +1605,29 @@ a {
   opacity: 0.45;
 }
 
-.who-assign {
+.pick-field {
   position: relative;
   display: grid;
   gap: 0.3rem;
   min-width: 0;
 }
 
-.who-assign.disabled {
+.pick-field.disabled {
   opacity: 0.45;
   pointer-events: none;
 }
 
-.who-assign-label {
+.pick-field-label {
   font-size: var(--text-chip);
   font-weight: 650;
   color: var(--ink-soft);
 }
 
-.who-assign--compact .who-assign-label {
+.pick-field--compact .pick-field-label {
   font-size: var(--text-caption);
 }
 
-.who-trigger {
+.pick-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1658,7 +1658,7 @@ a {
   padding-right: 2rem;
 }
 
-.who-assign--compact .who-trigger {
+.pick-field--compact .pick-trigger {
   min-height: 2.4rem;
   padding: 0.35rem 1.85rem 0.35rem 0.5rem;
   font-size: var(--text-label);
@@ -1666,12 +1666,12 @@ a {
   background-color: var(--input-deep);
 }
 
-.who-trigger-placeholder {
+.pick-trigger-placeholder {
   color: var(--ink-soft);
   font-weight: 550;
 }
 
-.who-menu {
+.pick-menu {
   position: absolute;
   left: 0;
   right: 0;
@@ -1687,7 +1687,7 @@ a {
   box-shadow: var(--shadow);
 }
 
-.who-menu--portal {
+.pick-menu--portal {
   position: fixed;
   right: auto;
   top: auto;
@@ -1695,7 +1695,7 @@ a {
   z-index: 80;
 }
 
-.who-menu-list {
+.pick-menu-list {
   display: grid;
   gap: 0.15rem;
   padding: 0.35rem;
@@ -1704,7 +1704,7 @@ a {
   min-height: 0;
 }
 
-.who-option {
+.pick-option {
   display: block;
   width: 100%;
   margin: 0;
@@ -1721,17 +1721,17 @@ a {
   cursor: pointer;
 }
 
-.who-option:hover {
+.pick-option:hover {
   background: color-mix(in oklab, var(--sea) 14%, transparent);
 }
 
-.who-option.active {
+.pick-option.active {
   background: color-mix(in oklab, var(--sea-bright) 22%, transparent);
   color: var(--sea-bright);
   font-weight: 750;
 }
 
-.who-menu-add {
+.pick-menu-add {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.35rem;
@@ -1741,7 +1741,7 @@ a {
   background: color-mix(in oklab, var(--foam) 70%, transparent);
 }
 
-.who-menu-add input {
+.pick-menu-add input {
   min-height: 2.4rem;
   width: 100%;
   font: inherit;
@@ -1754,7 +1754,7 @@ a {
   background: var(--input-deep);
 }
 
-.who-add-btn {
+.pick-add-btn {
   min-height: 2.4rem;
   padding-inline: 0.75rem;
 }
@@ -2521,13 +2521,13 @@ a {
 
 .board--crew .rack-field input,
 .board--crew .rack-drop-select,
-.board--crew .who-trigger,
-.board--crew .who-menu-add input {
+.board--crew .pick-trigger,
+.board--crew .pick-menu-add input {
   font-size: var(--text-caption);
   padding: 0.28rem 0.4rem;
 }
 
-.board--crew .who-trigger {
+.board--crew .pick-trigger {
   min-height: 1.85rem;
   padding-right: 1.6rem;
   background-position:
@@ -2535,13 +2535,13 @@ a {
     calc(100% - 0.55rem) 50%;
 }
 
-.board--crew .who-option {
+.board--crew .pick-option {
   min-height: 1.85rem;
   padding: 0.28rem 0.5rem;
   font-size: var(--text-caption);
 }
 
-.board--crew .who-add-btn {
+.board--crew .pick-add-btn {
   min-height: 1.85rem;
   font-size: var(--text-caption);
   padding: 0.2rem 0.55rem;

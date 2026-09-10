@@ -3,11 +3,16 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-type WhoAssignProps = {
+export type ChoiceMenuProps = {
+  label: string;
   value: string | null;
-  names: string[];
+  options: string[];
   disabled?: boolean;
-  onAssign: (name: string | null) => void;
+  emptyLabel?: string;
+  addPlaceholder?: string;
+  /** Hide the add row (pick-only). Default true. */
+  allowAdd?: boolean;
+  onPick: (value: string | null) => void;
   /** Slightly denser control for rack cells */
   compact?: boolean;
 };
@@ -20,13 +25,17 @@ type MenuCoords = {
   bottom?: number;
 };
 
-export function WhoAssign({
+export function ChoiceMenu({
+  label,
   value,
-  names,
+  options,
   disabled = false,
-  onAssign,
+  emptyLabel = "None yet",
+  addPlaceholder = "Add…",
+  allowAdd = true,
+  onPick,
   compact = false,
-}: WhoAssignProps) {
+}: ChoiceMenuProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [coords, setCoords] = useState<MenuCoords | null>(null);
@@ -38,7 +47,7 @@ export function WhoAssign({
   const list = useMemo(() => {
     const seen = new Set<string>();
     const out: string[] = [];
-    for (const name of names) {
+    for (const name of options) {
       const trimmed = name.trim();
       if (!trimmed) continue;
       const key = trimmed.toLowerCase();
@@ -51,9 +60,9 @@ export function WhoAssign({
       if (!seen.has(key)) out.unshift(value.trim());
     }
     return out;
-  }, [names, value]);
+  }, [options, value]);
 
-  const label = value?.trim() || "No who yet";
+  const display = value?.trim() || emptyLabel;
 
   const updatePosition = () => {
     const trigger = triggerRef.current;
@@ -122,8 +131,8 @@ export function WhoAssign({
     };
   }, [open]);
 
-  function pick(name: string | null) {
-    onAssign(name);
+  function pick(next: string | null) {
+    onPick(next);
     setDraft("");
     setOpen(false);
   }
@@ -131,7 +140,7 @@ export function WhoAssign({
   function submitNew() {
     const name = draft.trim();
     if (!name || disabled) return;
-    onAssign(name);
+    onPick(name);
     setDraft("");
     setOpen(false);
   }
@@ -141,7 +150,7 @@ export function WhoAssign({
       ? createPortal(
           <div
             ref={menuRef}
-            className="who-menu who-menu--portal"
+            className="pick-menu pick-menu--portal"
             role="presentation"
             style={{
               left: coords.left,
@@ -153,18 +162,18 @@ export function WhoAssign({
           >
             <div
               id={listId}
-              className="who-menu-list"
+              className="pick-menu-list"
               role="listbox"
-              aria-label="Who names"
+              aria-label={label}
             >
               <button
                 type="button"
                 role="option"
                 aria-selected={!value?.trim()}
-                className={`who-option${!value?.trim() ? " active" : ""}`}
+                className={`pick-option${!value?.trim() ? " active" : ""}`}
                 onClick={() => pick(null)}
               >
-                No who yet
+                {emptyLabel}
               </button>
               {list.map((name) => {
                 const active = (value ?? "").trim() === name;
@@ -174,7 +183,7 @@ export function WhoAssign({
                     type="button"
                     role="option"
                     aria-selected={active}
-                    className={`who-option${active ? " active" : ""}`}
+                    className={`pick-option${active ? " active" : ""}`}
                     onClick={() => pick(name)}
                   >
                     {name}
@@ -182,33 +191,35 @@ export function WhoAssign({
                 );
               })}
             </div>
-            <div className="who-menu-add">
-              <input
-                value={draft}
-                disabled={disabled}
-                placeholder="Add name…"
-                maxLength={80}
-                autoComplete="off"
-                aria-label="Add who name"
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    submitNew();
-                  }
-                  e.stopPropagation();
-                }}
-                onClick={(e) => e.stopPropagation()}
-              />
-              <button
-                type="button"
-                className="chip who-add-btn"
-                disabled={disabled || !draft.trim()}
-                onClick={submitNew}
-              >
-                Add
-              </button>
-            </div>
+            {allowAdd ? (
+              <div className="pick-menu-add">
+                <input
+                  value={draft}
+                  disabled={disabled}
+                  placeholder={addPlaceholder}
+                  maxLength={80}
+                  autoComplete="off"
+                  aria-label={addPlaceholder}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      submitNew();
+                    }
+                    e.stopPropagation();
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <button
+                  type="button"
+                  className="chip pick-add-btn"
+                  disabled={disabled || !draft.trim()}
+                  onClick={submitNew}
+                >
+                  Add
+                </button>
+              </div>
+            ) : null}
           </div>,
           document.body,
         )
@@ -217,13 +228,13 @@ export function WhoAssign({
   return (
     <div
       ref={rootRef}
-      className={`who-assign room-field${compact ? " who-assign--compact" : ""}${disabled ? " disabled" : ""}`}
+      className={`pick-field room-field${compact ? " pick-field--compact" : ""}${disabled ? " disabled" : ""}`}
     >
-      <span className="who-assign-label">Who</span>
+      <span className="pick-field-label">{label}</span>
       <button
         ref={triggerRef}
         type="button"
-        className="who-trigger"
+        className="pick-trigger"
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -233,11 +244,69 @@ export function WhoAssign({
           setOpen((v) => !v);
         }}
       >
-        <span className={value?.trim() ? undefined : "who-trigger-placeholder"}>
-          {label}
+        <span className={value?.trim() ? undefined : "pick-trigger-placeholder"}>
+          {display}
         </span>
       </button>
       {menu}
     </div>
+  );
+}
+
+/** Who assignment — same ChoiceMenu chrome. */
+export function WhoAssign({
+  value,
+  names,
+  disabled,
+  onAssign,
+  compact,
+}: {
+  value: string | null;
+  names: string[];
+  disabled?: boolean;
+  onAssign: (name: string | null) => void;
+  compact?: boolean;
+}) {
+  return (
+    <ChoiceMenu
+      label="Who"
+      value={value}
+      options={names}
+      disabled={disabled}
+      emptyLabel="No who yet"
+      addPlaceholder="Add name…"
+      onPick={onAssign}
+      compact={compact}
+    />
+  );
+}
+
+/** Stage / deploy room — same ChoiceMenu chrome as Who. */
+export function RoomAssign({
+  value,
+  rooms,
+  disabled,
+  label = "Stage room",
+  onAssign,
+  compact,
+}: {
+  value: string | null;
+  rooms: string[];
+  disabled?: boolean;
+  label?: string;
+  onAssign: (room: string | null) => void;
+  compact?: boolean;
+}) {
+  return (
+    <ChoiceMenu
+      label={label}
+      value={value}
+      options={rooms}
+      disabled={disabled}
+      emptyLabel="No room yet"
+      addPlaceholder="Add room…"
+      onPick={onAssign}
+      compact={compact}
+    />
   );
 }

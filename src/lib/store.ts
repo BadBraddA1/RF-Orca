@@ -362,6 +362,19 @@ function withGroupCatalog(show: Show, groupName: string | null | undefined): Sho
   };
 }
 
+/** Keep show.rooms catalog in sync when a room is staged/deployed. */
+function withRoomsCatalog(show: Show, roomName: string | null | undefined): Show {
+  const name = roomName?.trim();
+  if (!name) return show;
+  if (show.rooms.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
+    return show;
+  }
+  return {
+    ...show,
+    rooms: [...show.rooms, { id: createId("room"), name }],
+  };
+}
+
 /** Keep show.people roster in sync when someone is assigned. */
 function withPeopleCatalog(show: Show, personName: string | null | undefined): Show {
   const name = personName?.trim();
@@ -682,6 +695,10 @@ export async function updateChannel(
     nextShow = withPeopleCatalog(nextShow, next.assignedTo);
   }
 
+  if (next.roomName?.trim()) {
+    nextShow = withRoomsCatalog(nextShow, next.roomName);
+  }
+
   if (typeof patch.inUse === "boolean") {
     next.inUse = patch.inUse;
   }
@@ -887,13 +904,14 @@ export async function bulkSetChannelRoom(
     idSet.has(ch.id) ? { ...ch, roomName: nextRoom } : ch,
   );
 
-  const nextShow = touchShow(
+  let nextShow = touchShow(
     show,
     "rooms",
     nextRoom
       ? `Staged ${idSet.size} channels → ${nextRoom}`
       : `Cleared room on ${idSet.size} channels`,
   );
+  nextShow = withRoomsCatalog(nextShow, nextRoom);
 
   if (mode() === "memory") {
     getMemory().channels.set(show.id, next);

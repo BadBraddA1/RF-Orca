@@ -11,7 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { BrandLockup } from "@/components/BrandLockup";
 import { MicRackGrid } from "@/components/MicRackGrid";
-import { WhoAssign } from "@/components/WhoAssign";
+import { RoomAssign, WhoAssign } from "@/components/WhoAssign";
 import { withinDeployGrace } from "@/lib/board-helpers";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
 import { useShowLive } from "@/hooks/useShowLive";
@@ -3029,38 +3029,15 @@ function ChannelRow({
             />
           ) : null}
           {features.rooms ? (
-            <label className={`room-field${markDisabled ? " disabled" : ""}`}>
-              <span>{channel.deployed ? "Room" : "Stage room"}</span>
-              {rooms.length > 0 ? (
-                <select
-                  value={channel.roomName ?? ""}
-                  disabled={markDisabled}
-                  onChange={(e) => {
-                    const roomName = e.target.value || null;
-                    void onPatch(channel.id, { roomName });
-                  }}
-                >
-                  <option value="">No room yet</option>
-                  {rooms.map((room) => (
-                    <option key={room} value={room}>
-                      {room}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  value={roomDraft}
-                  disabled={markDisabled}
-                  placeholder="Room / zone"
-                  onChange={(e) => setRoomDraft(e.target.value)}
-                  onBlur={() => {
-                    const roomName = roomDraft.trim() || null;
-                    if (roomName === (channel.roomName ?? null)) return;
-                    void onPatch(channel.id, { roomName });
-                  }}
-                />
-              )}
-            </label>
+            <RoomAssign
+              value={channel.roomName}
+              rooms={rooms}
+              disabled={markDisabled}
+              label={channel.deployed ? "Room" : "Stage room"}
+              onAssign={(roomName) => {
+                void onPatch(channel.id, { roomName });
+              }}
+            />
           ) : null}
         </div>
       ) : null}
