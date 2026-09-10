@@ -16,6 +16,7 @@ colors:
   danger: "#ff7a88"
   ok: "#5dffc0"
   ok-ink: "#b8ffe0"
+  ok-soft: "#9bffd8"
 typography:
   display:
     fontFamily: "Syne, Avenir Next, sans-serif"
@@ -152,7 +153,7 @@ A night-ops palette: deep navy fields, cyan for live/active chrome, orange for u
 
 ### Secondary
 - **Signal Orange** (`signal` / `#ff7a1a`) and **Signal Hot** (`signal-hot` / `#ffb060`): Primary CTAs (Create / New show), selection, “Updated,” talent/who emphasis.
-- **Ok Mint** (`ok` / `#5dffc0`): Deployed / in-use confirmation (still partially literal in CSS; treat as token going forward).
+- **Ok Mint** (`ok` / `#5dffc0`), **Ok Ink** (`ok-ink` / `#b8ffe0`), **Ok Soft** (`ok-soft` / `#9bffd8`): Deployed / in-use confirmation only — never decorative fills.
 
 ### Tertiary
 - **Danger Coral** (`danger` / `#ff7a88`): Delete / danger zone only.

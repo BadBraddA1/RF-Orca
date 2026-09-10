@@ -17,7 +17,8 @@
       "signal-hot": { "role": "secondary", "displayName": "Signal Hot", "canonical": "#ffb060", "tonalRamp": ["#3a2410", "#6a4018", "#a06828", "#ffb060", "#ffc484", "#ffd6a8", "#ffe8cc", "#fff6ea"] },
       "danger": { "role": "tertiary", "displayName": "Danger Coral", "canonical": "#ff7a88", "tonalRamp": ["#3a1018", "#6a2030", "#a03848", "#ff7a88", "#ff9aa4", "#ffb8c0", "#ffd6da", "#fff0f2"] },
       "ok": { "role": "secondary", "displayName": "Ok Mint", "canonical": "#5dffc0", "tonalRamp": ["#0a2820", "#144838", "#1e7860", "#5dffc0", "#7affe0", "#9cffec", "#c0fff4", "#e8fffa"] },
-      "ok-ink": { "role": "neutral", "displayName": "Ok Ink", "canonical": "#b8ffe0", "tonalRamp": ["#143828", "#2a5848", "#4a8870", "#7affe0", "#b8ffe0", "#d0ffe8", "#e4fff2", "#f4fffa"] }
+      "ok-ink": { "role": "neutral", "displayName": "Ok Ink", "canonical": "#b8ffe0", "tonalRamp": ["#143828", "#2a5848", "#4a8870", "#7affe0", "#b8ffe0", "#d0ffe8", "#e4fff2", "#f4fffa"] },
+      "ok-soft": { "role": "neutral", "displayName": "Ok Soft", "canonical": "#9bffd8", "tonalRamp": ["#143828", "#2a5848", "#4a8870", "#7affe0", "#9bffd8", "#b8ffe0", "#d0ffe8", "#e8fffa"] }
     },
     "typographyMeta": {
       "display": { "displayName": "Display", "purpose": "Show name on the mark board." },
