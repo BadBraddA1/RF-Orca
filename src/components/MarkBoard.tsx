@@ -1422,8 +1422,9 @@ export function MarkBoard({
     });
   }, [show.rooms, show.channels]);
 
-  const showSelectBar = false;
-  const showSelectionDock = false;
+  const showSelectBar =
+    admin && !showRack && visibleWithRoomFocus.length > 0;
+  const showSelectionDock = showSelectBar && selectedList.length > 0;
   const showStatusBulk = false;
 
   const pct =
@@ -2737,7 +2738,9 @@ export function MarkBoard({
                     conflicted={show.conflicts?.some((c) =>
                       c.channels.some((x) => x.id === channel.id),
                     )}
-                    onToggleSelect={undefined}
+                    onToggleSelect={
+                      admin ? () => toggleSelected(channel.id) : undefined
+                    }
                     onPatch={patchChannel}
                     onDelete={
                       admin
@@ -2948,6 +2951,15 @@ function ChannelRow({
       className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${selected ? " is-selected" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
+        {onToggleSelect ? (
+          <button
+            type="button"
+            className={`select-toggle${selected ? " on" : ""}`}
+            aria-pressed={Boolean(selected)}
+            aria-label={selected ? "Deselect channel" : "Select channel"}
+            onClick={onToggleSelect}
+          />
+        ) : null}
         <div className="channel-main">
           <div className="channel-title">
             {admin ? (

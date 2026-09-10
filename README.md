@@ -34,7 +34,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Share view links** — the show URL keeps current **view / sort / My room / Filters** (`?sort=room&room=Ballroom+A&filter=staged…`). **Copy link** pastes that view for crew
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — tap **Filters** for a popup (bands / groups); summary stays on the board so you don’t scroll to change scope
-- **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel (confirms first)
+- **Select → group** — unlock Tools, tap the circle on channels (or Select all in the rail); bulk **Set group / Stage room / Delete** appear in a bottom dock so the list doesn’t jump
+- **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or select → **Delete N** in the bottom dock (confirms first)
 - **List sort** — **By group**, **By room**, or **Flat**; caret to close one section; **Close all** / **Open all** for every section
 - **Open on move** — staging a channel into a room (or group) auto-opens that section if it was closed
 - **Prestage rooms** — pick **Stage room** on a channel before Deploy; undeploy keeps the staged room; filters **Staged** / **No room**
@@ -42,7 +43,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
 - **Who / Stage room** — matching dropdowns (portal + flip up near the page bottom); **Who** lives on **Rack** only; List keeps Stage room + Group side by side, Deploy / Spare on the name row
 - **Mic rack (A2)** — when **Rooms** is on: **Rack** → pick a room → see/mark that room’s gear (Who, Handheld/Lav, Spare/In use, Deploy). **Change room** returns to the picker. Without Rooms: physical slot grid (cols×rows, Fill empty) when Mic rack assignments is on
-- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — **3-wide** on desktop (2 on tablet, 1 on phone); name + Deploy/Spare on one row; Stage room + Group side by side; no G/Ch line; Allow/Block and multi-select parked for now
+- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — **3-wide** on desktop (2 on tablet, 1 on phone); name + Deploy/Spare on one row; Stage room + Group side by side; no G/Ch line; Allow/Block parked for now; multi-select circles + bottom dock when Tools unlocked
 - **Deploy vs Spare** — **Deploy** (pill) marks the channel live in a room; **Spare / In use** (quieter dashed toggle) is rack occupancy, not the same action
 - **Crew mode** — header **Crew** button: fullscreen-friendly view (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
 - **Flash changes** — pulse a rack cell / channel card when it updates (respects `prefers-reduced-motion` — static highlight instead); most recently changed keep an orange “Updated” tint
