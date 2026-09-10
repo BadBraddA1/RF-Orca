@@ -27,8 +27,8 @@ Lean · crew-first · signal-clear. Confident and practical. Nickname **Orca**; 
 ## Design Principles
 
 1. **Task over theater** — Home exists to create a show (and reopen recent ones); brand supports, never blocks.
-- Phone-first floor use — Mark view and create flow must work without hunting or zoom; mark controls use a **≥44px** tap target (`--touch-min`).
-- Use only what you need — Feature toggles; coordinators strip the board down for speed.
+2. **Phone-first floor use** — Mark view and create flow must work without hunting or zoom; mark controls use a **≥44px** tap target (`--touch-min`).
+3. **Use only what you need** — Feature toggles; coordinators strip the board down for speed.
 4. **Shareable truth** — One link is the show; home lists only recent (10-day) shows for convenience, not a permanent library.
 5. **Quiet power** — Coordinator tools stay subtle until unlocked.
 6. **Own the job** — Position as post-coordination deploy tracking for the floor, not a full RF suite.
