@@ -1467,21 +1467,24 @@ export function MarkBoard({
               Flat
             </button>
             {listSort !== "flat" && namedSectionCount > 0 ? (
-              <button
-                type="button"
-                className="chip"
-                onClick={() =>
-                  setAllSectionsCollapsed(
-                    collapsedNamedCount < namedSectionCount,
-                  )
-                }
-              >
-                {collapsedNamedCount < namedSectionCount
-                  ? listSort === "room"
-                    ? "Close all rooms"
-                    : "Collapse all"
-                  : "Open all"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="chip"
+                  disabled={collapsedNamedCount === namedSectionCount}
+                  onClick={() => setAllSectionsCollapsed(true)}
+                >
+                  {listSort === "room" ? "Close all" : "Collapse all"}
+                </button>
+                <button
+                  type="button"
+                  className="chip"
+                  disabled={collapsedNamedCount === 0}
+                  onClick={() => setAllSectionsCollapsed(false)}
+                >
+                  Open all
+                </button>
+              </>
             ) : null}
           </div>
         ) : null}

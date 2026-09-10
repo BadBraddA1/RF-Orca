@@ -35,7 +35,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Band filters** — All bands / G50 / H50 / G57+ chips after import
 - **Select → group** — unlock Tools, tap the circle on any channels (or Select all visible), then **Set group** from the sticky bar
 - **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or Select all → **Delete N** (confirms first)
-- **List sort** — **By group**, **By room**, or **Flat** (saved per show in the browser); caret to close a room/group section while keeping the rest open (**Close all rooms** / **Open all**)
+- **List sort** — **By group**, **By room**, or **Flat**; caret to close one section; **Close all** / **Open all** for every section
 - **Prestage rooms** — pick **Stage room** on a channel (or Select all → Stage room) before Deploy; undeploy keeps the staged room; filters **Staged** / **No room**
 - **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); then Set group / Stage room
 - **Rename channels** — with Tools unlocked, edit the channel name inline on the list
