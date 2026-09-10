@@ -2794,10 +2794,11 @@ export function MarkBoard({
           </button>
           {features.groups ? (
             <label className="bulk-group-pick">
-              <span>Set group</span>
+              <span className="sr-only">Set group</span>
               <select
                 disabled={bulkBusy || savedGroupNames.length === 0}
                 defaultValue=""
+                aria-label="Set group"
                 onChange={(e) => {
                   const value = e.target.value;
                   if (!value) return;
@@ -2808,7 +2809,7 @@ export function MarkBoard({
               >
                 <option value="">
                   {savedGroupNames.length
-                    ? "Pick group…"
+                    ? "Set group…"
                     : "Save groups in Tools first"}
                 </option>
                 {savedGroupNames.map((g) => (
@@ -2822,10 +2823,11 @@ export function MarkBoard({
           ) : null}
           {features.rooms ? (
             <label className="bulk-group-pick">
-              <span>Stage room</span>
+              <span className="sr-only">Stage room</span>
               <select
                 disabled={bulkBusy || show.rooms.length === 0}
                 defaultValue=""
+                aria-label="Stage room"
                 onChange={(e) => {
                   const value = e.target.value;
                   if (!value) return;
@@ -2836,7 +2838,7 @@ export function MarkBoard({
               >
                 <option value="">
                   {show.rooms.length
-                    ? "Pick room…"
+                    ? "Stage room…"
                     : "Save rooms in Tools first"}
                 </option>
                 {show.rooms.map((r) => (
