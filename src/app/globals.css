@@ -562,14 +562,14 @@ a {
 
   .board--desk > .group-sections .channel-list,
   .board--desk .group-sections .channel-list {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 21rem));
-    gap: var(--space-sm);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 24rem));
+    gap: var(--space-md);
     justify-content: start;
   }
 
   .board--desk .channel-row {
-    padding: 0.55rem 0.7rem;
-    gap: 0.35rem;
+    padding: 0.75rem 0.9rem;
+    gap: var(--space-sm);
   }
 
   .board--desk .channel-top-actions {
@@ -577,13 +577,13 @@ a {
   }
 
   .board--desk .channel-top-actions .pick-field {
-    min-width: 8.5rem;
-    max-width: 11rem;
+    min-width: 9rem;
+    max-width: 13rem;
   }
 
   .board--desk .deploy-btn,
   .board--desk .use-toggle {
-    min-height: 2.4rem;
+    min-height: var(--touch-min);
   }
 
   .board.board--desk {
@@ -623,7 +623,7 @@ a {
   }
 
   .board--desk .group-sections .channel-list {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 20rem));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 24rem));
   }
 }
 
@@ -1193,17 +1193,17 @@ a {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--space-sm);
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 22rem));
+  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 24rem));
   justify-content: start;
 }
 
 .channel-row {
   position: relative;
   z-index: 0;
-  padding: 0.55rem 0.7rem;
+  padding: 0.75rem 0.9rem;
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-sm);
   animation: rise 0.45s ease both;
 }
 
@@ -1291,9 +1291,9 @@ a {
 
 .channel-top-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .channel-top-actions {
@@ -1301,20 +1301,20 @@ a {
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: end;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   flex: 0 1 auto;
   max-width: 100%;
-  padding-top: 0;
+  padding-top: 0.15rem;
 }
 
 .channel-top-actions .pick-field {
-  min-width: 8rem;
-  max-width: 12rem;
-  flex: 1 1 8rem;
+  min-width: 9rem;
+  max-width: 13rem;
+  flex: 1 1 9rem;
 }
 
 .channel-top-actions .pick-field-label {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1322,8 +1322,8 @@ a {
 .deploy-btn {
   flex: 0 0 auto;
   min-height: var(--touch-min);
-  min-width: 5.25rem;
-  padding: 0.45rem 0.8rem;
+  min-width: 5.75rem;
+  padding: 0.55rem 0.9rem;
   border-radius: 999px;
   border: 1px solid color-mix(in oklab, var(--sea-bright) 45%, var(--line));
   background: color-mix(in oklab, var(--sea) 18%, var(--panel));
@@ -1354,9 +1354,9 @@ a {
 .use-toggle {
   flex: 0 0 auto;
   min-height: var(--touch-min);
-  min-width: 4.25rem;
+  min-width: 4.75rem;
   margin: 0;
-  padding: 0.4rem 0.7rem;
+  padding: 0.45rem 0.8rem;
   border-radius: var(--radius-md);
   border: 1px dashed color-mix(in oklab, var(--line) 90%, transparent);
   background: color-mix(in oklab, var(--foam) 55%, transparent);
