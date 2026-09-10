@@ -45,7 +45,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
 - **Who / Stage room** — matching dropdowns (portal + flip up near the page bottom); **Who** lives on **Rack** only; List keeps Stage room + Deploy / Spare
 - **Mic rack (A2)** — when **Rooms** is on: **Rack** → pick a room → see/mark that room’s gear (Who, Handheld/Lav, Spare/In use, Deploy). **Change room** returns to the picker. Without Rooms: physical slot grid (cols×rows, Fill empty) when Mic rack assignments is on
-- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — ~28–30rem cards; Stage room / Deploy wrap under the name; larger select circles; grid packs left on wide screens
+- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — **3-wide** on desktop (2 on tablet, 1 on phone), compact cards that share the row; Stage room / Deploy wrap under the name; larger select circles
 - **Deploy vs Spare** — **Deploy** (pill) marks the channel live in a room; **Spare / In use** (quieter dashed toggle) is rack occupancy, not the same action
 - **Crew mode** — header **Crew** button: fullscreen-friendly view (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
 - **Flash changes** — pulse a rack cell / channel card when it updates (respects `prefers-reduced-motion` — static highlight instead); most recently changed keep an orange “Updated” tint
