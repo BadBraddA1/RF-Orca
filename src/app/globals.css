@@ -802,67 +802,64 @@ a {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.2rem var(--space-xs);
+  gap: var(--space-sm);
 }
 
 .filter-sep {
   flex: 0 0 auto;
   width: 1px;
   align-self: stretch;
-  min-height: 1.5rem;
-  margin: 0.4rem var(--space-xs);
-  background: color-mix(in oklab, var(--sea-bright) 28%, transparent);
-  opacity: 0.7;
+  min-height: 1.6rem;
+  margin: 0.35rem 0.15rem;
+  background: color-mix(in oklab, var(--sea-bright) 22%, transparent);
 }
 
 .filter,
 .chip {
-  background: transparent;
-  border-color: transparent;
-  color: var(--ink-soft);
+  background: color-mix(in oklab, var(--panel) 88%, white 6%);
+  border-color: var(--line);
+  color: var(--ink);
   min-height: var(--touch-min);
-  padding: 0.45rem 0.7rem;
+  padding: 0.5rem 0.85rem;
   font-size: var(--text-chip);
   font-weight: 650;
 }
 
 .filter:hover,
 .chip:hover {
-  color: var(--ink);
-  background: color-mix(in oklab, var(--panel) 70%, transparent);
-  border-color: transparent;
+  border-color: color-mix(in oklab, var(--sea-bright) 40%, var(--line));
+  background: color-mix(in oklab, var(--panel) 75%, transparent);
 }
 
 .filter.active,
 .chip.active {
-  background: color-mix(in oklab, var(--sea) 28%, transparent);
-  color: var(--sea-bright);
-  border-color: color-mix(in oklab, var(--sea-bright) 45%, transparent);
+  background: var(--sea-bright);
+  color: var(--ink-on-sea);
+  border-color: var(--sea-bright);
   font-weight: 750;
 }
 
-/** Segmented toolbar (Rack/List, sort) — one control, not a pill swarm */
+/** Soft group for Rack/List + sort — still pills, one frame */
 .view-toggle {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.2rem;
+  gap: var(--space-xs);
+  padding: 0.25rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
-  background: color-mix(in oklab, var(--foam) 85%, transparent);
+  background: color-mix(in oklab, var(--foam) 70%, transparent);
 }
 
 .view-toggle .chip {
-  min-height: calc(var(--touch-min) - 0.35rem);
-  padding: 0.35rem 0.7rem;
+  min-height: calc(var(--touch-min) - 0.25rem);
 }
 
 .view-toggle .chip.active {
-  background: color-mix(in oklab, var(--panel) 90%, transparent);
-  color: var(--ink);
-  border-color: transparent;
-  box-shadow: 0 1px 0 color-mix(in oklab, black 25%, transparent);
+  background: var(--sea-bright);
+  color: var(--ink-on-sea);
+  border-color: var(--sea-bright);
+  box-shadow: none;
 }
 
 .section-fold-actions {
@@ -870,29 +867,7 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-xs);
-  margin-inline-start: var(--space-sm);
-}
-
-.chip-quiet {
-  background: transparent;
-  border-color: transparent;
-  color: var(--ink-soft);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: color-mix(in oklab, var(--sea) 40%, transparent);
-}
-
-.chip-quiet:hover {
-  color: var(--sea-bright);
-  background: transparent;
-  transform: none;
-}
-
-.chip-quiet.active {
-  color: var(--signal-hot);
-  text-decoration-color: var(--signal-hot);
-  background: transparent;
-  border-color: transparent;
+  margin-inline-start: var(--space-xs);
 }
 
 .channel-list {
@@ -1008,14 +983,13 @@ a {
   min-width: 5.75rem;
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--sea-bright) 40%, var(--line));
-  background: color-mix(in oklab, var(--sea) 16%, var(--panel));
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 80%, transparent);
   color: var(--ink);
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
   font-size: var(--text-label);
   cursor: pointer;
-  letter-spacing: 0.01em;
 }
 
 .deploy-btn.on {
@@ -2132,12 +2106,6 @@ a {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--panel) 90%, transparent);
-}
-
-.bulk-bar-quiet {
-  border-style: dashed;
-  background: transparent;
-  padding: 0.35rem 0.15rem;
 }
 
 .bulk-label {

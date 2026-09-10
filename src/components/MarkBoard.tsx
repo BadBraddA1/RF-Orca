@@ -1494,7 +1494,7 @@ export function MarkBoard({
               <div className="section-fold-actions">
                 <button
                   type="button"
-                  className="chip chip-quiet"
+                  className="chip"
                   disabled={collapsedNamedCount === namedSectionCount}
                   onClick={() => setAllSectionsCollapsed(true)}
                 >
@@ -1502,7 +1502,7 @@ export function MarkBoard({
                 </button>
                 <button
                   type="button"
-                  className="chip chip-quiet"
+                  className="chip"
                   disabled={collapsedNamedCount === 0}
                   onClick={() => setAllSectionsCollapsed(false)}
                 >
@@ -2092,7 +2092,7 @@ export function MarkBoard({
             >
               <button
                 type="button"
-                className={`chip chip-quiet${allVisibleSelected ? " active" : ""}`}
+                className={`chip${allVisibleSelected ? " active" : ""}`}
                 disabled={bulkBusy}
                 onClick={() => {
                   if (allVisibleSelected) setSelectedIds({});
@@ -2115,7 +2115,7 @@ export function MarkBoard({
                   </span>
                   <button
                     type="button"
-                    className="chip chip-quiet"
+                    className="chip"
                     onClick={() => setSelectedIds({})}
                   >
                     Clear
@@ -2197,36 +2197,55 @@ export function MarkBoard({
           features.status &&
           visibleWithRoomFocus.length > 0 ? (
             <div
-              className="bulk-bar bulk-bar-quiet"
+              className="bulk-bar"
               role="group"
               aria-label="Bulk status for visible channels"
               aria-busy={bulkBusy || undefined}
             >
-              <label className="bulk-group-pick">
-                <span>
-                  {bulkBusy
-                    ? "Working…"
-                    : `Set ${visibleWithRoomFocus.length} visible`}
-                </span>
-                <select
-                  disabled={bulkBusy}
-                  defaultValue=""
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (!value) return;
-                    void bulkStatus(
-                      visibleWithRoomFocus.map((c) => c.id),
-                      value as "allowed" | "blocked" | "unreviewed",
-                    );
-                    e.target.value = "";
-                  }}
-                >
-                  <option value="">Status…</option>
-                  <option value="allowed">Allowed</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="unreviewed">Unreviewed</option>
-                </select>
-              </label>
+              <span className="bulk-label">
+                {bulkBusy
+                  ? "Working…"
+                  : `Set ${visibleWithRoomFocus.length} visible →`}
+              </span>
+              <button
+                type="button"
+                className="chip"
+                disabled={bulkBusy}
+                onClick={() =>
+                  void bulkStatus(
+                    visibleWithRoomFocus.map((c) => c.id),
+                    "allowed",
+                  )
+                }
+              >
+                Allowed
+              </button>
+              <button
+                type="button"
+                className="chip"
+                disabled={bulkBusy}
+                onClick={() =>
+                  void bulkStatus(
+                    visibleWithRoomFocus.map((c) => c.id),
+                    "blocked",
+                  )
+                }
+              >
+                Blocked
+              </button>
+              <button
+                type="button"
+                className="chip"
+                disabled={bulkBusy}
+                onClick={() =>
+                  void bulkStatus(
+                    visibleWithRoomFocus.map((c) => c.id),
+                    "unreviewed",
+                  )
+                }
+              >
+                Unreviewed
+              </button>
             </div>
           ) : null}
         </div>
