@@ -33,6 +33,11 @@ export function crewPatchBlocked(
   if (role === "admin") return null;
 
   const elevated = role === "boLead";
+  const undeploying = patch.deployed === false && channel.deployed;
+  const inDeployGrace =
+    undeploying &&
+    features.lockDeployed &&
+    withinDeployGrace(channel.deployedAt, DEPLOY_UNDO_GRACE_SEC);
 
   if (features.crewLocked && !elevated) {
     if (
@@ -67,6 +72,9 @@ export function crewPatchBlocked(
     return "Renaming channels requires coordinator unlock.";
   }
 
+  // Grace undeploy wins over stage/deploy locks (toast Undo / tap Deployed).
+  if (inDeployGrace) return null;
+
   if (features.lockStaged && !elevated) {
     const currentRoom = roomKey(channel.roomName);
     const changingRoom =
@@ -77,15 +85,9 @@ export function crewPatchBlocked(
   }
 
   if (features.lockDeployed && channel.deployed && !elevated) {
-    const undeploying = patch.deployed === false;
     const changingRoom =
       patch.roomName !== undefined &&
       roomKey(patch.roomName) !== roomKey(channel.roomName);
-    const inGrace = withinDeployGrace(
-      channel.deployedAt,
-      DEPLOY_UNDO_GRACE_SEC,
-    );
-    if (undeploying && inGrace) return null;
     if (undeploying || changingRoom) {
       return "Deployed channels are locked. Coordinator or BO Lead can change them.";
     }

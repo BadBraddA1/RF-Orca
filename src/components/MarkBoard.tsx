@@ -1102,7 +1102,7 @@ export function MarkBoard({
       setUndo({
         channelId,
         channelName: before.name,
-        expiresAt: Date.now() + 5000,
+        expiresAt: Date.now() + DEPLOY_UNDO_GRACE_SEC * 1000,
       });
     }
     if (patch.deployed === false) setUndo(null);
@@ -3134,7 +3134,6 @@ export function MarkBoard({
             onClick={() =>
               void patchChannel(undo.channelId, {
                 deployed: false,
-                roomName: null,
               })
             }
           >
