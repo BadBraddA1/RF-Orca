@@ -22,7 +22,7 @@ export function BrandLockup({ size = "hero" }: BrandLockupProps) {
       {!hero ? (
         <div className="brand-text">
           <p className="brand-name">
-            RF<span className="brand-orca">orca</span>
+            <span className="brand-rf">RF</span>orca
           </p>
         </div>
       ) : null}

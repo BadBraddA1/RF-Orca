@@ -127,6 +127,10 @@ a {
   line-height: 1.1;
 }
 
+.brand-rf {
+  color: var(--signal-hot);
+}
+
 .brand-orca {
   color: var(--signal-hot);
 }

@@ -1874,7 +1874,9 @@ export function MarkBoard({
             <div className="board-brand-desk">
               <BrandLockup size="header" />
             </div>
-            <p className="board-wordmark phone-only">RForca</p>
+            <p className="board-wordmark phone-only">
+              <span className="brand-rf">RF</span>orca
+            </p>
             <h1>{show.name}</h1>
             <p className="board-sub">
               <span className="board-sub-copy desk-only">
