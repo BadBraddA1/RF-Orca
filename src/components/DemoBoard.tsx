@@ -131,16 +131,28 @@ export function DemoBoard() {
           />
         </div>
         <div className="progress-groups">
-          {show.groups.map((g) => {
-            const list = show.channels.filter((c) => c.groupName === g.name)
-            const deployed = list.filter((c) => c.deployed).length
-            return (
+          {show.groups
+            .map((g) => {
+              const list = show.channels.filter((c) => c.groupName === g.name);
+              const deployed = list.filter((c) => c.deployed).length;
+              return { id: g.id, name: g.name, deployed, total: list.length };
+            })
+            .filter((g) => g.total > 0)
+            .sort((a, b) => {
+              const aDone = a.deployed === a.total;
+              const bDone = b.deployed === b.total;
+              if (aDone !== bDone) return aDone ? 1 : -1;
+              return a.name.localeCompare(b.name);
+            })
+            .map((g) => (
               <span key={g.id}>
-                {g.name} {deployed}/{list.length}
-                {list.length > 0 && deployed === list.length ? " ✓" : ""}
+                {g.name}{" "}
+                <span className="progress-groups-count">
+                  {g.deployed}/{g.total}
+                  {g.deployed === g.total ? " ✓" : ""}
+                </span>
               </span>
-            )
-          })}
+            ))}
         </div>
       </div>
 

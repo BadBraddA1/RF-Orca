@@ -843,9 +843,38 @@ a {
   gap: 0.35rem 0.75rem;
   font-size: var(--text-label);
   color: var(--ink-soft);
+  max-height: none;
+  overflow: visible;
+}
+
+.progress-groups[data-expanded="true"] {
   max-height: 11rem;
   overflow: auto;
   scrollbar-width: thin;
+}
+
+.progress-groups-count {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.progress-groups-more {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sea-bright);
+  font: inherit;
+  font-weight: 700;
+  min-height: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.progress-groups-more:hover {
+  color: var(--ink);
 }
 
 /** Filters + bulk bars: tight cluster above the channel list */

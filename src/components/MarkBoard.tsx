@@ -44,6 +44,8 @@ type Filter =
 type BoardView = "rack" | "list";
 type ListSort = "group" | "room" | "flat";
 
+const GROUP_PROGRESS_PEEK = 4;
+
 type FocusState = {
   group: string;
   room: string;
@@ -268,6 +270,7 @@ export function MarkBoard({
   >({});
   const [toolsOpen, setToolsOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [groupsExpanded, setGroupsExpanded] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
   const [roomsText, setRoomsText] = useState(
@@ -547,12 +550,31 @@ export function MarkBoard({
 
   const groupProgress = useMemo(() => {
     if (!features.groups || !features.deploy) return [];
-    return groupNames.map((name) => {
-      const list = show.channels.filter((c) => c.groupName === name);
-      const deployed = list.filter((c) => c.deployed).length;
-      return { name, deployed, total: list.length };
-    });
+    return groupNames
+      .map((name) => {
+        const list = show.channels.filter((c) => c.groupName === name);
+        const deployed = list.filter((c) => c.deployed).length;
+        return { name, deployed, total: list.length };
+      })
+      .filter((g) => g.total > 0)
+      .sort((a, b) => {
+        const aDone = a.deployed === a.total;
+        const bDone = b.deployed === b.total;
+        if (aDone !== bDone) return aDone ? 1 : -1;
+        const aLeft = a.total - a.deployed;
+        const bLeft = b.total - b.deployed;
+        if (aLeft !== bLeft) return bLeft - aLeft;
+        return a.name.localeCompare(b.name);
+      });
   }, [groupNames, show.channels, features.groups, features.deploy]);
+
+  const visibleGroupProgress = groupsExpanded
+    ? groupProgress
+    : groupProgress.slice(0, GROUP_PROGRESS_PEEK);
+  const hiddenGroupCount = Math.max(
+    0,
+    groupProgress.length - GROUP_PROGRESS_PEEK,
+  );
 
   const visible = useMemo(() => {
     return show.channels.filter((c) => {
@@ -1442,13 +1464,29 @@ export function MarkBoard({
             </div>
           ) : null}
           {groupProgress.length > 0 ? (
-            <div className="progress-groups">
-              {groupProgress.map((g) => (
+            <div
+              className="progress-groups"
+              data-expanded={groupsExpanded ? "true" : undefined}
+            >
+              {visibleGroupProgress.map((g) => (
                 <span key={g.name}>
-                  {g.name} {g.deployed}/{g.total}
-                  {g.total > 0 && g.deployed === g.total ? " ✓" : ""}
+                  {g.name}{" "}
+                  <span className="progress-groups-count">
+                    {g.deployed}/{g.total}
+                    {g.deployed === g.total ? " ✓" : ""}
+                  </span>
                 </span>
               ))}
+              {hiddenGroupCount > 0 ? (
+                <button
+                  type="button"
+                  className="progress-groups-more"
+                  aria-expanded={groupsExpanded}
+                  onClick={() => setGroupsExpanded((v) => !v)}
+                >
+                  {groupsExpanded ? "Show less" : `${hiddenGroupCount} more`}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
