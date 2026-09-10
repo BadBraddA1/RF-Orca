@@ -308,7 +308,7 @@ a {
   justify-content: space-between;
   gap: 0.75rem 1rem;
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid color-mix(in oklab, var(--sea-bright) 35%, var(--line));
   background: color-mix(in oklab, var(--sea) 14%, transparent);
   font-size: 0.92rem;
@@ -1230,7 +1230,7 @@ a {
   gap: 0.55rem;
   padding: 0.85rem;
   border: 1px solid color-mix(in oklab, var(--danger) 40%, var(--line));
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--danger) 8%, transparent);
 }
 
@@ -1253,7 +1253,7 @@ a {
   gap: 0.55rem;
   padding: 0.85rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--panel) 88%, transparent);
 }
 
@@ -1315,7 +1315,7 @@ a {
 
 .board-banner {
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
   font-size: 0.92rem;
   font-weight: 650;
@@ -1371,7 +1371,7 @@ a {
   gap: 0.45rem;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--panel) 90%, transparent);
   position: sticky;
   top: 0.35rem;
@@ -1424,7 +1424,7 @@ a {
   overflow: auto;
   padding: 0.65rem 0.85rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
 }
 
@@ -1484,7 +1484,7 @@ a {
   gap: 0.65rem;
   padding: 0.85rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .import-pick-row {
