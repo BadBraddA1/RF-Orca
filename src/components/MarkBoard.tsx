@@ -437,7 +437,14 @@ export function MarkBoard({
     if (fromUrl.band) setBandFilter(fromUrl.band);
     if (fromUrl.filter) setFilter(fromUrl.filter);
     if (fromUrl.view) setBoardView(fromUrl.view);
-    setCrewMode(loadBool(crewKey(token)));
+    const crewOn = loadBool(crewKey(token));
+    setCrewMode(crewOn);
+    if (
+      crewOn &&
+      (initialShow.features.rooms || initialShow.features.assignments)
+    ) {
+      setBoardView("rack");
+    }
     setFlashChanges(loadBool(flashKey(token)));
     setListSort(fromUrl.sort ?? loadListSort(token, initialShow.features));
     setCollapsedSections(loadCollapsed(token));
@@ -603,6 +610,9 @@ export function MarkBoard({
   }, []);
 
   function enterCrewMode() {
+    if (features.rooms || features.assignments) {
+      setBoardView("rack");
+    }
     setCrewMode(true);
     setToolsOpen(false);
     requestElFullscreen(boardRef.current);
@@ -1661,7 +1671,7 @@ export function MarkBoard({
               className="btn-ghost"
               onClick={() => exitCrewMode()}
             >
-              Exit Crew
+              Exit Audio Crew
             </button>
           </div>
         </header>
@@ -1705,7 +1715,7 @@ export function MarkBoard({
               className="btn-ghost"
               onClick={() => enterCrewMode()}
             >
-              Crew
+              Audio Crew
             </button>
             <button
               type="button"
