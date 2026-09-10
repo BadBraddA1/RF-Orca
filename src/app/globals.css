@@ -5,6 +5,7 @@
   --ink-soft: #c5d2e8;
   --navy: #06101f;
   --navy-2: #0a1a30;
+  --navy-deep: #071526;
   --panel: #10263f;
   --sea: #1aa7c4;
   --sea-bright: #4ae0f5;
@@ -17,10 +18,23 @@
   --ok: #5dffc0;
   --ok-ink: #b8ffe0;
   --ok-soft: #9bffd8;
+  --danger-ink: #ffb0b8;
+  --danger-soft: #ffd0d5;
+  --ink-on-signal: #1a0b00;
+  --ink-on-sea: #041018;
+  --signal-deep: #8a4b00;
+  --input-deep: #0c1c30;
+  --panel-lift: #0f243f;
+  --heading-mist: #d7e3f7;
   --line: color-mix(in oklab, var(--sea-bright) 28%, transparent);
   --shadow: 0 22px 60px color-mix(in oklab, black 55%, transparent);
   /** Floor / phone minimum tap target (PRODUCT ≥44px). */
   --touch-min: 2.75rem;
+  --radius-sm: 0.45rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 0.85rem;
+  --radius-xl: 1rem;
+  --radius-pill: 999px;
   --font-display: var(--font-syne), "Avenir Next", sans-serif;
   --font-body: var(--font-source-sans), "Source Sans 3", sans-serif;
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
@@ -47,7 +61,7 @@ body {
   background:
     radial-gradient(900px 500px at 12% -8%, color-mix(in oklab, var(--sea) 28%, transparent), transparent 55%),
     radial-gradient(700px 420px at 90% 8%, color-mix(in oklab, var(--signal) 18%, transparent), transparent 50%),
-    linear-gradient(165deg, var(--navy) 0%, var(--navy-2) 55%, #071526 100%);
+    linear-gradient(165deg, var(--navy) 0%, var(--navy-2) 55%, var(--navy-deep) 100%);
   background-attachment: fixed;
 }
 
@@ -429,7 +443,7 @@ a {
 .admin-panel,
 .channel-row,
 .empty {
-  background: color-mix(in oklab, #0f243f 88%, white 6%);
+  background: color-mix(in oklab, var(--panel-lift) 88%, white 6%);
   border: 1px solid var(--line);
   border-radius: 1rem;
   box-shadow: var(--shadow);
@@ -512,7 +526,7 @@ a {
   font: inherit;
   font-weight: 500;
   border: 1px solid var(--line);
-  border-radius: 0.7rem;
+  border-radius: var(--radius-md, 0.75rem);
   padding: 0.7rem 0.85rem;
   background: color-mix(in oklab, var(--navy) 70%, white 8%);
   color: var(--ink);
@@ -536,7 +550,7 @@ a {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--signal), var(--signal-hot));
-  color: #1a0b00;
+  color: var(--ink-on-signal);
   padding: 0.85rem 1.2rem;
   font-weight: 700;
   box-shadow: 0 10px 28px color-mix(in oklab, var(--signal) 35%, transparent);
@@ -571,7 +585,7 @@ a {
   border-radius: 999px;
   border: 1px solid color-mix(in oklab, var(--danger) 55%, transparent);
   background: color-mix(in oklab, var(--danger) 22%, transparent);
-  color: #ffd0d5;
+  color: var(--danger-soft);
   padding: 0.65rem 1rem;
   font-weight: 700;
   width: fit-content;
@@ -649,7 +663,7 @@ a {
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
   background: color-mix(in oklab, var(--signal) 18%, white);
-  color: #8a4b00;
+  color: var(--signal-deep);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -712,7 +726,7 @@ a {
 .filter.active,
 .chip.active {
   background: var(--sea-bright);
-  color: #041018;
+  color: var(--ink-on-sea);
   border-color: var(--sea-bright);
 }
 
@@ -796,7 +810,7 @@ a {
 
 .tag.status-blocked {
   background: color-mix(in oklab, var(--danger) 22%, transparent);
-  color: #ffb0b8;
+  color: var(--danger-ink);
 }
 
 .status-controls {
@@ -1056,7 +1070,7 @@ a {
   border: 1px solid var(--line);
   border-radius: 0.45rem;
   padding: 0.35rem 0.5rem;
-  background: #0c1c30;
+  background: var(--input-deep);
 }
 
 .rack-drop-select {
@@ -1068,7 +1082,7 @@ a {
   border: 1px solid var(--line);
   border-radius: 0.45rem;
   padding: 0.35rem 0.5rem;
-  background: #0c1c30;
+  background: var(--input-deep);
   margin-bottom: 0.3rem;
 }
 
@@ -1400,7 +1414,7 @@ a {
 .board-banner.conflict {
   background: color-mix(in oklab, var(--danger) 14%, transparent);
   border-color: color-mix(in oklab, var(--danger) 40%, transparent);
-  color: #ffb0b8;
+  color: var(--danger-ink);
 }
 
 .activity-strip {
@@ -1791,7 +1805,7 @@ a {
 
 .tag.conflict-tag {
   background: color-mix(in oklab, var(--danger) 22%, transparent);
-  color: #ffb0b8;
+  color: var(--danger-ink);
 }
 
 .undo-toast {
@@ -1806,7 +1820,7 @@ a {
   padding: 0.75rem 1rem;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: color-mix(in oklab, #0f243f 92%, white 4%);
+  background: color-mix(in oklab, var(--panel-lift) 92%, white 4%);
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
   font-weight: 650;
@@ -1959,7 +1973,7 @@ a {
   font-size: 1rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #d7e3f7;
+  color: var(--heading-mist);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1993,7 +2007,7 @@ a {
   border: 1px solid var(--line);
   border-radius: 0.55rem;
   padding: 0.45rem 0.6rem;
-  background: #0c1c30;
+  background: var(--input-deep);
   min-width: 8rem;
 }
 
@@ -2014,7 +2028,7 @@ a {
 
 .tag.status-blocked {
   background: color-mix(in oklab, var(--danger) 22%, transparent);
-  color: #ffb0b8;
+  color: var(--danger-ink);
 }
 
 .freq {

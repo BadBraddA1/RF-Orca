@@ -17,6 +17,15 @@ colors:
   ok: "#5dffc0"
   ok-ink: "#b8ffe0"
   ok-soft: "#9bffd8"
+  danger-ink: "#ffb0b8"
+  danger-soft: "#ffd0d5"
+  ink-on-signal: "#1a0b00"
+  ink-on-sea: "#041018"
+  signal-deep: "#8a4b00"
+  input-deep: "#0c1c30"
+  panel-lift: "#0f243f"
+  heading-mist: "#d7e3f7"
+  navy-deep: "#071526"
 typography:
   display:
     fontFamily: "Syne, Avenir Next, sans-serif"
@@ -36,6 +45,12 @@ typography:
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "0.04em"
+  channel:
+    fontFamily: "Syne, Avenir Next, sans-serif"
+    fontSize: "1.15rem"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "-0.02em"
   body:
     fontFamily: "Source Sans 3, Source Sans 3, sans-serif"
     fontSize: "1rem"
@@ -48,6 +63,12 @@ typography:
     fontWeight: 650
     lineHeight: 1.3
     letterSpacing: "0.02em"
+  caption:
+    fontFamily: "Source Sans 3, sans-serif"
+    fontSize: "0.72rem"
+    fontWeight: 650
+    lineHeight: 1.25
+    letterSpacing: "0.04em"
   mono:
     fontFamily: "IBM Plex Mono, ui-monospace, monospace"
     fontSize: "0.95rem"
@@ -70,13 +91,13 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.signal}"
-    textColor: "#1a0b00"
+    textColor: "{colors.ink-on-signal}"
     rounded: "{rounded.pill}"
     padding: "0.55rem 1.1rem"
     height: "{spacing.touch}"
   button-primary-hover:
     backgroundColor: "{colors.signal-hot}"
-    textColor: "#1a0b00"
+    textColor: "{colors.ink-on-signal}"
     rounded: "{rounded.pill}"
   button-ghost:
     backgroundColor: "transparent"
@@ -102,7 +123,7 @@ components:
     height: "{spacing.touch}"
   chip-active:
     backgroundColor: "{colors.sea-bright}"
-    textColor: "#041018"
+    textColor: "{colors.ink-on-sea}"
     rounded: "{rounded.pill}"
   input-field:
     backgroundColor: "color-mix(in oklab, {colors.panel} 85%, transparent)"
@@ -180,8 +201,10 @@ A night-ops palette: deep navy fields, cyan for live/active chrome, orange for u
 - **Headline** (800, `clamp(2.5rem, 8vw, 5.5rem)`): Home / brand lock moments only.
 - **Display** (700, `clamp(1.6rem–2.4rem)`): Show name on the mark board.
 - **Title** (700, ~1rem, uppercase tracking): Group / room section headings.
+- **Channel** (700, 1.15rem): Channel name on the list row.
 - **Body** (400–600, 1rem): Tools copy, notes; inputs use ≥16px on mobile to avoid iOS zoom.
 - **Label** (650, ~0.85rem): Chip text, field captions.
+- **Caption** (650, ~0.72rem): Tiny tags, “closed”, Updated badge.
 - **Mono** (600, ~0.95rem): Frequencies, rack slots.
 
 ### Named Rules
