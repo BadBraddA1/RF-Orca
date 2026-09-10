@@ -1977,6 +1977,12 @@ a {
   background: color-mix(in oklab, var(--danger) 8%, transparent);
 }
 
+.danger-zone-gap {
+  margin-top: 0.55rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in oklab, var(--danger) 28%, var(--line));
+}
+
 .chip.danger-chip {
   border-color: color-mix(in oklab, var(--danger) 55%, transparent);
   color: color-mix(in oklab, var(--danger) 85%, white);

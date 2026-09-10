@@ -18,6 +18,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
 - **Rename show** — Tools → Show name → Rename (share link stays the same)
 - **Rooms** — edit lines in Tools → Save rooms; stage channels before Deploy; renames update staged/deployed channels; remove a line to drop a room
+- **Delete all channels** — Tools → Danger zone; type `DELETE CHANNELS` (keeps the show, rooms, groups, names, and share link)
 - **Delete show** — Tools → Danger zone; type the show name to confirm (permanent)
 - **Show options** (toggles): Deploy, Rooms, Groups on by default; **Mic rack assignments** and **Allow/Block** off until you need them; **Lock after deploy** on; **Lock board for crew** off
 - Tools → rack presets / custom **cols × rows** + **Fill empty** (when Mic rack assignments is on)

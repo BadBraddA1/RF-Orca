@@ -289,6 +289,11 @@ export function MarkBoard({
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [clearChannelsConfirm, setClearChannelsConfirm] = useState("");
+  const [clearChannelsBusy, setClearChannelsBusy] = useState(false);
+  const [clearChannelsError, setClearChannelsError] = useState<string | null>(
+    null,
+  );
   const [showNameDraft, setShowNameDraft] = useState(initialShow.name);
   const [renameBusy, setRenameBusy] = useState(false);
   const [renameMsg, setRenameMsg] = useState<string | null>(null);
@@ -1003,6 +1008,44 @@ export function MarkBoard({
       setDeleteError(err instanceof Error ? err.message : "Could not delete show");
     } finally {
       setDeleteBusy(false);
+    }
+  }
+
+  async function deleteAllChannels() {
+    setClearChannelsError(null);
+    if (clearChannelsConfirm !== "DELETE CHANNELS") {
+      setClearChannelsError("Type DELETE CHANNELS to confirm.");
+      return;
+    }
+    const ids = show.channels.map((c) => c.id);
+    if (ids.length === 0) {
+      setClearChannelsError("No channels to delete.");
+      return;
+    }
+    setClearChannelsBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}/channels`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete",
+          channelIds: ids,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setClearChannelsError(data.error || "Could not delete channels");
+        return;
+      }
+      applyShow(data.show);
+      setSelectedIds({});
+      setClearChannelsConfirm("");
+    } catch (err) {
+      setClearChannelsError(
+        err instanceof Error ? err.message : "Could not delete channels",
+      );
+    } finally {
+      setClearChannelsBusy(false);
     }
   }
 
@@ -2434,7 +2477,42 @@ export function MarkBoard({
 
               <div className="danger-zone" aria-label="Danger zone">
                 <p className="tools-whisper">Danger zone</p>
+
                 <p className="field-note">
+                  Delete all {show.channels.length} channels from this show
+                  (keeps rooms, groups, names, and the share link). Type{" "}
+                  <strong>DELETE CHANNELS</strong> to confirm.
+                </p>
+                <div className="admin-row">
+                  <input
+                    type="text"
+                    value={clearChannelsConfirm}
+                    onChange={(e) => setClearChannelsConfirm(e.target.value)}
+                    placeholder="DELETE CHANNELS"
+                    autoComplete="off"
+                    disabled={show.channels.length === 0 || clearChannelsBusy}
+                    aria-label="Type DELETE CHANNELS to confirm"
+                  />
+                  <button
+                    type="button"
+                    className="btn-danger"
+                    disabled={
+                      clearChannelsBusy ||
+                      show.channels.length === 0 ||
+                      clearChannelsConfirm !== "DELETE CHANNELS"
+                    }
+                    onClick={() => void deleteAllChannels()}
+                  >
+                    {clearChannelsBusy
+                      ? "Deleting…"
+                      : `Delete all channels (${show.channels.length})`}
+                  </button>
+                </div>
+                {clearChannelsError ? (
+                  <p className="form-error">{clearChannelsError}</p>
+                ) : null}
+
+                <p className="field-note danger-zone-gap">
                   Delete this show permanently (channels, assignments, and the
                   share link). Type the show name to confirm.
                 </p>
