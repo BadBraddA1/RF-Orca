@@ -219,10 +219,6 @@ function crewKey(token: string) {
   return `rf-orca-crew:${token}`;
 }
 
-function flashKey(token: string) {
-  return `rf-orca-flash:${token}`;
-}
-
 function listSortKey(token: string) {
   return `rf-orca-list-sort:${token}`;
 }
@@ -420,12 +416,10 @@ export function MarkBoard({
   const [undoBusy, setUndoBusy] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [crewMode, setCrewMode] = useState(false);
-  const [flashChanges, setFlashChanges] = useState(false);
   const [flashIds, setFlashIds] = useState<Record<string, number>>({});
   const [lastChangeIds, setLastChangeIds] = useState<string[]>([]);
   const revisionRef = useRef(initialShow.revision ?? 0);
   const channelsRef = useRef(initialShow.channels);
-  const flashEnabledRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -480,7 +474,6 @@ export function MarkBoard({
     ) {
       setBoardView("rack");
     }
-    setFlashChanges(loadBool(flashKey(token)));
     setListSort(fromUrl.sort ?? loadListSort(token, initialShow.features));
     setCollapsedSections(loadCollapsed(token));
     shareHydratedRef.current = true;
@@ -559,11 +552,6 @@ export function MarkBoard({
   }, [token, crewMode]);
 
   useEffect(() => {
-    localStorage.setItem(flashKey(token), flashChanges ? "1" : "0");
-    flashEnabledRef.current = flashChanges;
-  }, [token, flashChanges]);
-
-  useEffect(() => {
     if (!undo) return;
     const ms = Math.max(0, undo.expiresAt - Date.now());
     const id = window.setTimeout(() => setUndo(null), ms);
@@ -601,7 +589,7 @@ export function MarkBoard({
     const ids = Object.keys(flashIds);
     if (ids.length === 0) return;
     const id = window.setTimeout(() => {
-      const cutoff = Date.now() - 2000;
+      const cutoff = Date.now() - 700;
       setFlashIds((prev) => {
         const next: Record<string, number> = {};
         for (const [k, at] of Object.entries(prev)) {
@@ -609,7 +597,8 @@ export function MarkBoard({
         }
         return next;
       });
-    }, 2050);
+      setLastChangeIds([]);
+    }, 750);
     return () => window.clearTimeout(id);
   }, [flashIds]);
 
@@ -625,14 +614,12 @@ export function MarkBoard({
     }
     if (changed.length > 0) {
       setLastChangeIds(changed);
-      if (flashEnabledRef.current) {
-        const at = Date.now();
-        setFlashIds((prev) => {
-          const merged = { ...prev };
-          for (const id of changed) merged[id] = at;
-          return merged;
-        });
-      }
+      const at = Date.now();
+      setFlashIds((prev) => {
+        const merged = { ...prev };
+        for (const id of changed) merged[id] = at;
+        return merged;
+      });
     }
     channelsRef.current = next.channels;
     setShow(next);
@@ -1843,14 +1830,6 @@ export function MarkBoard({
             ) : null}
           </div>
           <div className="crew-bar-actions">
-            <label className="crew-toggle">
-              <input
-                type="checkbox"
-                checked={flashChanges}
-                onChange={(e) => setFlashChanges(e.target.checked)}
-              />
-              <span>Flash changes</span>
-            </label>
             <button
               type="button"
               className="btn-ghost"
@@ -1894,14 +1873,6 @@ export function MarkBoard({
             </p>
           </div>
           <div className="board-actions">
-            <label className="crew-toggle desk-only">
-              <input
-                type="checkbox"
-                checked={flashChanges}
-                onChange={(e) => setFlashChanges(e.target.checked)}
-              />
-              <span>Flash changes</span>
-            </label>
             <button
               type="button"
               className="btn-ghost desk-only"

@@ -2631,7 +2631,7 @@ a {
 
 .channel-row.is-flash,
 .rack-cell.is-flash {
-  animation: mic-flash 0.45s ease-out 4;
+  animation: mic-flash 0.55s ease-out 1;
 }
 
 .channel-row.is-last-change,
