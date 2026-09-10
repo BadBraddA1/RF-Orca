@@ -35,8 +35,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Share view links** — the show URL keeps current **view / sort / My room / Filters** (`?sort=room&room=Ballroom+A&filter=staged…`). **Copy link** pastes that view for crew
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — tap **Filters** for a popup (bands / groups / status); summary stays on the board so you don’t scroll to change scope
-- **Select → group** — unlock Tools (open Tools panel), tap the circle on channels (or Select all), then **Set group** from the sticky bar; select bar also appears once any channel is selected
-- **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or Select all → **Delete N** (confirms first)
+- **Select → group** — unlock Tools, tap the circle on channels (or Select all in the rail); bulk **Set group / Stage room / Delete** appear in a bottom dock over empty space so the list doesn’t jump
+- **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or select → **Delete N** in the bottom dock (confirms first)
 - **List sort** — **By group**, **By room**, or **Flat**; caret to close one section; **Close all** / **Open all** for every section
 - **Open on move** — staging a channel into a room (or group) auto-opens that section if it was closed
 - **Prestage rooms** — pick **Stage room** on a channel (or Select all → Stage room) before Deploy; undeploy keeps the staged room; filters **Staged** / **No room**

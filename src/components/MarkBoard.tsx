@@ -1427,10 +1427,8 @@ export function MarkBoard({
   }, [show.rooms, show.channels]);
 
   const showSelectBar =
-    admin &&
-    !showRack &&
-    visibleWithRoomFocus.length > 0 &&
-    (toolsOpen || selectedList.length > 0);
+    admin && !showRack && visibleWithRoomFocus.length > 0;
+  const showSelectionDock = showSelectBar && selectedList.length > 0;
   const showStatusBulk =
     admin &&
     features.status &&
@@ -1448,7 +1446,7 @@ export function MarkBoard({
   return (
     <div
       ref={boardRef}
-      className={`board${crewMode ? " board--crew" : " board--desk"}`}
+      className={`board${crewMode ? " board--crew" : " board--desk"}${showSelectionDock ? " board--selecting" : ""}`}
     >
       {crewMode ? (
         <header className="crew-bar">
@@ -1829,88 +1827,15 @@ export function MarkBoard({
               {bulkBusy ? (
                 <span className="field-note">Working…</span>
               ) : selectedList.length > 0 ? (
-                <>
-                  <span className="bulk-label">
-                    {selectedList.length} selected
-                    {!allVisibleSelected
-                      ? ` · ${visibleWithRoomFocus.length} on screen`
-                      : ""}
-                  </span>
-                  <button
-                    type="button"
-                    className="chip"
-                    onClick={() => setSelectedIds({})}
-                  >
-                    Clear
-                  </button>
-                  {features.groups ? (
-                    <label className="bulk-group-pick">
-                      <span>Set group</span>
-                      <select
-                        disabled={bulkBusy || savedGroupNames.length === 0}
-                        defaultValue=""
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (!value) return;
-                          const groupName = value === "__none__" ? null : value;
-                          void bulkGroup(selectedList, groupName);
-                          e.target.value = "";
-                        }}
-                      >
-                        <option value="">
-                          {savedGroupNames.length
-                            ? "Pick group…"
-                            : "Save groups in Tools first"}
-                        </option>
-                        {savedGroupNames.map((g) => (
-                          <option key={g} value={g}>
-                            {g}
-                          </option>
-                        ))}
-                        <option value="__none__">Ungrouped</option>
-                      </select>
-                    </label>
-                  ) : null}
-                  {features.rooms ? (
-                    <label className="bulk-group-pick">
-                      <span>Stage room</span>
-                      <select
-                        disabled={bulkBusy || show.rooms.length === 0}
-                        defaultValue=""
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (!value) return;
-                          const roomName = value === "__none__" ? null : value;
-                          void bulkRoom(selectedList, roomName);
-                          e.target.value = "";
-                        }}
-                      >
-                        <option value="">
-                          {show.rooms.length
-                            ? "Pick room…"
-                            : "Save rooms in Tools first"}
-                        </option>
-                        {show.rooms.map((r) => (
-                          <option key={r.id} value={r.name}>
-                            {r.name}
-                          </option>
-                        ))}
-                        <option value="__none__">Clear room</option>
-                      </select>
-                    </label>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="chip danger-chip"
-                    disabled={bulkBusy}
-                    onClick={() => void deleteChannelsById(selectedList)}
-                  >
-                    Delete {selectedList.length}
-                  </button>
-                </>
+                <span className="bulk-label">
+                  {selectedList.length} selected
+                  {!allVisibleSelected
+                    ? ` · ${visibleWithRoomFocus.length} on screen`
+                    : ""}
+                </span>
               ) : (
                 <span className="field-note">
-                  Selects everything on screen for the current filters.
+                  Tap a circle, then use the bar at the bottom.
                 </span>
               )}
             </div>
@@ -2853,6 +2778,91 @@ export function MarkBoard({
             }
           >
             Undo
+          </button>
+        </div>
+      ) : null}
+
+      {showSelectionDock ? (
+        <div
+          className="selection-dock"
+          role="toolbar"
+          aria-label="Bulk actions for selected channels"
+          aria-busy={bulkBusy || undefined}
+        >
+          <span className="bulk-label">
+            {selectedList.length} selected
+          </span>
+          <button
+            type="button"
+            className="chip"
+            disabled={bulkBusy}
+            onClick={() => setSelectedIds({})}
+          >
+            Clear
+          </button>
+          {features.groups ? (
+            <label className="bulk-group-pick">
+              <span>Set group</span>
+              <select
+                disabled={bulkBusy || savedGroupNames.length === 0}
+                defaultValue=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  const groupName = value === "__none__" ? null : value;
+                  void bulkGroup(selectedList, groupName);
+                  e.target.value = "";
+                }}
+              >
+                <option value="">
+                  {savedGroupNames.length
+                    ? "Pick group…"
+                    : "Save groups in Tools first"}
+                </option>
+                {savedGroupNames.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+                <option value="__none__">Ungrouped</option>
+              </select>
+            </label>
+          ) : null}
+          {features.rooms ? (
+            <label className="bulk-group-pick">
+              <span>Stage room</span>
+              <select
+                disabled={bulkBusy || show.rooms.length === 0}
+                defaultValue=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  const roomName = value === "__none__" ? null : value;
+                  void bulkRoom(selectedList, roomName);
+                  e.target.value = "";
+                }}
+              >
+                <option value="">
+                  {show.rooms.length
+                    ? "Pick room…"
+                    : "Save rooms in Tools first"}
+                </option>
+                {show.rooms.map((r) => (
+                  <option key={r.id} value={r.name}>
+                    {r.name}
+                  </option>
+                ))}
+                <option value="__none__">Clear room</option>
+              </select>
+            </label>
+          ) : null}
+          <button
+            type="button"
+            className="chip danger-chip"
+            disabled={bulkBusy}
+            onClick={() => void deleteChannelsById(selectedList)}
+          >
+            Delete {selectedList.length}
           </button>
         </div>
       ) : null}

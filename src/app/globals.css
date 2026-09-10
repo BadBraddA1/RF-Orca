@@ -1738,6 +1738,7 @@ a {
   justify-content: space-between;
   gap: 0.5rem;
   width: 100%;
+  min-width: 0;
   min-height: var(--touch-min);
   margin: 0;
   padding: 0.55rem 0.8rem;
@@ -1761,6 +1762,13 @@ a {
     0.35rem 0.35rem;
   background-repeat: no-repeat;
   padding-right: 2rem;
+}
+
+.pick-trigger > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pick-field--compact .pick-trigger {
@@ -2810,6 +2818,54 @@ a {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--panel) 90%, transparent);
+}
+
+/** Stable rail strip — bulk actions live in .selection-dock so the list doesn't jump. */
+.board-rail .select-bar {
+  min-height: 4.25rem;
+  align-content: center;
+}
+
+.selection-dock {
+  position: fixed;
+  z-index: 55;
+  left: max(0.75rem, env(safe-area-inset-left));
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-sm) 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid color-mix(in oklab, var(--signal) 35%, var(--line));
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--panel-lift) 92%, var(--navy) 8%);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  max-width: min(48rem, calc(100vw - 1.5rem));
+  margin-inline: auto;
+  width: fit-content;
+  animation: rise 0.2s ease both;
+}
+
+.board--selecting {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 900px) {
+  .board--desk .selection-dock {
+    /* Sit over the main column, clear of the sticky rail */
+    left: max(
+      0.75rem,
+      calc(
+        clamp(1rem, 2vw, 2rem) + 17.5rem + clamp(1.25rem, 2vw, 2.25rem)
+      )
+    );
+    right: clamp(1rem, 2vw, 2rem);
+    margin-inline: 0;
+    width: auto;
+    max-width: none;
+  }
 }
 
 .bulk-label {
