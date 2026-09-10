@@ -40,14 +40,14 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); then Set group / Stage room
 - **Rename channels** — with Tools unlocked, edit the channel name inline on the list
 - **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
-- **Mic rack (A2)** — custom grid (4×1, 3×3, …); **Handheld / Lav**; **saved names** roster with drop-in Who menu; set Who; toggle In use; shows **band** (G50 / H50 / G57+) next to MHz; live via Ably
-- **List is the default board view** (Rack still available when Mic rack assignments is on)
+- **Mic rack (A2)** — when **Rooms** is on: **Rack** → pick a room → see/mark that room’s gear (Who, Handheld/Lav, In use, Deploy). **Change room** returns to the picker. Without Rooms: physical slot grid (cols×rows, Fill empty) when Mic rack assignments is on
+- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on)
 - **Crew mode** — header **Crew** button: fullscreen-friendly view (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
 - **Flash changes** — pulse a rack cell / channel card when it updates (respects `prefers-reduced-motion` — static highlight instead); most recently changed keep an orange “Updated” tint
 - **Focus** — shared sea-bright focus rings on mark-board controls for keyboard use
 - **Import preview** — Workbench **Coordination report** or Inventory CSV: imports **primary** frequencies only (skips Backup section); keeps band + names; preview then confirm
 - **Search** — name / who / MHz / band jump (Enter scrolls to first match)
-- **My room** focus — filter to the room you’re dressing (persists in localStorage)
+- **My room** focus — on **List**, filter to the room you’re dressing (persists in localStorage); same selection opens that room’s gear when you switch to **Rack**
 - **Progress HUD** — sticky deployed + in-use + assignment counts
 - **Activity strip** — recent deploy / assign / in-use / import / settings events
 - **Conflict ping** — same frequency deployed more than once

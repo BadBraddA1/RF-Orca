@@ -10,6 +10,8 @@ type Patch = Partial<{
   inUse: boolean;
   micKind: MicKind | null;
   name: string;
+  deployed: boolean;
+  roomName: string | null;
 }>;
 
 export function MicRackGrid({
@@ -24,6 +26,9 @@ export function MicRackGrid({
   filterWho,
   flashIds,
   lastChangeIds,
+  mode = "physical",
+  roomName = null,
+  onChangeRoom,
   onPatch,
   onFillEmpty,
   fillBusy,
@@ -39,6 +44,10 @@ export function MicRackGrid({
   filterWho?: "all" | "assigned" | "unassigned";
   flashIds?: Record<string, number>;
   lastChangeIds?: string[];
+  /** physical = full rack map; room = gear staged/deployed in one room */
+  mode?: "physical" | "room";
+  roomName?: string | null;
+  onChangeRoom?: () => void;
   onPatch: (id: string, patch: Patch) => Promise<void>;
   onFillEmpty?: () => Promise<void>;
   fillBusy?: boolean;
@@ -49,7 +58,48 @@ export function MicRackGrid({
     [channels, size],
   );
 
+  const roomChannels = useMemo(() => {
+    if (mode !== "room" || !roomName) return [];
+    const needle = search.trim().toLowerCase();
+    const whoFilter = filterWho ?? "all";
+    return channels
+      .filter((c) => (c.roomName ?? "").trim() === roomName)
+      .filter((c) => {
+        if (filterInUse === "inuse" && !c.inUse) return false;
+        if (filterInUse === "spare" && c.inUse) return false;
+        if (whoFilter === "assigned" && !c.assignedTo?.trim()) return false;
+        if (whoFilter === "unassigned" && c.assignedTo?.trim()) return false;
+        if (!needle) return true;
+        const hay = [
+          c.name,
+          c.assignedTo,
+          c.micKind,
+          c.rackSlot != null ? formatRackSlot(c.rackSlot) : "",
+          c.frequencyMhz > 0 ? c.frequencyMhz.toFixed(3) : "",
+          c.band,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(needle);
+      })
+      .sort((a, b) => {
+        const sa = a.rackSlot ?? 9999;
+        const sb = b.rackSlot ?? 9999;
+        if (sa !== sb) return sa - sb;
+        return a.name.localeCompare(b.name);
+      });
+  }, [
+    mode,
+    roomName,
+    channels,
+    search,
+    filterInUse,
+    filterWho,
+  ]);
+
   const slots = useMemo(() => {
+    if (mode === "room") return [];
     const needle = search.trim().toLowerCase();
     const whoFilter = filterWho ?? "all";
     const list: { slot: number; channel: Channel | null }[] = [];
@@ -78,10 +128,78 @@ export function MicRackGrid({
       list.push({ slot, channel });
     }
     return list;
-  }, [bySlot, size, search, filterInUse, filterWho]);
+  }, [mode, bySlot, size, search, filterInUse, filterWho]);
 
   const emptyCount = size - bySlot.size;
-  const inUseCount = channels.filter((c) => c.inUse).length;
+  const inUseCount =
+    mode === "room"
+      ? roomChannels.filter((c) => c.inUse).length
+      : channels.filter((c) => c.inUse).length;
+  const deployedCount =
+    mode === "room" ? roomChannels.filter((c) => c.deployed).length : 0;
+
+  if (mode === "room") {
+    return (
+      <div className="mic-rack mic-rack--room">
+        <div className="mic-rack-hud" role="status">
+          <div className="mic-rack-hud-main">
+            <strong>{roomName}</strong>
+            <span>
+              {roomChannels.length} gear
+              {features.deploy
+                ? ` · ${deployedCount} deployed`
+                : ""}
+              {features.assignments ? ` · ${inUseCount} in use` : ""}
+            </span>
+          </div>
+          {onChangeRoom ? (
+            <button type="button" className="chip" onClick={onChangeRoom}>
+              Change room
+            </button>
+          ) : null}
+        </div>
+
+        {roomChannels.length === 0 ? (
+          <div className="empty">
+            Nothing staged or deployed in {roomName} yet.
+            {admin
+              ? " Stage channels to this room from List, then come back."
+              : ""}
+          </div>
+        ) : (
+          <div
+            className="mic-rack-grid mic-rack-grid--room"
+            role="list"
+            aria-label={`Gear in ${roomName}`}
+          >
+            {roomChannels.map((channel) => (
+              <RackCell
+                key={channel.id}
+                slot={channel.rackSlot ?? 0}
+                channel={channel}
+                features={features}
+                admin={admin}
+                frozen={features.crewLocked && !admin}
+                assigneeNames={assigneeNames}
+                roomMode
+                flashing={Boolean(flashIds?.[channel.id])}
+                lastChanged={Boolean(lastChangeIds?.includes(channel.id))}
+                onPatch={onPatch}
+              />
+            ))}
+          </div>
+        )}
+
+        {assigneeNames.length > 0 ? (
+          <datalist id="assignee-options">
+            {assigneeNames.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="mic-rack">
@@ -145,6 +263,7 @@ function RackCell({
   admin,
   frozen,
   assigneeNames,
+  roomMode = false,
   flashing,
   lastChanged,
   onPatch,
@@ -155,6 +274,7 @@ function RackCell({
   admin: boolean;
   frozen: boolean;
   assigneeNames: string[];
+  roomMode?: boolean;
   flashing?: boolean;
   lastChanged?: boolean;
   onPatch: (id: string, patch: Patch) => Promise<void>;
@@ -179,60 +299,75 @@ function RackCell({
     );
   }
 
+  const ch = channel;
   const headline =
-    channel.assignedTo && channel.name
-      ? `${channel.assignedTo} · ${channel.name}`
-      : channel.name;
+    ch.assignedTo && ch.name
+      ? `${ch.assignedTo} · ${ch.name}`
+      : ch.name;
+
+  const deployLocked =
+    features.lockDeployed && ch.deployed && !admin;
+  const markDisabled =
+    frozen ||
+    deployLocked ||
+    (features.status && ch.status === "blocked");
 
   function setKind(kind: MicKind) {
     if (frozen || !features.assignments) return;
-    // Tap again to clear.
-    void onPatch(channel!.id, {
-      micKind: channel!.micKind === kind ? null : kind,
+    void onPatch(ch.id, {
+      micKind: ch.micKind === kind ? null : kind,
     });
   }
 
   return (
     <div
-      id={`ch-${channel.id}`}
-      className={`rack-cell${channel.inUse ? " is-inuse" : " is-spare"}${channel.assignedTo ? " has-who" : ""}${channel.micKind ? ` kind-${channel.micKind}` : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}`}
+      id={`ch-${ch.id}`}
+      className={`rack-cell${ch.inUse ? " is-inuse" : " is-spare"}${ch.assignedTo ? " has-who" : ""}${ch.micKind ? ` kind-${ch.micKind}` : ""}${ch.deployed ? " is-deployed" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}`}
       role="listitem"
     >
       <div className="rack-cell-top">
-        <span className="rack-ch">CH {formatRackSlot(slot)}</span>
-        <button
-          type="button"
-          className={`rack-use-btn${channel.inUse ? " on" : ""}`}
-          disabled={frozen || !features.assignments}
-          aria-pressed={channel.inUse}
-          onClick={() => void onPatch(channel.id, { inUse: !channel.inUse })}
-        >
-          {channel.inUse ? "In use" : "Not in use"}
-        </button>
+        {slot > 0 ? (
+          <span className="rack-ch">CH {formatRackSlot(slot)}</span>
+        ) : (
+          <span className="rack-ch">Mic</span>
+        )}
+        {features.assignments ? (
+          <button
+            type="button"
+            className={`rack-use-btn${ch.inUse ? " on" : ""}`}
+            disabled={frozen}
+            aria-pressed={ch.inUse}
+            onClick={() => void onPatch(ch.id, { inUse: !ch.inUse })}
+          >
+            {ch.inUse ? "In use" : "Not in use"}
+          </button>
+        ) : null}
       </div>
 
       <p className="rack-headline">{headline}</p>
 
-      <div className="rack-kind-row" role="group" aria-label="Mic type">
-        <button
-          type="button"
-          className={`rack-kind-btn${channel.micKind === "handheld" ? " on" : ""}`}
-          disabled={frozen || !features.assignments}
-          aria-pressed={channel.micKind === "handheld"}
-          onClick={() => setKind("handheld")}
-        >
-          Handheld
-        </button>
-        <button
-          type="button"
-          className={`rack-kind-btn${channel.micKind === "lav" ? " on" : ""}`}
-          disabled={frozen || !features.assignments}
-          aria-pressed={channel.micKind === "lav"}
-          onClick={() => setKind("lav")}
-        >
-          Lav
-        </button>
-      </div>
+      {features.assignments ? (
+        <div className="rack-kind-row" role="group" aria-label="Mic type">
+          <button
+            type="button"
+            className={`rack-kind-btn${ch.micKind === "handheld" ? " on" : ""}`}
+            disabled={frozen}
+            aria-pressed={ch.micKind === "handheld"}
+            onClick={() => setKind("handheld")}
+          >
+            Handheld
+          </button>
+          <button
+            type="button"
+            className={`rack-kind-btn${ch.micKind === "lav" ? " on" : ""}`}
+            disabled={frozen}
+            aria-pressed={ch.micKind === "lav"}
+            onClick={() => setKind("lav")}
+          >
+            Lav
+          </button>
+        </div>
+      ) : null}
 
       {admin ? (
         <label className="rack-field">
@@ -241,72 +376,92 @@ function RackCell({
             value={nameDraft}
             disabled={frozen}
             placeholder={
-              channel.micKind
-                ? `${micKindLabel(channel.micKind)} ${slot}`
-                : "Handheld 3"
+              ch.micKind
+                ? `${micKindLabel(ch.micKind)} ${slot || ""}`.trim()
+                : "Mic name"
             }
             maxLength={80}
             onChange={(e) => setNameDraft(e.target.value)}
             onBlur={() => {
               const name = nameDraft.trim();
-              if (!name || name === channel.name) return;
-              void onPatch(channel.id, { name });
+              if (!name || name === ch.name) return;
+              void onPatch(ch.id, { name });
             }}
           />
         </label>
       ) : (
-        <p className="rack-mic-name">{channel.name}</p>
+        <p className="rack-mic-name">{ch.name}</p>
       )}
 
-      <label className={`rack-field${frozen ? " disabled" : ""}`}>
-        <span>Who</span>
-        {assigneeNames.length > 0 ? (
-          <select
-            className="rack-drop-select"
-            value=""
-            disabled={frozen || !features.assignments}
-            aria-label="Drop in saved name"
-            onChange={(e) => {
-              const assignedTo = e.target.value || null;
-              if (!assignedTo) return;
-              setWhoDraft(assignedTo);
-              void onPatch(channel.id, { assignedTo });
-              e.target.value = "";
-            }}
-          >
-            <option value="">Drop in name…</option>
-            {assigneeNames.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        <input
-          list="assignee-options"
-          value={whoDraft}
-          disabled={frozen || !features.assignments}
-          placeholder="e.g. Bradd"
-          maxLength={80}
-          autoComplete="off"
-          onChange={(e) => setWhoDraft(e.target.value)}
-          onBlur={() => {
-            const assignedTo = whoDraft.trim() || null;
-            if (assignedTo === (channel.assignedTo ?? null)) return;
-            void onPatch(channel.id, { assignedTo });
-          }}
-        />
-      </label>
-
-      {channel.frequencyMhz > 0 || channel.band ? (
-        <span className="rack-freq">
-          {channel.band ? (
-            <span className="rack-band">{channel.band}</span>
+      {features.assignments ? (
+        <label className={`rack-field${frozen ? " disabled" : ""}`}>
+          <span>Who</span>
+          {assigneeNames.length > 0 ? (
+            <select
+              className="rack-drop-select"
+              value=""
+              disabled={frozen}
+              aria-label="Drop in saved name"
+              onChange={(e) => {
+                const assignedTo = e.target.value || null;
+                if (!assignedTo) return;
+                setWhoDraft(assignedTo);
+                void onPatch(ch.id, { assignedTo });
+                e.target.value = "";
+              }}
+            >
+              <option value="">Drop in name…</option>
+              {assigneeNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
           ) : null}
-          {channel.frequencyMhz > 0 ? (
+          <input
+            list="assignee-options"
+            value={whoDraft}
+            disabled={frozen}
+            placeholder="e.g. Bradd"
+            maxLength={80}
+            autoComplete="off"
+            onChange={(e) => setWhoDraft(e.target.value)}
+            onBlur={() => {
+              const assignedTo = whoDraft.trim() || null;
+              if (assignedTo === (ch.assignedTo ?? null)) return;
+              void onPatch(ch.id, { assignedTo });
+            }}
+          />
+        </label>
+      ) : null}
+
+      {roomMode && features.deploy ? (
+        <button
+          type="button"
+          className={`deploy-btn${ch.deployed ? " on" : ""}${markDisabled ? " disabled" : ""}`}
+          disabled={markDisabled}
+          aria-pressed={ch.deployed}
+          onClick={() => {
+            if (markDisabled) return;
+            void onPatch(ch.id, {
+              deployed: !ch.deployed,
+              roomName: ch.roomName,
+            });
+          }}
+        >
+          {ch.deployed ? "Deployed" : "Deploy"}
+        </button>
+      ) : null}
+
+      {ch.frequencyMhz > 0 || ch.band ? (
+        <span className="rack-freq">
+          {ch.band ? (
+            <span className="rack-band">{ch.band}</span>
+          ) : null}
+          {ch.frequencyMhz > 0 ? (
             <span>
-              {channel.band ? " · " : ""}
-              {channel.frequencyMhz.toFixed(3)} MHz
+              {ch.band ? " · " : ""}
+              {ch.frequencyMhz.toFixed(3)} MHz
             </span>
           ) : null}
         </span>

@@ -1222,15 +1222,95 @@ a {
   color: var(--ink-soft);
 }
 
+.mic-rack-hud-main {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.mic-rack-hud-main strong {
+  color: var(--ink);
+  font-size: var(--text-body);
+}
+
 .mic-rack-grid {
   display: grid;
   gap: 0.65rem;
   grid-template-columns: repeat(var(--rack-cols, 4), minmax(0, 1fr));
 }
 
+.mic-rack-grid--room {
+  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+}
+
+.room-rack-picker {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.room-rack-cards {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+}
+
+.room-rack-card {
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  padding: 1rem 1.05rem;
+  min-height: 5.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in oklab, var(--panel) 92%, transparent),
+      color-mix(in oklab, var(--foam) 88%, transparent)
+    );
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.room-rack-card:hover {
+  border-color: color-mix(in oklab, var(--sea-bright) 45%, var(--line));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--sea-bright) 18%, transparent);
+}
+
+.room-rack-card:focus-visible {
+  outline: 2px solid var(--sea-bright);
+  outline-offset: 2px;
+}
+
+.room-rack-card-name {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.room-rack-card-meta {
+  font-size: var(--text-label);
+  color: var(--ink-soft);
+}
+
+.rack-cell.is-deployed {
+  border-color: color-mix(in oklab, var(--signal) 40%, var(--line));
+}
+
 @media (max-width: 639px) {
   .mic-rack-grid {
     grid-template-columns: repeat(min(2, var(--rack-cols, 4)), minmax(0, 1fr));
+  }
+
+  .mic-rack-grid--room {
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
   }
 }
 

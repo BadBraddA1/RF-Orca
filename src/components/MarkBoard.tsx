@@ -1251,7 +1251,31 @@ export function MarkBoard({
     show.channels,
   ]);
 
-  const showRack = features.assignments && boardView === "rack";
+  /** Rack is room-first when Rooms is on; otherwise the physical slot map (assignments). */
+  const canUseRack = features.rooms || features.assignments;
+  const roomRackMode = features.rooms && boardView === "rack";
+  const showRack = canUseRack && boardView === "rack";
+  const showRoomPicker = roomRackMode && !focusRoom;
+  const showRoomGear = roomRackMode && Boolean(focusRoom);
+  const showPhysicalRack =
+    showRack && !features.rooms && features.assignments;
+
+  const roomRackStats = useMemo(() => {
+    return show.rooms.map((room) => {
+      const inRoom = show.channels.filter(
+        (c) => (c.roomName ?? "").trim() === room.name,
+      );
+      return {
+        id: room.id,
+        name: room.name,
+        total: inRoom.length,
+        deployed: inRoom.filter((c) => c.deployed).length,
+        inUse: inRoom.filter((c) => c.inUse).length,
+        assigned: inRoom.filter((c) => Boolean(c.assignedTo?.trim())).length,
+      };
+    });
+  }, [show.rooms, show.channels]);
+
   const showSelectBar =
     admin &&
     !showRack &&
@@ -1322,13 +1346,14 @@ export function MarkBoard({
             <BrandLockup size="header" showTagline />
             <h1>{show.name}</h1>
             <p className="board-sub">
-              {features.assignments
-                ? `${show.rackCols}×${show.rackRows} rack — who has which mic`
-                : features.deploy
-                  ? "Tap Deploy"
-                  : "Frequency board"}
-              {features.rooms && !features.assignments ? ", set the room" : ""}
-              {features.assignments ? ", mark in use" : ""}.
+              {features.rooms
+                ? "Rack: pick a room, then work that room's gear"
+                : features.assignments
+                  ? `${show.rackCols}×${show.rackRows} rack — who has which mic, mark in use`
+                  : features.deploy
+                    ? "Tap Deploy"
+                    : "Frequency board"}
+              .
               <span className={`live-pill${live ? " on" : ""}`}>
                 {live
                   ? transport === "ably"
@@ -1822,7 +1847,7 @@ export function MarkBoard({
             autoComplete="off"
           />
         </label>
-        {features.assignments ? (
+        {canUseRack ? (
           <div className="view-toggle" role="group" aria-label="Board view">
             <button
               type="button"
@@ -1889,7 +1914,9 @@ export function MarkBoard({
             ) : null}
           </div>
         ) : null}
-        {features.rooms && show.rooms.length > 0 ? (
+        {features.rooms &&
+        show.rooms.length > 0 &&
+        boardView === "list" ? (
           <label className="focus-field">
             <span>My room</span>
             <select
@@ -2350,7 +2377,50 @@ export function MarkBoard({
       ) : null}
 
 
-      {showRack ? (
+      {showRoomPicker ? (
+        <div className="room-rack-picker" aria-label="Pick a room">
+          <div className="mic-rack-hud" role="status">
+            <div className="mic-rack-hud-main">
+              <strong>Pick a room</strong>
+              <span>See and mark the gear staged or deployed there</span>
+            </div>
+          </div>
+          {show.rooms.length === 0 ? (
+            <div className="empty">
+              Save rooms in Tools first, then stage channels to them from List.
+            </div>
+          ) : (
+            <div className="room-rack-cards" role="list">
+              {roomRackStats.map((room) => (
+                <button
+                  key={room.id}
+                  type="button"
+                  className="room-rack-card"
+                  role="listitem"
+                  onClick={() => setFocusRoom(room.name)}
+                >
+                  <strong className="room-rack-card-name">{room.name}</strong>
+                  <span className="room-rack-card-meta">
+                    {room.total === 0
+                      ? "No gear yet"
+                      : [
+                          `${room.total} gear`,
+                          features.deploy
+                            ? `${room.deployed} deployed`
+                            : null,
+                          features.assignments
+                            ? `${room.inUse} in use`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : showRoomGear || showPhysicalRack ? (
         <MicRackGrid
           channels={show.channels}
           rackCols={show.rackCols ?? 4}
@@ -2379,11 +2449,16 @@ export function MarkBoard({
           }
           flashIds={flashIds}
           lastChangeIds={lastChangeIds}
+          mode={showRoomGear ? "room" : "physical"}
+          roomName={showRoomGear ? focusRoom : null}
+          onChangeRoom={
+            showRoomGear ? () => setFocusRoom("") : undefined
+          }
           onPatch={async (id, patch) => {
             await patchChannel(id, patch);
           }}
           onFillEmpty={
-            admin && !crewMode
+            admin && !crewMode && showPhysicalRack
               ? async () => patchRack({ fillEmpty: true })
               : undefined
           }

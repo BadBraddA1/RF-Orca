@@ -297,6 +297,11 @@ Soft industrial: panels ~0.85rem, inputs ~0.75rem, small controls ~0.45rem, acti
 - Select circle, name (editable when unlocked), mono MHz + band tag, Deploy, optional Stage room / Who.
 - Staged rooms use dashed sea tag; deployed rooms use signal tag.
 
+### Room rack (signature)
+- **Rack** with Rooms on: first screen is room cards (name + gear counts), not the physical slot map.
+- Entering a room shows that room’s gear as rack cells (Who / kind / in use / Deploy); **Change room** returns to the picker.
+- List keeps “My room” filter; the same focus opens that room’s gear when switching to Rack.
+
 ### Named Rules
 **The Quiet Tools Rule.** Coordinator power stays collapsed until unlocked — never permanent admin chrome on the floor view.
 
