@@ -1595,9 +1595,15 @@ a {
 }
 
 .who-assign {
+  position: relative;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.3rem;
   min-width: 0;
+  z-index: 1;
+}
+
+.who-assign:has(.who-menu) {
+  z-index: 20;
 }
 
 .who-assign.disabled {
@@ -1606,29 +1612,137 @@ a {
 }
 
 .who-assign-label {
-  font-size: var(--text-caption);
+  font-size: var(--text-chip);
   font-weight: 650;
   color: var(--ink-soft);
-  letter-spacing: 0.02em;
 }
 
-.who-assign-empty {
-  margin: 0;
+.who-assign--compact .who-assign-label {
   font-size: var(--text-caption);
-  color: var(--ink-soft);
 }
 
-.who-assign-names {
+.who-trigger {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  max-height: 6.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: var(--touch-min);
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--panel) 85%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.05rem) 50%,
+    calc(100% - 0.7rem) 50%;
+  background-size:
+    0.35rem 0.35rem,
+    0.35rem 0.35rem;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+
+.who-assign--compact .who-trigger {
+  min-height: 2.4rem;
+  padding: 0.35rem 1.85rem 0.35rem 0.5rem;
+  font-size: var(--text-label);
+  border-radius: 0.45rem;
+  background-color: var(--input-deep);
+}
+
+.who-trigger-placeholder {
+  color: var(--ink-soft);
+  font-weight: 550;
+}
+
+.who-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 30;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  max-height: min(18rem, 55dvh);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--panel) 96%, white 4%);
+  box-shadow: var(--shadow);
+}
+
+.who-menu-list {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.35rem;
   overflow: auto;
   scrollbar-width: thin;
+  min-height: 0;
 }
 
-.who-assign--compact .who-assign-names {
-  max-height: 5.25rem;
+.who-option {
+  display: block;
+  width: 100%;
+  margin: 0;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-chip);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.who-option:hover {
+  background: color-mix(in oklab, var(--sea) 14%, transparent);
+}
+
+.who-option.active {
+  background: color-mix(in oklab, var(--sea-bright) 22%, transparent);
+  color: var(--sea-bright);
+  font-weight: 750;
+}
+
+.who-menu-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.45rem;
+  border-top: 1px solid var(--line);
+  background: color-mix(in oklab, var(--foam) 70%, transparent);
+}
+
+.who-menu-add input {
+  min-height: 2.4rem;
+  width: 100%;
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  background: var(--input-deep);
+}
+
+.who-add-btn {
+  min-height: 2.4rem;
+  padding-inline: 0.75rem;
 }
 
 .who-name {
@@ -1651,13 +1765,6 @@ a {
   border-color: color-mix(in oklab, var(--sea-bright) 40%, var(--line));
   color: var(--ink);
   background: color-mix(in oklab, var(--panel) 75%, transparent);
-}
-
-.who-name.active {
-  background: var(--sea-bright);
-  color: var(--ink-on-sea);
-  border-color: var(--sea-bright);
-  font-weight: 750;
 }
 
 .people-roster-name span[aria-hidden] {
@@ -1685,23 +1792,6 @@ a {
   background: color-mix(in oklab, var(--panel) 85%, transparent);
 }
 
-.who-assign--compact .who-assign-add input {
-  min-height: 2.4rem;
-  font-size: var(--text-label);
-  border-radius: 0.45rem;
-  padding: 0.35rem 0.5rem;
-  background: var(--input-deep);
-}
-
-.who-add-btn {
-  min-height: var(--touch-min);
-  padding-inline: 0.85rem;
-}
-
-.who-assign--compact .who-add-btn {
-  min-height: 2.4rem;
-}
-
 .people-roster {
   display: grid;
   gap: 0.45rem;
@@ -1714,7 +1804,12 @@ a {
 }
 
 .people-roster-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
   max-height: 9rem;
+  overflow: auto;
+  scrollbar-width: thin;
 }
 
 .rack-use-btn {
@@ -2412,14 +2507,23 @@ a {
 
 .board--crew .rack-field input,
 .board--crew .rack-drop-select,
-.board--crew .who-assign-add input {
+.board--crew .who-trigger,
+.board--crew .who-menu-add input {
   font-size: var(--text-caption);
   padding: 0.28rem 0.4rem;
 }
 
-.board--crew .who-name {
+.board--crew .who-trigger {
   min-height: 1.85rem;
-  padding: 0.2rem 0.55rem;
+  padding-right: 1.6rem;
+  background-position:
+    calc(100% - 0.85rem) 50%,
+    calc(100% - 0.55rem) 50%;
+}
+
+.board--crew .who-option {
+  min-height: 1.85rem;
+  padding: 0.28rem 0.5rem;
   font-size: var(--text-caption);
 }
 

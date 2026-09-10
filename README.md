@@ -40,7 +40,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); then Set group / Stage room
 - **Rename channels** — with Tools unlocked, edit the channel name inline on the list
 - **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
-- **Who** — name chips on each channel (tap to assign / clear); **Add name…** at the bottom; Tools → Saved names is the same list + add (no big textarea)
+- **Who** — dropdown like Stage room; pick a saved name, or **Add name…** at the bottom of the same menu
 - **Mic rack (A2)** — when **Rooms** is on: **Rack** → pick a room → see/mark that room’s gear (Who, Handheld/Lav, In use, Deploy). **Change room** returns to the picker. Without Rooms: physical slot grid (cols×rows, Fill empty) when Mic rack assignments is on
 - **List is the default board view** (Rack available when Rooms or Mic rack assignments is on)
 - **Crew mode** — header **Crew** button: fullscreen-friendly view (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed

@@ -2352,7 +2352,7 @@ export function MarkBoard({
                   <div className="field people-roster">
                     <span>Saved names</span>
                     {(show.people ?? []).length > 0 ? (
-                      <div className="who-assign-names people-roster-names">
+                      <div className="people-roster-names">
                         {(show.people ?? []).map((p) => (
                           <button
                             key={p.id}
