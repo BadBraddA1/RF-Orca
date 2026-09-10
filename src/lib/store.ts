@@ -674,9 +674,7 @@ export async function updateChannel(
       // Keep roomName so undeploy returns to prestaged (planned room)
       if (patch.roomName !== undefined) next.roomName = patch.roomName;
       activityKind = "undeploy";
-      activityMessage = next.roomName
-        ? `Undeployed ${next.name} (staged → ${next.roomName})`
-        : `Undeployed ${next.name}`;
+      activityMessage = `Undeployed ${next.name}`;
     }
   } else if (patch.roomName !== undefined) {
     next.roomName = patch.roomName;

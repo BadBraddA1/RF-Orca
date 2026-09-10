@@ -1907,6 +1907,19 @@ export function MarkBoard({
           ) : null}
         </div>
       ) : null}
+
+      {!crewMode && (show.activity?.length ?? 0) > 0 ? (
+        <div className="activity-strip" aria-label="Recent activity">
+          {show.activity.slice(0, 4).map((a) => (
+            <div key={a.id} className="activity-item">
+              <span className="activity-msg">{formatActivityMsg(a.message)}</span>
+              <span className="activity-time" suppressHydrationWarning>
+                {formatAgo(a.at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
           </aside>
           <div className="board-main">
       {(show.conflicts?.length ?? 0) > 0 ? (
@@ -1929,19 +1942,6 @@ export function MarkBoard({
         <div className="board-banner locked" role="status">
           Board locked for crew — marking paused.
           {admin ? " You can still edit while Tools are unlocked." : null}
-        </div>
-      ) : null}
-
-      {!crewMode && (show.activity?.length ?? 0) > 0 ? (
-        <div className="activity-strip" aria-label="Recent activity">
-          {show.activity.slice(0, 6).map((a) => (
-            <div key={a.id} className="activity-item">
-              <span className="activity-msg">{a.message}</span>
-              <span className="activity-time" suppressHydrationWarning>
-                {formatAgo(a.at)}
-              </span>
-            </div>
-          ))}
         </div>
       ) : null}
 
@@ -2044,6 +2044,7 @@ export function MarkBoard({
             options={show.rooms.map((r) => r.name)}
             emptyLabel="All rooms"
             allowAdd={false}
+            compact
             onPick={(room) => setFocusRoom(room ?? "")}
           />
         ) : null}
@@ -2804,6 +2805,15 @@ function formatAgo(iso: string): string {
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   return `${h}h`;
+}
+
+/** Trim noisy activity copy for the compact rail strip. */
+function formatActivityMsg(message: string): string {
+  return message
+    .replace(/\s*\(staged → [^)]+\)/gi, "")
+    .replace(/^Deployed (.+) → (.+)$/i, "Deployed $1 · $2")
+    .replace(/^Staged (.+) → (.+)$/i, "Staged $1 · $2")
+    .replace(/^Moved (.+) → (.+)$/i, "Moved $1 · $2");
 }
 
 function ChannelRow({

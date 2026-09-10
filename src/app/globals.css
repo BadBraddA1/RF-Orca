@@ -1894,12 +1894,33 @@ a {
   }
 }
 
+.progress-hud {
+  display: grid;
+  gap: var(--space-xs);
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--panel) 90%, transparent);
+  position: sticky;
+  top: var(--space-xs);
+  z-index: 6;
+  backdrop-filter: blur(10px);
+}
+
+.progress-hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: var(--text-mono);
+}
+
 .progress-assign {
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-top: 0.45rem;
-  font-size: var(--text-chip);
+  margin-top: 0;
+  font-size: var(--text-caption);
   color: var(--ink-soft);
 }
 
@@ -2115,29 +2136,8 @@ a {
   color: var(--ok-soft);
 }
 
-.progress-hud {
-  display: grid;
-  gap: var(--space-sm);
-  padding: 0.75rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, var(--panel) 90%, transparent);
-  position: sticky;
-  top: var(--space-xs);
-  z-index: 6;
-  backdrop-filter: blur(10px);
-}
-
-.progress-hud-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0.75rem;
-  font-size: var(--text-mono);
-}
-
 .progress-track {
-  height: 0.45rem;
+  height: 0.4rem;
   border-radius: 999px;
   background: color-mix(in oklab, var(--foam) 80%, transparent);
   overflow: hidden;
@@ -2160,16 +2160,20 @@ a {
 
 .activity-strip {
   display: grid;
-  gap: var(--space-xs);
-  max-height: 7.5rem;
+  gap: 0.2rem;
+  max-height: 5.5rem;
   overflow: auto;
-  padding: 0.65rem 0.85rem;
+  padding: 0.4rem 0.55rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, var(--sea) 45%, transparent)
     color-mix(in oklab, var(--foam) 80%, transparent);
+}
+
+.board-rail .activity-strip {
+  max-height: 6.5rem;
 }
 
 .activity-strip::-webkit-scrollbar,
@@ -2187,25 +2191,37 @@ a {
 .activity-item {
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
-  font-size: var(--text-label);
+  align-items: baseline;
+  gap: 0.45rem;
+  font-size: var(--text-caption);
+  line-height: 1.25;
 }
 
 .activity-msg {
-  color: var(--ink);
+  color: var(--ink-soft);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .activity-time {
   flex: 0 0 auto;
-  color: var(--ink-soft);
+  color: color-mix(in oklab, var(--ink-soft) 75%, transparent);
   font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
 }
 
 .board-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.45rem;
   align-items: end;
+}
+
+.board-toolbar .pick-field {
+  min-width: 8.5rem;
+  max-width: 12rem;
 }
 
 .search-field {

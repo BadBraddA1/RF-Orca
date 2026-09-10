@@ -52,7 +52,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Search** — name / who / MHz / band jump (Enter scrolls to first match)
 - **My room** focus — on **List**, same ChoiceMenu dropdown as Who / Stage room (All rooms or one room; persists in localStorage); same selection opens that room’s gear when you switch to **Rack**
 - **Progress HUD** — sticky deployed + in-use + assignment counts; per-group lines hide empty groups, peek the top 4 (incomplete first), and expand with **N more**
-- **Activity strip** — recent deploy / assign / in-use / import / settings events
+- **Activity strip** — compact recent events in the left rail (shorter copy); search / Rack·List / sort sit at the top of the main column
 - **Conflict ping** — same frequency deployed more than once
 - **Export CSV** — snapshot of the board (includes `rack_slot`, `assigned_to`, `in_use`)
 
