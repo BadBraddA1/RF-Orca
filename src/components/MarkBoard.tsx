@@ -597,7 +597,6 @@ export function MarkBoard({
         }
         return next;
       });
-      setLastChangeIds([]);
     }, 750);
     return () => window.clearTimeout(id);
   }, [flashIds]);
