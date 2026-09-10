@@ -16,7 +16,11 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: longCache }],
       },
       {
-        source: "/favicon-:path*",
+        source: "/favicon-16.png",
+        headers: [{ key: "Cache-Control", value: longCache }],
+      },
+      {
+        source: "/favicon-32.png",
         headers: [{ key: "Cache-Control", value: longCache }],
       },
       {
