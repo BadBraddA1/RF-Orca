@@ -536,9 +536,23 @@ a {
     width: 100%;
   }
 
-  .board-rail .filters-summary .filter,
-  .board-rail .filters-expanded {
+  .board-rail .filters-summary .filter {
     width: 100%;
+  }
+
+  .board-rail .filters-popover .filters-unified {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .board-rail .filters-popover .filter {
+    width: auto;
+  }
+
+  .board-rail .filters-popover .filter-sep {
+    width: 100%;
+    margin: 0.15rem 0;
   }
 
   .board-rail .bulk-bar {
@@ -997,6 +1011,79 @@ a {
   color: var(--ink);
   border-color: color-mix(in oklab, var(--sea-bright) 35%, var(--line));
   background: color-mix(in oklab, var(--sea) 12%, var(--panel));
+}
+
+.filters-popover-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem
+    max(1rem, env(safe-area-inset-bottom));
+}
+
+.filters-popover-backdrop {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  min-height: 0;
+  background: color-mix(in oklab, var(--ink) 45%, transparent);
+  cursor: pointer;
+}
+
+.filters-popover {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 26rem);
+  max-height: min(70dvh, 32rem);
+  display: grid;
+  gap: var(--space-sm);
+  align-content: start;
+  overflow: auto;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--panel) 94%, white 4%);
+  box-shadow: var(--shadow);
+  -webkit-overflow-scrolling: touch;
+}
+
+.filters-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.filters-popover-head strong {
+  font-size: var(--text-chip);
+  letter-spacing: 0.02em;
+}
+
+.filters-popover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  justify-content: flex-end;
+}
+
+.filters-popover .filters-unified {
+  flex-wrap: wrap;
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.filters-popover .filter-sep {
+  width: 100%;
+  height: 1px;
+  min-height: 0;
+  margin: 0.15rem 0;
+  align-self: stretch;
 }
 
 /** Soft group for Rack/List + sort — still pills, one frame */

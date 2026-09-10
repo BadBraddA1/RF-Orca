@@ -32,7 +32,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 ## Floor speed features
 
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
-- **Band filters** — All bands / G50 / H50 / G57+ chips after import
+- **Band filters** — tap **Filters** for a popup (bands / groups / status); summary stays on the board so you don’t scroll to change scope
 - **Select → group** — unlock Tools (open Tools panel), tap the circle on channels (or Select all), then **Set group** from the sticky bar; select bar also appears once any channel is selected
 - **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or Select all → **Delete N** (confirms first)
 - **List sort** — **By group**, **By room**, or **Flat**; caret to close one section; **Close all** / **Open all** for every section

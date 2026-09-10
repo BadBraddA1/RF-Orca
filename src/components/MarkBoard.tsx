@@ -1216,7 +1216,15 @@ export function MarkBoard({
 
   const filtersAtDefault =
     bandFilter === "all" && groupFilter === "all" && filter === "all";
-  const filtersExpanded = filtersOpen || !filtersAtDefault;
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filtersOpen]);
 
   const filterSummary = useMemo(() => {
     const parts: string[] = [];
@@ -1482,143 +1490,161 @@ export function MarkBoard({
               (groupNames.length > 0 ||
                 show.channels.some((c) => !c.groupName))) ||
             filterOptions.length > 1) ? (
-            filtersExpanded ? (
-              <div className="filters-expanded">
-                <div
-                  className="filters filters-unified"
-                  role="toolbar"
-                  aria-label="Board filters"
-                >
-                  {bandNames.length > 0 ? (
-                    <>
-                      <button
-                        type="button"
-                        className={
-                          bandFilter === "all" ? "filter active" : "filter"
-                        }
-                        onClick={() => setBandFilter("all")}
-                      >
-                        All bands
-                      </button>
-                      {bandNames.map((b) => (
-                        <button
-                          key={b}
-                          type="button"
-                          className={
-                            bandFilter === b ? "filter active" : "filter"
-                          }
-                          onClick={() => setBandFilter(b)}
-                        >
-                          {b}
-                        </button>
-                      ))}
-                    </>
-                  ) : null}
-
-                  {bandNames.length > 0 &&
-                  ((features.groups &&
-                    (groupNames.length > 0 ||
-                      show.channels.some((c) => !c.groupName))) ||
-                    filterOptions.length > 1) ? (
-                    <span className="filter-sep" aria-hidden />
-                  ) : null}
-
-                  {features.groups &&
-                  (groupNames.length > 0 ||
-                    show.channels.some((c) => !c.groupName)) ? (
-                    <>
-                      <button
-                        type="button"
-                        className={
-                          groupFilter === "all" ? "filter active" : "filter"
-                        }
-                        onClick={() => setGroupFilter("all")}
-                      >
-                        All groups
-                      </button>
-                      {groupNames.map((g) => (
-                        <button
-                          key={g}
-                          type="button"
-                          className={
-                            groupFilter === g ? "filter active" : "filter"
-                          }
-                          onClick={() => setGroupFilter(g)}
-                        >
-                          {g}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        className={
-                          groupFilter === "__ungrouped__"
-                            ? "filter active"
-                            : "filter"
-                        }
-                        onClick={() => setGroupFilter("__ungrouped__")}
-                      >
-                        Ungrouped
-                      </button>
-                    </>
-                  ) : null}
-
-                  {features.groups &&
-                  (groupNames.length > 0 ||
-                    show.channels.some((c) => !c.groupName)) &&
-                  filterOptions.length > 1 ? (
-                    <span className="filter-sep" aria-hidden />
-                  ) : null}
-
-                  {filterOptions.length > 1
-                    ? filterOptions.map(([key, label]) => (
-                        <button
-                          key={key}
-                          type="button"
-                          className={
-                            filter === key ? "filter active" : "filter"
-                          }
-                          onClick={() => setFilter(key)}
-                        >
-                          {label}
-                        </button>
-                      ))
-                    : null}
-                </div>
-                {filtersAtDefault ? (
+            <div className="filters-summary">
+              <button
+                type="button"
+                className={`filter${filtersAtDefault ? "" : " has-scope"}`}
+                aria-expanded={filtersOpen}
+                aria-haspopup="dialog"
+                onClick={() => setFiltersOpen((open) => !open)}
+              >
+                Filters · {filterSummary}
+              </button>
+              {filtersOpen ? (
+                <div className="filters-popover-layer">
                   <button
                     type="button"
-                    className="chip"
+                    className="filters-popover-backdrop"
+                    aria-label="Close filters"
                     onClick={() => setFiltersOpen(false)}
+                  />
+                  <div
+                    className="filters-popover"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Board filters"
                   >
-                    Hide filters
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="chip"
-                    onClick={() => {
-                      setBandFilter("all");
-                      setGroupFilter("all");
-                      setFilter("all");
-                      setFiltersOpen(false);
-                    }}
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="filters-summary">
-                <button
-                  type="button"
-                  className={`filter${filtersAtDefault ? "" : " has-scope"}`}
-                  aria-expanded={false}
-                  onClick={() => setFiltersOpen(true)}
-                >
-                  Filters · {filterSummary}
-                </button>
-              </div>
-            )
+                    <div className="filters-popover-head">
+                      <strong>Filters</strong>
+                      <div className="filters-popover-actions">
+                        {!filtersAtDefault ? (
+                          <button
+                            type="button"
+                            className="chip"
+                            onClick={() => {
+                              setBandFilter("all");
+                              setGroupFilter("all");
+                              setFilter("all");
+                            }}
+                          >
+                            Clear
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="chip"
+                          onClick={() => setFiltersOpen(false)}
+                        >
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      className="filters filters-unified"
+                      role="toolbar"
+                      aria-label="Board filters"
+                    >
+                      {bandNames.length > 0 ? (
+                        <>
+                          <button
+                            type="button"
+                            className={
+                              bandFilter === "all" ? "filter active" : "filter"
+                            }
+                            onClick={() => setBandFilter("all")}
+                          >
+                            All bands
+                          </button>
+                          {bandNames.map((b) => (
+                            <button
+                              key={b}
+                              type="button"
+                              className={
+                                bandFilter === b ? "filter active" : "filter"
+                              }
+                              onClick={() => setBandFilter(b)}
+                            >
+                              {b}
+                            </button>
+                          ))}
+                        </>
+                      ) : null}
+
+                      {bandNames.length > 0 &&
+                      ((features.groups &&
+                        (groupNames.length > 0 ||
+                          show.channels.some((c) => !c.groupName))) ||
+                        filterOptions.length > 1) ? (
+                        <span className="filter-sep" aria-hidden />
+                      ) : null}
+
+                      {features.groups &&
+                      (groupNames.length > 0 ||
+                        show.channels.some((c) => !c.groupName)) ? (
+                        <>
+                          <button
+                            type="button"
+                            className={
+                              groupFilter === "all"
+                                ? "filter active"
+                                : "filter"
+                            }
+                            onClick={() => setGroupFilter("all")}
+                          >
+                            All groups
+                          </button>
+                          {groupNames.map((g) => (
+                            <button
+                              key={g}
+                              type="button"
+                              className={
+                                groupFilter === g ? "filter active" : "filter"
+                              }
+                              onClick={() => setGroupFilter(g)}
+                            >
+                              {g}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            className={
+                              groupFilter === "__ungrouped__"
+                                ? "filter active"
+                                : "filter"
+                            }
+                            onClick={() => setGroupFilter("__ungrouped__")}
+                          >
+                            Ungrouped
+                          </button>
+                        </>
+                      ) : null}
+
+                      {features.groups &&
+                      (groupNames.length > 0 ||
+                        show.channels.some((c) => !c.groupName)) &&
+                      filterOptions.length > 1 ? (
+                        <span className="filter-sep" aria-hidden />
+                      ) : null}
+
+                      {filterOptions.length > 1
+                        ? filterOptions.map(([key, label]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              className={
+                                filter === key ? "filter active" : "filter"
+                              }
+                              onClick={() => setFilter(key)}
+                            >
+                              {label}
+                            </button>
+                          ))
+                        : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           {showSelectBar ? (
