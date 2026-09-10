@@ -2951,61 +2951,63 @@ function ChannelRow({
       className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${selected ? " is-selected" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
-        {onToggleSelect ? (
-          <button
-            type="button"
-            className={`select-toggle${selected ? " on" : ""}`}
-            aria-pressed={Boolean(selected)}
-            aria-label={selected ? "Deselect channel" : "Select channel"}
-            onClick={onToggleSelect}
-          />
-        ) : null}
-        <div className="channel-main">
-          <div className="channel-title">
-            {admin ? (
-              <input
-                className="channel-name-input"
-                value={nameDraft}
-                maxLength={80}
-                aria-label="Channel name"
-                onChange={(e) => setNameDraft(e.target.value)}
-                onBlur={() => {
-                  const name = nameDraft.trim();
-                  if (!name || name === channel.name) {
-                    setNameDraft(channel.name);
-                    return;
-                  }
-                  void onPatch(channel.id, { name });
-                }}
-              />
-            ) : (
-              <strong>{channel.name}</strong>
-            )}
-            <span className="freq">
-              {channel.band ? (
-                <span className="band-tag">{channel.band}</span>
-              ) : null}
-              {channel.band ? " · " : ""}
-              {channel.frequencyMhz.toFixed(3)} MHz
-            </span>
-          </div>
-          {(channel.isBackup ||
-            conflicted ||
-            deployLocked ||
-            (inGrace && !admin)) ? (
-            <div className="channel-meta">
-              {channel.isBackup ? <span className="tag">Backup</span> : null}
-              {conflicted ? (
-                <span className="tag conflict-tag">Conflict</span>
-              ) : null}
-              {deployLocked ? (
-                <span className="tag locked-tag">Locked</span>
-              ) : null}
-              {inGrace && !admin ? (
-                <span className="tag">Undo ok</span>
-              ) : null}
-            </div>
+        <div className="channel-identity">
+          {onToggleSelect ? (
+            <button
+              type="button"
+              className={`select-toggle${selected ? " on" : ""}`}
+              aria-pressed={Boolean(selected)}
+              aria-label={selected ? "Deselect channel" : "Select channel"}
+              onClick={onToggleSelect}
+            />
           ) : null}
+          <div className="channel-main">
+            <div className="channel-title">
+              {admin ? (
+                <input
+                  className="channel-name-input"
+                  value={nameDraft}
+                  maxLength={80}
+                  aria-label="Channel name"
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  onBlur={() => {
+                    const name = nameDraft.trim();
+                    if (!name || name === channel.name) {
+                      setNameDraft(channel.name);
+                      return;
+                    }
+                    void onPatch(channel.id, { name });
+                  }}
+                />
+              ) : (
+                <strong>{channel.name}</strong>
+              )}
+              <span className="freq">
+                {channel.band ? (
+                  <span className="band-tag">{channel.band}</span>
+                ) : null}
+                {channel.band ? " · " : ""}
+                {channel.frequencyMhz.toFixed(3)} MHz
+              </span>
+            </div>
+            {(channel.isBackup ||
+              conflicted ||
+              deployLocked ||
+              (inGrace && !admin)) ? (
+              <div className="channel-meta">
+                {channel.isBackup ? <span className="tag">Backup</span> : null}
+                {conflicted ? (
+                  <span className="tag conflict-tag">Conflict</span>
+                ) : null}
+                {deployLocked ? (
+                  <span className="tag locked-tag">Locked</span>
+                ) : null}
+                {inGrace && !admin ? (
+                  <span className="tag">Undo ok</span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {features.deploy || features.assignments ? (
