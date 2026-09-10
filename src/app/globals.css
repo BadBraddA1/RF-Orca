@@ -486,81 +486,43 @@ a {
 
 /**
  * Desktop desk — admin-dash spatial model (full width + left rail).
- * Mobile stays single-column for the later floor-first pass.
+ * Channel list sits full-bleed under the desk so it isn't crushed by a tall HUD.
  */
-@media (min-width: 1100px) {
-  .board--desk {
-    max-width: none;
-    width: 100%;
-    margin: 0;
-    padding: 1.1rem clamp(1.25rem, 2.5vw, 2.75rem) 2rem;
-    display: grid;
-    grid-template-columns: minmax(15.5rem, 18.5rem) minmax(0, 1fr);
-    grid-auto-flow: dense;
+@media (min-width: 900px) {
+  .board-desk {
+    grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
     column-gap: clamp(1.25rem, 2vw, 2.25rem);
-    row-gap: var(--space-md);
     align-items: start;
   }
 
-  .board--desk > .board-header {
-    grid-column: 1 / -1;
-    padding-bottom: var(--space-xs);
-    border-bottom: 1px solid var(--line);
-    margin-bottom: var(--space-xs);
-  }
-
-  .board--desk > .progress-hud,
-  .board--desk > .board-scope {
-    grid-column: 1;
-  }
-
-  .board--desk > .progress-hud {
+  .board-rail {
     position: sticky;
     top: 0.5rem;
-    z-index: 6;
-  }
-
-  .board--desk > .board-scope {
-    position: sticky;
-    top: calc(0.5rem + var(--sticky-hud-clearance, 5.5rem));
     z-index: 5;
-    align-content: start;
+    max-height: calc(100dvh - 1rem);
+    overflow: auto;
+    padding-right: 0.15rem;
   }
 
-  .board--desk > .board-banner,
-  .board--desk > .activity-strip,
-  .board--desk > .board-toolbar,
-  .board--desk > .tools-panel,
-  .board--desk > .group-sections,
-  .board--desk > .empty,
-  .board--desk > .mic-rack {
-    grid-column: 2;
-    min-width: 0;
+  .board-rail .progress-hud {
+    position: static;
   }
 
-  .board--desk > .activity-strip {
-    max-height: 5.5rem;
+  .board-rail .select-bar {
+    position: static;
+    top: auto;
+    backdrop-filter: none;
+    background: color-mix(in oklab, var(--panel) 90%, transparent);
   }
 
-  .board--desk .progress-groups {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.3rem;
-  }
-
-  .board--desk .filters-summary .filter,
-  .board--desk .filters-expanded {
-    width: 100%;
-  }
-
-  .board--desk .filters-unified {
+  .board-rail .filters-unified {
     flex-direction: column;
     align-items: stretch;
     flex-wrap: nowrap;
     gap: 0.35rem;
   }
 
-  .board--desk .filter-sep {
+  .board-rail .filter-sep {
     width: auto;
     height: 1px;
     min-height: 0;
@@ -568,24 +530,23 @@ a {
     align-self: stretch;
   }
 
-  .board--desk .filter,
-  .board--desk .filters-summary .filter {
+  .board-rail .filter,
+  .board-rail .filters-summary .filter {
     justify-content: flex-start;
     width: 100%;
   }
 
-  .board--desk .bulk-bar {
+  .board-rail .filters-summary .filter,
+  .board-rail .filters-expanded {
+    width: 100%;
+  }
+
+  .board-rail .bulk-bar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .board--desk .select-bar {
-    position: static;
-    top: auto;
-    backdrop-filter: none;
-    background: color-mix(in oklab, var(--panel) 90%, transparent);
-  }
-
+  .board--desk > .group-sections .channel-list,
   .board--desk .group-sections .channel-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-md);
@@ -597,10 +558,13 @@ a {
   }
 }
 
-@media (min-width: 1480px) {
-  .board--desk {
-    grid-template-columns: minmax(16rem, 19rem) minmax(0, 1fr);
-    padding-inline: clamp(1.5rem, 3vw, 3rem);
+@media (min-width: 1400px) {
+  .board.board--desk {
+    padding-inline: clamp(1.25rem, 2.5vw, 2.75rem);
+  }
+
+  .board-desk {
+    grid-template-columns: minmax(16rem, 18.5rem) minmax(0, 1fr);
   }
 
   .board--desk .group-sections .channel-list {
@@ -831,6 +795,45 @@ a {
   --sticky-hud-clearance: 0px;
 }
 
+/** Desktop coordinator desk — edge-to-edge, not a marketing column */
+.board.board--desk {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 1rem clamp(1rem, 2vw, 2rem) 2rem;
+}
+
+.board-desk {
+  display: grid;
+  gap: var(--space-md);
+  width: 100%;
+  min-width: 0;
+}
+
+.board-rail {
+  display: grid;
+  gap: var(--space-sm);
+  align-content: start;
+  min-width: 0;
+}
+
+.board-main {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.progress-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  font-size: var(--text-label);
+  color: var(--ink-soft);
+  max-height: 11rem;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
 /** Filters + bulk bars: tight cluster above the channel list */
 .board-scope {
   display: grid;
@@ -849,6 +852,12 @@ a {
   justify-content: space-between;
   gap: var(--space-md);
   align-items: flex-start;
+}
+
+.board--desk > .board-header {
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-xs);
 }
 
 .board-header h1 {
@@ -1696,14 +1705,6 @@ a {
   border-radius: inherit;
   background: linear-gradient(90deg, var(--sea), var(--sea-bright));
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.progress-groups {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.75rem;
-  font-size: var(--text-label);
-  color: var(--ink-soft);
 }
 
 .board-banner.conflict {
