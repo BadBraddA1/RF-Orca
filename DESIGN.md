@@ -240,18 +240,20 @@ A night-ops palette: deep navy fields, cyan for live/active chrome, orange for u
 
 ## Layout
 
-Single-column Operate surfaces. Home: brand + **New show** above the fold; recent shows below. Mark board: sticky progress / select bar, horizontal scroll chip rows on narrow viewports, channel list as the primary scroll. Breakpoints observed: ~560 / 639 (rack 2-col) / 720 (board mobile) / 800+ denser tools.
+Single-column Operate on phones (floor-first explore **B** parked). **Desktop desk (≥1100px):** full-width board with an admin-dash-style left rail — progress + filters stick in the rail; search/tools/channel grid fill the main column (2-up, 3-up past ~1480px). Night Watch tokens stay; density goes up without a new visual world.
 
-**Spacing tokens** (`--space-xs` → `--space-xl`): xs `0.35rem`, sm `0.45rem`, md `0.75rem`, lg `1.05rem`, xl `1.25rem`, plus `--touch-min: 2.75rem`. Board siblings use **lg**; filter/bulk cluster (`.board-scope`) uses **xs** between rows and an extra **sm** before the list/rack. Section blocks use **xl**; channels inside a section stay tighter (`--space-md`).
+**Spacing tokens** (`--space-xs` → `--space-xl`): xs `0.35rem`, sm `0.45rem`, md `0.75rem`, lg `1.05rem`, xl `1.25rem`, plus `--touch-min: 2.75rem`. Board siblings use **lg**; filter/bulk cluster (`.board-scope`) uses **xs** between rows. Section blocks use **xl**.
 
-Floor controls share `--touch-min`. Narrow filters/bulk rows fade at the trailing edge so overflow is discoverable. Sticky select bar sits under the measured progress HUD (`--sticky-hud-clearance`). Keyboard focus uses a shared sea-bright ring; `caret-color` is sea-bright on dark fields. Activity / import scroll areas use thin sea-tinted scrollbars (filter rows stay scrollbar-hidden).
+Floor controls share `--touch-min`. Narrow filters/bulk rows fade at the trailing edge so overflow is discoverable (mobile). Sticky select bar sits under the measured progress HUD on narrow boards; on desktop desk the rail sticks as a unit. Keyboard focus uses a shared sea-bright ring; `caret-color` is sea-bright on dark fields. Activity / import scroll areas use thin sea-tinted scrollbars (filter rows stay scrollbar-hidden on mobile).
 
 ### Named Rules
 **The Thumb Floor Rule.** Interactive mark-board controls meet ≥44px hit targets even when the visible glyph is smaller (e.g. select circle).
 
 **The Scope Cluster Rule.** Band / group / status filters share one strip; when idle they collapse to a **Filters · …** summary. Idle filter pills stay softer than active; Deploy stays the primary channel action. Select / bulk status appear when Tools are open (or once channels are selected). **Mobile floor-first (explore B)** remains parked.
 
-**The Sticky Stack Rule.** Progress HUD sticks above the select bar; select never shares the same `top` as the HUD.
+**The Sticky Stack Rule.** Progress HUD sticks above the select bar on narrow boards; on desktop desk, HUD + scope stick in the left rail.
+
+**The Desk Width Rule.** Desktop mark board is full-window (not a 920px marketing column) so coordinators see more channels — phone UI stays separate.
 
 ## Elevation & Depth
 

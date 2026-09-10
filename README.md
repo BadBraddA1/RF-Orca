@@ -100,7 +100,7 @@ NEXT_PUBLIC_POSTHOG_UI_HOST=https://us.posthog.com
 
 Transparent logo assets in `public/brand/` (navy plate removed). Favicon / apple icon use the emblem mark only.
 
-**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Type ramp uses `--text-*` roles; spacing `--space-xs…xl`. Mark board: collapsible filter summary, softer idle filters, stronger Deploy, Tools-gated bulk chrome. Mobile explore B parked.
+**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Desktop mark board uses a full-width **desk** layout (left rail for progress/filters, multi-column channel grid) in the spirit of BraddCorp admin dash — phone stays single-column for a later floor-first pass.
 
 ## Site chrome
 

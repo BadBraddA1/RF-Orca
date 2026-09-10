@@ -1270,7 +1270,7 @@ export function MarkBoard({
   return (
     <div
       ref={boardRef}
-      className={`board${crewMode ? " board--crew" : ""}`}
+      className={`board${crewMode ? " board--crew" : " board--desk"}`}
     >
       {crewMode ? (
         <header className="crew-bar">
