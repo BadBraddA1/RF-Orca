@@ -990,7 +990,7 @@ a {
   gap: 0.4rem;
   padding: 0.7rem 0.75rem 0.8rem;
   border: 1px solid var(--line);
-  border-radius: 0.65rem;
+  border-radius: var(--radius-md);
   background:
     linear-gradient(
       160deg,
@@ -1196,7 +1196,7 @@ a {
 
 .tools-panel {
   border: 1px solid var(--line);
-  border-radius: 0.9rem;
+  border-radius: var(--radius-lg);
   padding: 0.9rem 1rem;
   background: color-mix(in oklab, var(--panel) 88%, transparent);
   box-shadow: var(--shadow);
@@ -1551,7 +1551,7 @@ a {
   margin: 0;
   margin-inline: -0.35rem 0;
   border: none;
-  border-radius: 0.55rem;
+  border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
   padding: 0;
@@ -1887,7 +1887,7 @@ a {
   padding: 0.15rem 0.4rem 0.15rem 0.1rem;
   min-height: var(--touch-min);
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -1910,7 +1910,7 @@ a {
   justify-content: center;
   width: var(--touch-min);
   height: var(--touch-min);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   border: 1.5px solid color-mix(in oklab, var(--sea) 50%, transparent);
   background: color-mix(in oklab, var(--sea) 14%, transparent);
   font-size: 1rem;
@@ -2005,7 +2005,7 @@ a {
   font-weight: 600;
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 0.55rem;
+  border-radius: var(--radius-sm);
   padding: 0.45rem 0.6rem;
   background: var(--input-deep);
   min-width: 8rem;
