@@ -82,17 +82,35 @@ export function ChoiceMenu({
     const openUp =
       spaceBelow < Math.min(ideal, 12 * 16) && spaceAbove > spaceBelow;
 
+    /** Match card pick menus — don't crush long room names to the narrow trigger. */
+    const minMenu = 16 * 16;
+    const maxMenu = Math.min(22 * 16, window.innerWidth - viewportPad * 2);
+    const longest = Math.max(
+      emptyLabel.length,
+      (placeholder ?? "").length,
+      ...list.map((n) => n.length),
+    );
+    const contentGuess = Math.ceil(longest * 0.62 * 16) + 2.5 * 16;
+    const width = Math.min(
+      maxMenu,
+      Math.max(rect.width, minMenu, contentGuess),
+    );
+    const left = Math.min(
+      Math.max(viewportPad, rect.left),
+      window.innerWidth - width - viewportPad,
+    );
+
     if (openUp) {
       setCoords({
-        left: rect.left,
-        width: rect.width,
+        left,
+        width,
         bottom: window.innerHeight - rect.top + gap,
         maxHeight: Math.max(9 * 16, Math.min(ideal, spaceAbove)),
       });
     } else {
       setCoords({
-        left: rect.left,
-        width: rect.width,
+        left,
+        width,
         top: rect.bottom + gap,
         maxHeight: Math.max(9 * 16, Math.min(ideal, spaceBelow)),
       });

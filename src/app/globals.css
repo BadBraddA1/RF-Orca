@@ -1868,6 +1868,9 @@ a {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pick-option:hover {
@@ -2340,8 +2343,9 @@ a {
 }
 
 .board-toolbar .pick-field {
-  min-width: 8.5rem;
-  max-width: 12rem;
+  min-width: 11rem;
+  max-width: 16rem;
+  flex: 0 1 14rem;
 }
 
 .search-field {
