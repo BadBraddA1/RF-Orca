@@ -13,6 +13,11 @@ import { BrandLockup } from "@/components/BrandLockup";
 import { MicRackGrid } from "@/components/MicRackGrid";
 import { ChoiceMenu, RoomAssign } from "@/components/WhoAssign";
 import { withinDeployGrace } from "@/lib/board-helpers";
+import {
+  defaultListSortParam,
+  parseBoardShareSearch,
+  syncBoardShareUrl,
+} from "@/lib/board-share";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
 import { useShowLive } from "@/hooks/useShowLive";
 import type {
@@ -156,9 +161,7 @@ function loadCollapsed(token: string): Record<string, true> {
 }
 
 function defaultListSort(features: ShowFeatures): ListSort {
-  if (features.groups) return "group";
-  if (features.rooms) return "room";
-  return "flat";
+  return defaultListSortParam(features);
 }
 
 function loadListSort(token: string, features: ShowFeatures): ListSort {
@@ -324,6 +327,7 @@ export function MarkBoard({
   const importFileRef = useRef<HTMLInputElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const progressHudRef = useRef<HTMLDivElement>(null);
+  const shareHydratedRef = useRef(false);
   const [, startTransition] = useTransition();
 
   const features = show.features;
@@ -352,13 +356,21 @@ export function MarkBoard({
   }, [crewMode, features.deploy, features.assignments]);
 
   useEffect(() => {
+    const fromUrl = parseBoardShareSearch(
+      window.location.search,
+      initialShow.features,
+    );
     const focus = loadFocus(token);
-    setGroupFilter(focus.group);
-    setFocusRoom(focus.room);
+    setGroupFilter(fromUrl.group ?? focus.group);
+    setFocusRoom(fromUrl.room ?? focus.room);
+    if (fromUrl.band) setBandFilter(fromUrl.band);
+    if (fromUrl.filter) setFilter(fromUrl.filter);
+    if (fromUrl.view) setBoardView(fromUrl.view);
     setCrewMode(loadBool(crewKey(token)));
     setFlashChanges(loadBool(flashKey(token)));
-    setListSort(loadListSort(token, initialShow.features));
+    setListSort(fromUrl.sort ?? loadListSort(token, initialShow.features));
     setCollapsedSections(loadCollapsed(token));
+    shareHydratedRef.current = true;
   }, [token, initialShow.features]);
 
   useEffect(() => {
@@ -369,6 +381,29 @@ export function MarkBoard({
       setListSort(features.groups ? "group" : "flat");
     }
   }, [features.groups, features.rooms, listSort]);
+
+  useEffect(() => {
+    if (!shareHydratedRef.current) return;
+    syncBoardShareUrl(
+      {
+        view: boardView,
+        sort: listSort,
+        room: focusRoom,
+        band: bandFilter,
+        group: groupFilter,
+        filter,
+      },
+      features,
+    );
+  }, [
+    boardView,
+    listSort,
+    focusRoom,
+    bandFilter,
+    groupFilter,
+    filter,
+    features,
+  ]);
 
   useEffect(() => {
     try {
@@ -1130,6 +1165,17 @@ export function MarkBoard({
   }
 
   async function copyLink() {
+    syncBoardShareUrl(
+      {
+        view: boardView,
+        sort: listSort,
+        room: focusRoom,
+        band: bandFilter,
+        group: groupFilter,
+        filter,
+      },
+      features,
+    );
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);

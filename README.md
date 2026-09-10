@@ -32,6 +32,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 ## Floor speed features
 
+- **Share view links** — the show URL keeps current **view / sort / My room / Filters** (`?sort=room&room=Ballroom+A&filter=staged…`). **Copy link** pastes that view for crew
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — tap **Filters** for a popup (bands / groups / status); summary stays on the board so you don’t scroll to change scope
 - **Select → group** — unlock Tools (open Tools panel), tap the circle on channels (or Select all), then **Set group** from the sticky bar; select bar also appears once any channel is selected
