@@ -766,6 +766,19 @@ export function MarkBoard({
     });
   }
 
+  /** Expand a room/group section so a just-moved channel is visible. */
+  function ensureSectionOpen(sort: ListSort, name: string | null | undefined) {
+    const trimmed = name?.trim();
+    if (!trimmed || sort === "flat") return;
+    const id = sectionCollapseId(sort, trimmed);
+    setCollapsedSections((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }
+
   const namedSectionCount = sections.filter((s) => s.name).length;
   const collapsedNamedCount = sections.filter(
     (s) => s.name && collapsedSections[sectionCollapseId(listSort, s.name)],
@@ -867,6 +880,8 @@ export function MarkBoard({
       return;
     }
     applyShow(data.show);
+    if ("roomName" in patch) ensureSectionOpen("room", patch.roomName);
+    if ("groupName" in patch) ensureSectionOpen("group", patch.groupName);
     if (opts?.undoToast && patch.deployed === true && before) {
       setUndo({
         channelId,
@@ -1220,6 +1235,7 @@ export function MarkBoard({
         return;
       }
       applyShow(data.show);
+      ensureSectionOpen("group", groupName);
       setSelectedIds({});
     } finally {
       setBulkBusy(false);
@@ -1245,6 +1261,7 @@ export function MarkBoard({
         return;
       }
       applyShow(data.show);
+      ensureSectionOpen("room", roomName);
       setSelectedIds({});
     } finally {
       setBulkBusy(false);

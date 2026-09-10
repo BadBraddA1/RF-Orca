@@ -38,13 +38,14 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Select → group** — unlock Tools (open Tools panel), tap the circle on channels (or Select all), then **Set group** from the sticky bar; select bar also appears once any channel is selected
 - **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or Select all → **Delete N** (confirms first)
 - **List sort** — **By group**, **By room**, or **Flat**; caret to close one section; **Close all** / **Open all** for every section
+- **Open on move** — staging a channel into a room (or group) auto-opens that section if it was closed
 - **Prestage rooms** — pick **Stage room** on a channel (or Select all → Stage room) before Deploy; undeploy keeps the staged room; filters **Staged** / **No room**
 - **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); then Set group / Stage room
 - **Rename channels** — with Tools unlocked, edit the channel name inline on the list
 - **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
 - **Who / Stage room** — matching dropdowns (portal + flip up near the page bottom); **Who** lives on **Rack** only; List keeps Stage room + Deploy / Spare
 - **Mic rack (A2)** — when **Rooms** is on: **Rack** → pick a room → see/mark that room’s gear (Who, Handheld/Lav, Spare/In use, Deploy). **Change room** returns to the picker. Without Rooms: physical slot grid (cols×rows, Fill empty) when Mic rack assignments is on
-- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — list cards stay tight (name + MHz + Deploy/Spare + Stage room; no CH label / staged tag / Who)
+- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — compact one-row cards; grid packs left at fixed card width on wide screens
 - **Deploy vs Spare** — **Deploy** (pill) marks the channel live in a room; **Spare / In use** (quieter dashed toggle) is rack occupancy, not the same action
 - **Crew mode** — header **Crew** button: fullscreen-friendly view (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
 - **Flash changes** — pulse a rack cell / channel card when it updates (respects `prefers-reduced-motion` — static highlight instead); most recently changed keep an orange “Updated” tint
