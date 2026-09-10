@@ -11,7 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { BrandLockup } from "@/components/BrandLockup";
 import { MicRackGrid } from "@/components/MicRackGrid";
-import { RoomAssign, WhoAssign } from "@/components/WhoAssign";
+import { ChoiceMenu, RoomAssign, WhoAssign } from "@/components/WhoAssign";
 import { withinDeployGrace } from "@/lib/board-helpers";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
 import { useShowLive } from "@/hooks/useShowLive";
@@ -1995,20 +1995,14 @@ export function MarkBoard({
         {features.rooms &&
         show.rooms.length > 0 &&
         boardView === "list" ? (
-          <label className="focus-field">
-            <span>My room</span>
-            <select
-              value={focusRoom}
-              onChange={(e) => setFocusRoom(e.target.value)}
-            >
-              <option value="">All rooms</option>
-              {show.rooms.map((r) => (
-                <option key={r.id} value={r.name}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ChoiceMenu
+            label="My room"
+            value={focusRoom || null}
+            options={show.rooms.map((r) => r.name)}
+            emptyLabel="All rooms"
+            allowAdd={false}
+            onPick={(room) => setFocusRoom(room ?? "")}
+          />
         ) : null}
       </div>
       ) : null}

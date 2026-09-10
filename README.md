@@ -49,7 +49,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Focus** — shared sea-bright focus rings on mark-board controls for keyboard use
 - **Import preview** — Workbench **Coordination report** or Inventory CSV: imports **primary** frequencies only (skips Backup section); keeps band + names; preview then confirm
 - **Search** — name / who / MHz / band jump (Enter scrolls to first match)
-- **My room** focus — on **List**, filter to the room you’re dressing (persists in localStorage); same selection opens that room’s gear when you switch to **Rack**
+- **My room** focus — on **List**, same ChoiceMenu dropdown as Who / Stage room (All rooms or one room; persists in localStorage); same selection opens that room’s gear when you switch to **Rack**
 - **Progress HUD** — sticky deployed + in-use + assignment counts; per-group lines hide empty groups, peek the top 4 (incomplete first), and expand with **N more**
 - **Activity strip** — recent deploy / assign / in-use / import / settings events
 - **Conflict ping** — same frequency deployed more than once
