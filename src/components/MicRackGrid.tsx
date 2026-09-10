@@ -21,6 +21,7 @@ export function MicRackGrid({
   rackRows,
   features,
   admin,
+  elevated,
   assigneeNames,
   search,
   filterInUse,
@@ -39,6 +40,8 @@ export function MicRackGrid({
   rackRows: number;
   features: ShowFeatures;
   admin: boolean;
+  /** Admin or BO Lead — can undeploy / mark through locks. */
+  elevated?: boolean;
   assigneeNames: string[];
   search: string;
   filterInUse: "all" | "inuse" | "spare";
@@ -53,6 +56,7 @@ export function MicRackGrid({
   onFillEmpty?: () => Promise<void>;
   fillBusy?: boolean;
 }) {
+  const canMark = elevated ?? admin;
   const size = rackSlotCount({ rackCols, rackRows });
   const bySlot = useMemo(
     () => channelsByRackSlot(channels, size),
@@ -180,7 +184,8 @@ export function MicRackGrid({
                 channel={channel}
                 features={features}
                 admin={admin}
-                frozen={features.crewLocked && !admin}
+                elevated={canMark}
+                frozen={features.crewLocked && !canMark}
                 assigneeNames={assigneeNames}
                 roomMode
                 flashing={Boolean(flashIds?.[channel.id])}
@@ -227,7 +232,8 @@ export function MicRackGrid({
             channel={channel}
             features={features}
             admin={admin}
-            frozen={features.crewLocked && !admin}
+            elevated={canMark}
+            frozen={features.crewLocked && !canMark}
             assigneeNames={assigneeNames}
             flashing={Boolean(channel && flashIds?.[channel.id])}
             lastChanged={Boolean(
@@ -246,6 +252,7 @@ function RackCell({
   channel,
   features,
   admin,
+  elevated,
   frozen,
   assigneeNames,
   roomMode = false,
@@ -257,6 +264,7 @@ function RackCell({
   channel: Channel | null;
   features: ShowFeatures;
   admin: boolean;
+  elevated: boolean;
   frozen: boolean;
   assigneeNames: string[];
   roomMode?: boolean;
@@ -286,7 +294,7 @@ function RackCell({
       : ch.name;
 
   const deployLocked =
-    features.lockDeployed && ch.deployed && !admin;
+    features.lockDeployed && ch.deployed && !elevated;
   const markDisabled =
     frozen ||
     deployLocked ||

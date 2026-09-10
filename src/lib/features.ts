@@ -25,6 +25,7 @@ export function parseFeatures(raw: unknown): ShowFeatures {
     groups: bool(obj.groups, DEFAULT_SHOW_FEATURES.groups),
     status: bool(obj.status, DEFAULT_SHOW_FEATURES.status),
     lockDeployed: bool(obj.lockDeployed, DEFAULT_SHOW_FEATURES.lockDeployed),
+    lockStaged: bool(obj.lockStaged, DEFAULT_SHOW_FEATURES.lockStaged),
     crewLocked: bool(obj.crewLocked, DEFAULT_SHOW_FEATURES.crewLocked),
   };
 }

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { isAdminUnlocked } from "@/lib/admin";
+import { getBoardRole } from "@/lib/admin";
 import { getShowPublic, getShowRevision } from "@/lib/store";
 
 /**
  * Lightweight live sync: clients poll with ?r=<lastRevision>.
  * If unchanged → { unchanged: true, revision }.
- * If changed → full { show, admin, revision }.
+ * If changed → full { show, admin, boLead, revision }.
  */
 export async function GET(
   request: Request,
@@ -29,6 +29,12 @@ export async function GET(
   if (!show) {
     return NextResponse.json({ error: "Show not found." }, { status: 404 });
   }
-  const admin = await isAdminUnlocked(token);
-  return NextResponse.json({ unchanged: false, revision, show, admin });
+  const role = await getBoardRole(token);
+  return NextResponse.json({
+    unchanged: false,
+    revision,
+    show,
+    admin: role === "admin",
+    boLead: role === "boLead" || role === "admin",
+  });
 }

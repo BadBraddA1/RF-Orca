@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { MarkBoard } from "@/components/MarkBoard"
-import { isAdminUnlocked } from "@/lib/admin"
+import { getBoardRole } from "@/lib/admin"
 import { siteName, siteUrl } from "@/lib/site-metadata"
 import { getShowPublic } from "@/lib/store"
 
@@ -53,11 +53,16 @@ export default async function ShowPage({ params }: PageProps) {
   const { token } = await params
   const show = await getShowPublic(token)
   if (!show) notFound()
-  const admin = await isAdminUnlocked(token)
+  const role = await getBoardRole(token)
 
   return (
     <main>
-      <MarkBoard token={token} initialShow={show} initialAdmin={admin} />
+      <MarkBoard
+        token={token}
+        initialShow={show}
+        initialAdmin={role === "admin"}
+        initialBoLead={role === "boLead" || role === "admin"}
+      />
     </main>
   )
 }

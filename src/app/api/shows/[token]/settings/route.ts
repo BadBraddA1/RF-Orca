@@ -10,6 +10,7 @@ const bodySchema = z.object({
   groups: z.boolean().optional(),
   status: z.boolean().optional(),
   lockDeployed: z.boolean().optional(),
+  lockStaged: z.boolean().optional(),
   crewLocked: z.boolean().optional(),
 });
 

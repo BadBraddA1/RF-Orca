@@ -58,8 +58,10 @@ export type ShowFeatures = {
   groups: boolean;
   /** Allowed / Blocked / Unreviewed workflow */
   status: boolean;
-  /** Once deployed, crew cannot undeploy or change room (admin still can) */
+  /** Once deployed, crew cannot undeploy or change room (admin / BO Lead still can) */
   lockDeployed: boolean;
+  /** Once a room is staged, crew cannot change/clear it (admin / BO Lead still can) */
+  lockStaged: boolean;
   /** Freeze all crew marking; board is read-only until unlocked */
   crewLocked: boolean;
 };
@@ -73,8 +75,12 @@ export const DEFAULT_SHOW_FEATURES: ShowFeatures = {
   /** Off until the coordinator wants Allowed/Blocked workflow */
   status: false,
   lockDeployed: true,
+  lockStaged: true,
   crewLocked: false,
 };
+
+/** Floor privilege for mark / lock overrides (not Tools). */
+export type BoardRole = "admin" | "boLead" | "crew";
 
 /** Seconds after deploy when crew may still undo despite lockDeployed. */
 export const DEPLOY_UNDO_GRACE_SEC = 8;
@@ -140,6 +146,11 @@ export type Show = {
   name: string;
   shareToken: string;
   adminPasswordHash: string;
+  /**
+   * Secret path segment for the BO Lead link (`/s/{share}/bo/{token}`).
+   * Never expose on public show payloads — only via admin BO Lead API.
+   */
+  boLeadToken: string;
   rooms: Room[];
   /** Ordered channel-group labels for this show. */
   groups: ChannelGroup[];
@@ -157,7 +168,7 @@ export type Show = {
   createdAt: string;
 };
 
-export type ShowPublic = Omit<Show, "adminPasswordHash"> & {
+export type ShowPublic = Omit<Show, "adminPasswordHash" | "boLeadToken"> & {
   channels: Channel[];
   storageMode: "memory" | "turso";
   conflicts: FreqConflict[];

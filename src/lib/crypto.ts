@@ -38,3 +38,16 @@ export function adminCookieName(shareToken: string): string {
 export function getSessionSecret(adminPasswordHash: string): string {
   return createHash("sha256").update(adminPasswordHash).digest("hex");
 }
+
+export function signBoLeadSession(
+  shareToken: string,
+  boLeadToken: string,
+): string {
+  return createHash("sha256")
+    .update(`bo:${shareToken}:${boLeadToken}`)
+    .digest("base64url");
+}
+
+export function boLeadCookieName(shareToken: string): string {
+  return `rf_orca_bolead_${shareToken}`;
+}

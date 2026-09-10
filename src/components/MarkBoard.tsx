@@ -181,7 +181,12 @@ const FEATURE_TOGGLES: {
   {
     key: "lockDeployed",
     label: "Lock after deploy",
-    hint: "Crew can’t undo after grace — you still can",
+    hint: "Crew can’t undeploy after grace — you or BO Lead still can",
+  },
+  {
+    key: "lockStaged",
+    label: "Lock after stage",
+    hint: "Crew can’t change a staged room — you or BO Lead still can",
   },
   {
     key: "crewLocked",
@@ -320,14 +325,20 @@ export function MarkBoard({
   token,
   initialShow,
   initialAdmin,
+  initialBoLead = false,
 }: {
   token: string;
   initialShow: ShowPublic;
   initialAdmin: boolean;
+  /** Floor lead cookie — can undeploy / restage without Tools. */
+  initialBoLead?: boolean;
 }) {
   const router = useRouter();
   const [show, setShow] = useState(initialShow);
   const [admin, setAdmin] = useState(initialAdmin);
+  const [boLead, setBoLead] = useState(initialBoLead || initialAdmin);
+  const [boLeadMsg, setBoLeadMsg] = useState<string | null>(null);
+  const [boLeadBusy, setBoLeadBusy] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [bandFilter, setBandFilter] = useState<string>("all");
@@ -402,6 +413,7 @@ export function MarkBoard({
   const [, startTransition] = useTransition();
 
   const features = { ...show.features, status: false };
+  const elevated = admin || boLead;
 
   useEffect(() => {
     const board = boardRef.current;
@@ -578,7 +590,8 @@ export function MarkBoard({
     return () => window.clearTimeout(id);
   }, [flashIds]);
 
-  const applyShow = useCallback((next: ShowPublic, nextAdmin?: boolean) => {
+  const applyShow = useCallback(
+    (next: ShowPublic, nextAdmin?: boolean, nextBoLead?: boolean) => {
     const prevMap = new Map(
       channelsRef.current.map((c) => [c.id, c] as const),
     );
@@ -602,12 +615,14 @@ export function MarkBoard({
     setShow(next);
     revisionRef.current = next.revision ?? 0;
     if (typeof nextAdmin === "boolean") setAdmin(nextAdmin);
+    if (typeof nextBoLead === "boolean") setBoLead(nextBoLead);
     setShowNameDraft(next.name);
     setRoomsText(next.rooms.map((r) => r.name).join("\n"));
     setGroupsText(next.groups.map((g) => g.name).join("\n"));
     setCustomCols(String(next.rackCols ?? 4));
     setCustomRows(String(next.rackRows ?? 3));
-  }, []);
+  },
+  []);
 
   function enterCrewMode() {
     if (features.rooms || features.assignments) {
@@ -628,13 +643,28 @@ export function MarkBoard({
     if (!res.ok) return;
     const data = await res.json();
     startTransition(() => {
-      applyShow(data.show, data.admin);
+      applyShow(data.show, data.admin, data.boLead);
     });
   }, [token, applyShow]);
 
   const { live, transport } = useShowLive(token, () => {
     void refreshFromServer();
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const bo = url.searchParams.get("bo");
+    if (!bo) return;
+    if (bo === "invalid") {
+      setBoLeadMsg("That BO Lead link is invalid or was regenerated.");
+    } else if (bo === "1") {
+      setBoLead(true);
+      setBoLeadMsg(null);
+    }
+    url.searchParams.delete("bo");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   const groupNames = useMemo(() => {
     if (!features.groups) return [];
@@ -906,6 +936,7 @@ export function MarkBoard({
       return;
     }
     setAdmin(true);
+    setBoLead(true);
     setPassword("");
   }
 
@@ -916,6 +947,78 @@ export function MarkBoard({
       body: JSON.stringify({ action: "lock" }),
     });
     setAdmin(false);
+    const res = await fetch(`/api/shows/${token}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      setBoLead(Boolean(data.boLead));
+    } else {
+      setBoLead(false);
+    }
+  }
+
+  async function copyBoLeadLink() {
+    if (!admin || boLeadBusy) return;
+    setBoLeadBusy(true);
+    setBoLeadMsg(null);
+    try {
+      const res = await fetch(`/api/shows/${token}/bo-lead`, {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBoLeadMsg(data.error || "Could not load BO Lead link");
+        return;
+      }
+      const url = `${window.location.origin}${data.path as string}`;
+      await navigator.clipboard.writeText(url);
+      setBoLeadMsg("BO Lead link copied.");
+    } catch {
+      setBoLeadMsg("Could not copy BO Lead link");
+    } finally {
+      setBoLeadBusy(false);
+    }
+  }
+
+  async function regenerateBoLeadLink() {
+    if (!admin || boLeadBusy) return;
+    if (
+      !window.confirm(
+        "Regenerate BO Lead link? Old links stop working immediately.",
+      )
+    ) {
+      return;
+    }
+    setBoLeadBusy(true);
+    setBoLeadMsg(null);
+    try {
+      const res = await fetch(`/api/shows/${token}/bo-lead`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "regenerate" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBoLeadMsg(data.error || "Could not regenerate");
+        return;
+      }
+      const url = `${window.location.origin}${data.path as string}`;
+      await navigator.clipboard.writeText(url);
+      setBoLeadMsg("New BO Lead link copied. Old links are dead.");
+    } catch {
+      setBoLeadMsg("Could not regenerate BO Lead link");
+    } finally {
+      setBoLeadBusy(false);
+    }
+  }
+
+  async function dropBoLead() {
+    await fetch(`/api/shows/${token}/bo-lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "lock" }),
+    });
+    setBoLead(admin);
+    setBoLeadMsg(null);
   }
 
   async function patchFeature(key: keyof ShowFeatures, value: boolean) {
@@ -2132,7 +2235,31 @@ export function MarkBoard({
       {features.crewLocked ? (
         <div className="board-banner locked" role="status">
           Board locked for crew — marking paused.
-          {admin ? " You can still edit while Tools are unlocked." : null}
+          {elevated
+            ? admin
+              ? " You can still edit while Tools are unlocked."
+              : " BO Lead can still mark, undeploy, and restage."
+            : null}
+        </div>
+      ) : null}
+
+      {boLead && !admin ? (
+        <div className="board-banner locked" role="status">
+          BO Lead — you can undeploy and change staged rooms.
+          <button
+            type="button"
+            className="btn-quiet"
+            style={{ marginLeft: "0.5rem" }}
+            onClick={() => void dropBoLead()}
+          >
+            Drop lead
+          </button>
+        </div>
+      ) : null}
+
+      {boLeadMsg && !admin ? (
+        <div className="board-banner locked" role="status">
+          {boLeadMsg}
         </div>
       ) : null}
 
@@ -2333,6 +2460,36 @@ export function MarkBoard({
                     />
                   </label>
                 ))}
+              </div>
+
+              <div className="bo-lead-tools" aria-label="BO Lead link">
+                <p className="tools-whisper">BO Lead link</p>
+                <p className="form-hint">
+                  Share with a floor lead so they can undeploy and change staged
+                  rooms without the coordinator password. Tools stay locked for
+                  them.
+                </p>
+                <div className="admin-row">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={boLeadBusy}
+                    onClick={() => void copyBoLeadLink()}
+                  >
+                    {boLeadBusy ? "Working…" : "Copy BO Lead link"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-quiet"
+                    disabled={boLeadBusy}
+                    onClick={() => void regenerateBoLeadLink()}
+                  >
+                    Regenerate
+                  </button>
+                </div>
+                {boLeadMsg && admin ? (
+                  <p className="form-hint">{boLeadMsg}</p>
+                ) : null}
               </div>
 
               {features.assignments ? (
@@ -2799,6 +2956,7 @@ export function MarkBoard({
           rackRows={show.rackRows ?? 3}
           features={features}
           admin={admin}
+          elevated={elevated}
           assigneeNames={assigneeNames}
           search={crewMode ? "" : search}
           filterInUse={
@@ -2940,6 +3098,7 @@ export function MarkBoard({
                     rooms={show.rooms.map((r) => r.name)}
                     savedGroupNames={savedGroupNames}
                     admin={admin}
+                    elevated={elevated}
                     features={features}
                     selected={Boolean(selectedIds[channel.id])}
                     highlighted={highlightId === channel.id}
@@ -3081,6 +3240,7 @@ function ChannelRow({
   rooms,
   savedGroupNames,
   admin,
+  elevated,
   features,
   selected,
   highlighted,
@@ -3095,6 +3255,7 @@ function ChannelRow({
   rooms: string[];
   savedGroupNames: string[];
   admin: boolean;
+  elevated: boolean;
   features: ShowFeatures;
   selected?: boolean;
   highlighted?: boolean;
@@ -3119,14 +3280,19 @@ function ChannelRow({
   onDelete?: () => void;
 }) {
   const blocked = features.status && channel.status === "blocked";
-  const crewFrozen = features.crewLocked && !admin;
+  const crewFrozen = features.crewLocked && !elevated;
   const inGrace =
     features.lockDeployed &&
     channel.deployed &&
     withinDeployGrace(channel.deployedAt, DEPLOY_UNDO_GRACE_SEC);
   const deployLocked =
-    features.lockDeployed && channel.deployed && !admin && !inGrace;
+    features.lockDeployed && channel.deployed && !elevated && !inGrace;
+  const stageLocked =
+    features.lockStaged &&
+    Boolean(channel.roomName?.trim()) &&
+    !elevated;
   const markDisabled = blocked || crewFrozen || deployLocked;
+  const roomDisabled = markDisabled || stageLocked;
   const assignDisabled = crewFrozen;
   const [roomDraft, setRoomDraft] = useState(channel.roomName ?? "");
   const [nameDraft, setNameDraft] = useState(channel.name);
@@ -3142,7 +3308,7 @@ function ChannelRow({
   return (
     <li
       id={`ch-${channel.id}`}
-      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${selected ? " is-selected" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${conflicted ? " is-conflict" : ""}`}
+      className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked || stageLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${selected ? " is-selected" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
         <div className="channel-identity">
@@ -3187,16 +3353,20 @@ function ChannelRow({
             {(channel.isBackup ||
               conflicted ||
               deployLocked ||
-              (inGrace && !admin)) ? (
+              stageLocked ||
+              (inGrace && !elevated)) ? (
               <div className="channel-meta">
                 {channel.isBackup ? <span className="tag">Backup</span> : null}
                 {conflicted ? (
                   <span className="tag conflict-tag">Conflict</span>
                 ) : null}
                 {deployLocked ? (
-                  <span className="tag locked-tag">Locked</span>
+                  <span className="tag locked-tag">Deploy locked</span>
                 ) : null}
-                {inGrace && !admin ? (
+                {stageLocked && !deployLocked ? (
+                  <span className="tag locked-tag">Room locked</span>
+                ) : null}
+                {inGrace && !elevated ? (
                   <span className="tag">Undo ok</span>
                 ) : null}
               </div>
@@ -3289,7 +3459,7 @@ function ChannelRow({
               compact
               value={channel.roomName}
               rooms={rooms}
-              disabled={markDisabled}
+              disabled={roomDisabled}
               label={channel.deployed ? "Room" : "Stage room"}
               onAssign={(roomName) => {
                 void onPatch(channel.id, { roomName });

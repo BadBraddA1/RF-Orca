@@ -16,19 +16,22 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - Create with an **admin password**
 - Crews open the show link → **mark view** (stage room + Deploy), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms
+- **BO Lead link** — Tools → Copy BO Lead link; floor lead can undeploy and change staged rooms without the coordinator password (no Tools). Regenerate invalidates old links
 - **Undo** — with Tools unlocked, header **Undo** (or ⌘Z / Ctrl+Z) reverses the last channel edit, bulk stage room, or bulk group (session stack; deletes aren’t undoable)
 - **Rename show** — Tools → Show name → Rename (share link stays the same)
 - **Rooms** — edit lines in Tools → Save rooms; stage channels before Deploy; renames update staged/deployed channels; remove a line to drop a room
 - **Delete all channels** — Tools → Danger zone; type `DELETE CHANNELS` (keeps the show, rooms, groups, names, and share link)
 - **Delete show** — Tools → Danger zone; type the show name to confirm (permanent)
-- **Show options** (toggles): Deploy, Rooms, Groups on by default; **Mic rack assignments** off until you need it; **Allow/Block** parked for now; **Lock after deploy** on; **Lock board for crew** off
+- **Show options** (toggles): Deploy, Rooms, Groups on by default; **Mic rack assignments** off until you need it; **Allow/Block** parked for now; **Lock after deploy** on; **Lock after stage** on; **Lock board for crew** off
 - Tools → rack presets / custom **cols × rows** + **Fill empty** (when Mic rack assignments is on)
-- Schema v6: `rack_cols` / `rack_rows`, `mic_kind` (handheld|lav), `assigned_to`, `in_use`, `rack_slot`
+- Schema v8: `bo_lead_token`, plus v7 `people` / rack fields. Channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`
 - Rack grids up to **20×20** (200 slots) so large Workbench imports fit; import grows the rack automatically
 
-**Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room after a short **undo grace** (~8s / toast Undo). Coordinator can still change anytime with Tools unlocked.
+**Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room after a short **undo grace** (~8s / toast Undo). Coordinator (Tools unlocked) or **BO Lead** can still change anytime.
 
-**Lock board for crew**: freezes all crew marking for the show (handy when the plan is set).
+**Lock after stage** (on by default): once a room is staged on a channel, crew cannot change or clear it. First stage is still open; coordinator or BO Lead can restage.
+
+**Lock board for crew**: freezes all crew marking for the show (handy when the plan is set). BO Lead and coordinator can still mark.
 
 ## Floor speed features
 
@@ -68,7 +71,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - With `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`: durable shared shows (production)
 - Without them: in-memory demo store (local only; resets on cold start)
-- Schema v7: `people` roster, `rack_cols` / `rack_rows`, channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
+- Schema v8: `bo_lead_token` on shows; `people` roster, `rack_cols` / `rack_rows`, channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
 
 ## Develop
 

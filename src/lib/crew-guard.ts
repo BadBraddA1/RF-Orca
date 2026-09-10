@@ -1,4 +1,4 @@
-import type { Channel, ShowFeatures } from "./types";
+import type { BoardRole, Channel, ShowFeatures } from "./types";
 import { DEPLOY_UNDO_GRACE_SEC } from "./types";
 import { withinDeployGrace } from "./board-helpers";
 
@@ -13,16 +13,28 @@ type CrewPatch = {
   name?: string;
 };
 
+function roomKey(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
 /**
  * Returns an error message if a non-admin patch violates show feature locks.
- * Admins bypass all of these. Deploy undo has a short grace window.
+ * Admins bypass all of these. BO Lead bypasses crew freeze + staged/deploy locks
+ * (can undeploy / restage) but not Tools-only edits (rename, status, groups).
+ * Deploy undo has a short grace window for plain crew.
  */
 export function crewPatchBlocked(
   features: ShowFeatures,
   channel: Channel,
   patch: CrewPatch,
+  role: BoardRole = "crew",
 ): string | null {
-  if (features.crewLocked) {
+  if (role === "admin") return null;
+
+  const elevated = role === "boLead";
+
+  if (features.crewLocked && !elevated) {
     if (
       typeof patch.deployed === "boolean" ||
       patch.roomName !== undefined ||
@@ -55,17 +67,27 @@ export function crewPatchBlocked(
     return "Renaming channels requires coordinator unlock.";
   }
 
-  if (features.lockDeployed && channel.deployed) {
+  if (features.lockStaged && !elevated) {
+    const currentRoom = roomKey(channel.roomName);
+    const changingRoom =
+      patch.roomName !== undefined && roomKey(patch.roomName) !== currentRoom;
+    if (currentRoom && changingRoom) {
+      return "Staged room is locked. Coordinator or BO Lead can change it.";
+    }
+  }
+
+  if (features.lockDeployed && channel.deployed && !elevated) {
     const undeploying = patch.deployed === false;
     const changingRoom =
-      patch.roomName !== undefined && patch.roomName !== channel.roomName;
+      patch.roomName !== undefined &&
+      roomKey(patch.roomName) !== roomKey(channel.roomName);
     const inGrace = withinDeployGrace(
       channel.deployedAt,
       DEPLOY_UNDO_GRACE_SEC,
     );
     if (undeploying && inGrace) return null;
     if (undeploying || changingRoom) {
-      return "Deployed channels are locked. Coordinator can change them after unlock.";
+      return "Deployed channels are locked. Coordinator or BO Lead can change them.";
     }
   }
 

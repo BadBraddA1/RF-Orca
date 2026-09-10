@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isAdminUnlocked } from "@/lib/admin";
+import { getBoardRole, isAdminUnlocked } from "@/lib/admin";
 import { crewPatchBlocked } from "@/lib/crew-guard";
 import { deleteChannels, getShowPublic, updateChannel } from "@/lib/store";
 
@@ -27,7 +27,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid patch." }, { status: 400 });
   }
 
-  const admin = await isAdminUnlocked(token);
+  const role = await getBoardRole(token);
+  const admin = role === "admin";
   if (
     (parsed.data.status ||
       parsed.data.groupName !== undefined ||
@@ -46,7 +47,12 @@ export async function PATCH(
     if (!channel) {
       return NextResponse.json({ error: "Channel not found." }, { status: 404 });
     }
-    const blocked = crewPatchBlocked(current.features, channel, parsed.data);
+    const blocked = crewPatchBlocked(
+      current.features,
+      channel,
+      parsed.data,
+      role,
+    );
     if (blocked) {
       return NextResponse.json({ error: blocked }, { status: 403 });
     }

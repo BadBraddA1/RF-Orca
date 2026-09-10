@@ -36,7 +36,7 @@ import {
 
 type StoreMode = "memory" | "turso";
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 type GlobalStore = {
   shows: Map<string, Show>;
@@ -173,6 +173,11 @@ async function ensureSchema(): Promise<void> {
     "rack_slot",
     `ALTER TABLE channels ADD COLUMN rack_slot INTEGER`,
   );
+  await ensureColumn(
+    "shows",
+    "bo_lead_token",
+    `ALTER TABLE shows ADD COLUMN bo_lead_token TEXT`,
+  );
   await db.query(
     `CREATE INDEX IF NOT EXISTS channels_show_id_idx ON channels(show_id)`,
   );
@@ -195,13 +200,28 @@ function parseJsonList<T extends { id: string; name: string }>(
 }
 
 function toPublic(show: Show, channels: Channel[]): ShowPublic {
-  const { adminPasswordHash: _, ...rest } = show;
+  const { adminPasswordHash: _, boLeadToken: __, ...rest } = show;
   return {
     ...rest,
     channels: [...channels].sort((a, b) => a.sortOrder - b.sortOrder),
     storageMode: mode(),
     conflicts: findFreqConflicts(channels),
   };
+}
+
+async function ensureBoLeadToken(show: Show): Promise<Show> {
+  if (show.boLeadToken?.trim()) return show;
+  const boLeadToken = createShareToken();
+  const next = { ...show, boLeadToken };
+  if (mode() === "memory") {
+    getMemory().shows.set(show.id, next);
+    return next;
+  }
+  const db = getSql();
+  await db`
+    UPDATE shows SET bo_lead_token = ${boLeadToken} WHERE id = ${show.id}
+  `;
+  return next;
 }
 
 function mapChannelRow(row: Record<string, unknown>): Channel {
@@ -292,25 +312,26 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
           rows: (show as Show).rackRows,
           rackSize: (show as Show & { rackSize?: number }).rackSize,
         });
-        return {
+        const mapped: Show = {
           ...show,
+          boLeadToken: show.boLeadToken || "",
           features: parseFeatures(show.features ?? DEFAULT_SHOW_FEATURES),
-          people: parseJsonList<Person>(
-            (show as Show).people ?? [],
-          ),
+          people: parseJsonList<Person>((show as Show).people ?? []),
           rackCols: layout.cols,
           rackRows: layout.rows,
           revision: show.revision ?? 0,
           activity: parseActivity(show.activity ?? []),
         };
+        return ensureBoLeadToken(mapped);
       }
     }
     return null;
   }
   const db = getSql();
   const rows = await db`
-    SELECT id, name, share_token, admin_password_hash, rooms, groups, people,
-           features, rack_size, rack_cols, rack_rows, revision, activity, created_at
+    SELECT id, name, share_token, admin_password_hash, bo_lead_token, rooms,
+           groups, people, features, rack_size, rack_cols, rack_rows, revision,
+           activity, created_at
     FROM shows WHERE share_token = ${shareToken} LIMIT 1
   `;
   const row = rows[0];
@@ -320,11 +341,12 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     rows: row.rack_rows,
     rackSize: row.rack_size,
   });
-  return {
+  const mapped: Show = {
     id: row.id as string,
     name: row.name as string,
     shareToken: row.share_token as string,
     adminPasswordHash: row.admin_password_hash as string,
+    boLeadToken: (row.bo_lead_token as string) || "",
     rooms: parseJsonList<Room>(row.rooms),
     groups: parseJsonList<ChannelGroup>(row.groups),
     people: parseJsonList<Person>(row.people),
@@ -335,6 +357,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     activity: parseActivity(row.activity),
     createdAt: new Date(row.created_at as string).toISOString(),
   };
+  return ensureBoLeadToken(mapped);
 }
 
 async function getChannels(showId: string): Promise<Channel[]> {
@@ -399,6 +422,7 @@ export async function createShow(input: {
     name: input.name.trim(),
     shareToken: createShareToken(),
     adminPasswordHash: hashPassword(input.adminPassword),
+    boLeadToken: createShareToken(),
     rooms: [],
     groups: [],
     people: [],
@@ -420,14 +444,16 @@ export async function createShow(input: {
   const db = getSql();
   await db`
     INSERT INTO shows (
-      id, name, share_token, admin_password_hash, rooms, groups, people, features,
-      rack_size, rack_cols, rack_rows, revision, activity, created_at
+      id, name, share_token, admin_password_hash, bo_lead_token, rooms, groups,
+      people, features, rack_size, rack_cols, rack_rows, revision, activity,
+      created_at
     )
     VALUES (
       ${show.id},
       ${show.name},
       ${show.shareToken},
       ${show.adminPasswordHash},
+      ${show.boLeadToken},
       ${JSON.stringify(show.rooms)},
       ${JSON.stringify(show.groups)},
       ${JSON.stringify(show.people)},
@@ -441,6 +467,33 @@ export async function createShow(input: {
     )
   `;
   return toPublic(show, []);
+}
+
+/** Coordinator-only: rotate the BO Lead link secret (invalidates old cookies). */
+export async function regenerateBoLeadToken(
+  shareToken: string,
+): Promise<{ show: ShowPublic; boLeadToken: string } | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const boLeadToken = createShareToken();
+  const next = { ...show, boLeadToken };
+  if (mode() === "memory") {
+    getMemory().shows.set(show.id, next);
+  } else {
+    const db = getSql();
+    await db`
+      UPDATE shows SET bo_lead_token = ${boLeadToken} WHERE id = ${show.id}
+    `;
+  }
+  const channels = await getChannels(show.id);
+  return { show: toPublic(next, channels), boLeadToken };
+}
+
+export async function getBoLeadToken(
+  shareToken: string,
+): Promise<string | null> {
+  const show = await getShowByToken(shareToken);
+  return show?.boLeadToken ?? null;
 }
 
 export async function getShowPublic(

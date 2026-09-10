@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isAdminUnlocked, lockAdmin } from "@/lib/admin";
+import { getBoardRole, isAdminUnlocked, lockAdmin } from "@/lib/admin";
 import { deleteShow, getShowPublic, renameShow } from "@/lib/store";
 
 export async function GET(
@@ -12,8 +12,12 @@ export async function GET(
   if (!show) {
     return NextResponse.json({ error: "Show not found." }, { status: 404 });
   }
-  const admin = await isAdminUnlocked(token);
-  return NextResponse.json({ show, admin });
+  const role = await getBoardRole(token);
+  return NextResponse.json({
+    show,
+    admin: role === "admin",
+    boLead: role === "boLead" || role === "admin",
+  });
 }
 
 const patchBodySchema = z.object({
