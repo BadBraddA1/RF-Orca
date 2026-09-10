@@ -2999,8 +2999,20 @@ function ChannelRow({
           ) : null}
         </div>
 
-        {features.deploy || features.assignments ? (
+        {features.deploy || features.assignments || features.rooms ? (
           <div className="channel-top-actions">
+            {features.rooms ? (
+              <RoomAssign
+                compact
+                value={channel.roomName}
+                rooms={rooms}
+                disabled={markDisabled}
+                label={channel.deployed ? "Room" : "Stage room"}
+                onAssign={(roomName) => {
+                  void onPatch(channel.id, { roomName });
+                }}
+              />
+            ) : null}
             {features.deploy ? (
               <button
                 type="button"
@@ -3036,7 +3048,6 @@ function ChannelRow({
                     return;
                   }
                   if (!roomName && rooms.length > 0) {
-                    // Prefer prestage: ask if nothing staged yet
                     alert("Stage a room first (Room menu), then Deploy.");
                     return;
                   }
@@ -3137,20 +3148,6 @@ function ChannelRow({
               Delete freq
             </button>
           ) : null}
-        </div>
-      ) : null}
-
-      {features.rooms ? (
-        <div className="channel-floor-fields">
-          <RoomAssign
-            value={channel.roomName}
-            rooms={rooms}
-            disabled={markDisabled}
-            label={channel.deployed ? "Room" : "Stage room"}
-            onAssign={(roomName) => {
-              void onPatch(channel.id, { roomName });
-            }}
-          />
         </div>
       ) : null}
     </li>
