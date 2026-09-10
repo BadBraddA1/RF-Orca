@@ -16,6 +16,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - Create with an **admin password**
 - Crews open the show link → **mark view** (stage room + Deploy), no login
 - Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms
+- **Undo** — with Tools unlocked, header **Undo** (or ⌘Z / Ctrl+Z) reverses the last channel edit, bulk stage room, or bulk group (session stack; deletes aren’t undoable)
 - **Rename show** — Tools → Show name → Rename (share link stays the same)
 - **Rooms** — edit lines in Tools → Save rooms; stage channels before Deploy; renames update staged/deployed channels; remove a line to drop a room
 - **Delete all channels** — Tools → Danger zone; type `DELETE CHANNELS` (keeps the show, rooms, groups, names, and share link)

@@ -79,6 +79,79 @@ type UndoToast = {
   expiresAt: number;
 };
 
+type ChannelUndoPatch = Partial<{
+  status: ChannelStatus;
+  deployed: boolean;
+  roomName: string | null;
+  groupName: string | null;
+  assignedTo: string | null;
+  inUse: boolean;
+  micKind: MicKind | null;
+  name: string;
+}>;
+
+type UndoEntry = {
+  label: string;
+  actions: Array<{ channelId: string; patch: ChannelUndoPatch }>;
+};
+
+const UNDO_STACK_MAX = 30;
+
+function inverseChannelPatch(
+  before: Channel,
+  patch: ChannelUndoPatch,
+): ChannelUndoPatch {
+  const inv: ChannelUndoPatch = {};
+  if ("status" in patch) inv.status = before.status;
+  if ("deployed" in patch) inv.deployed = before.deployed;
+  if ("roomName" in patch) inv.roomName = before.roomName;
+  if ("groupName" in patch) inv.groupName = before.groupName;
+  if ("assignedTo" in patch) inv.assignedTo = before.assignedTo;
+  if ("inUse" in patch) inv.inUse = before.inUse;
+  if ("micKind" in patch) inv.micKind = before.micKind;
+  if ("name" in patch) inv.name = before.name;
+  // Deploy often sets room in the same patch — restore both if deploy flips.
+  if ("deployed" in patch && !("roomName" in patch)) {
+    inv.roomName = before.roomName;
+  }
+  return inv;
+}
+
+function describeChannelUndo(
+  before: Channel,
+  patch: ChannelUndoPatch,
+): string {
+  if ("deployed" in patch) {
+    return patch.deployed
+      ? `Deploy ${before.name}`
+      : `Undeploy ${before.name}`;
+  }
+  if ("roomName" in patch) {
+    return patch.roomName
+      ? `Stage ${before.name} → ${patch.roomName}`
+      : `Clear room on ${before.name}`;
+  }
+  if ("groupName" in patch) {
+    return patch.groupName
+      ? `Group ${before.name} → ${patch.groupName}`
+      : `Ungroup ${before.name}`;
+  }
+  if ("inUse" in patch) {
+    return patch.inUse
+      ? `In use ${before.name}`
+      : `Spare ${before.name}`;
+  }
+  if ("assignedTo" in patch) {
+    return patch.assignedTo
+      ? `Who ${before.name} → ${patch.assignedTo}`
+      : `Clear who on ${before.name}`;
+  }
+  if ("name" in patch) return `Rename ${before.name}`;
+  if ("micKind" in patch) return `Mic kind ${before.name}`;
+  if ("status" in patch) return `Status ${before.name}`;
+  return `Edit ${before.name}`;
+}
+
 const FEATURE_TOGGLES: {
   key: keyof ShowFeatures;
   label: string;
@@ -311,6 +384,8 @@ export function MarkBoard({
     String(initialShow.rackRows ?? 3),
   );
   const [undo, setUndo] = useState<UndoToast | null>(null);
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const [undoBusy, setUndoBusy] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [crewMode, setCrewMode] = useState(false);
   const [flashChanges, setFlashChanges] = useState(false);
@@ -452,6 +527,33 @@ export function MarkBoard({
     const id = window.setTimeout(() => setUndo(null), ms);
     return () => window.clearTimeout(id);
   }, [undo]);
+
+  useEffect(() => {
+    if (!admin || crewMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      if (e.shiftKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      if (undoStack.length === 0 || undoBusy) return;
+      e.preventDefault();
+      void undoLastChange();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [admin, crewMode, undoStack, undoBusy]);
+
+  useEffect(() => {
+    if (!admin) setUndoStack([]);
+  }, [admin]);
 
   useEffect(() => {
     const ids = Object.keys(flashIds);
@@ -852,17 +954,8 @@ export function MarkBoard({
 
   async function patchChannel(
     channelId: string,
-    patch: Partial<{
-      status: ChannelStatus;
-      deployed: boolean;
-      roomName: string | null;
-      groupName: string | null;
-      assignedTo: string | null;
-      inUse: boolean;
-      micKind: MicKind | null;
-      name: string;
-    }>,
-    opts?: { undoToast?: boolean },
+    patch: ChannelUndoPatch,
+    opts?: { undoToast?: boolean; skipUndo?: boolean },
   ) {
     const before = show.channels.find((c) => c.id === channelId);
     const res = await fetch(`/api/shows/${token}/channels/${channelId}`, {
@@ -878,6 +971,20 @@ export function MarkBoard({
     applyShow(data.show);
     if ("roomName" in patch) ensureSectionOpen("room", patch.roomName);
     if ("groupName" in patch) ensureSectionOpen("group", patch.groupName);
+    if (admin && before && !opts?.skipUndo) {
+      const inverse = inverseChannelPatch(before, patch);
+      if (Object.keys(inverse).length > 0) {
+        setUndoStack((prev) =>
+          [
+            {
+              label: describeChannelUndo(before, patch),
+              actions: [{ channelId, patch: inverse }],
+            },
+            ...prev,
+          ].slice(0, UNDO_STACK_MAX),
+        );
+      }
+    }
     if (opts?.undoToast && patch.deployed === true && before) {
       setUndo({
         channelId,
@@ -886,6 +993,34 @@ export function MarkBoard({
       });
     }
     if (patch.deployed === false) setUndo(null);
+  }
+
+  async function undoLastChange() {
+    if (!admin || undoBusy || undoStack.length === 0) return;
+    const entry = undoStack[0];
+    setUndoBusy(true);
+    setUndo(null);
+    try {
+      for (const action of entry.actions) {
+        const res = await fetch(
+          `/api/shows/${token}/channels/${action.channelId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(action.patch),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Undo failed");
+          return;
+        }
+        applyShow(data.show);
+      }
+      setUndoStack((prev) => prev.slice(1));
+    } finally {
+      setUndoBusy(false);
+    }
   }
 
   async function onPickImport(file: File | null) {
@@ -1214,6 +1349,16 @@ export function MarkBoard({
 
   async function bulkGroup(ids: string[], groupName: string | null) {
     if (!admin || !features.groups || ids.length === 0 || bulkBusy) return;
+    const actions = ids
+      .map((id) => {
+        const before = show.channels.find((c) => c.id === id);
+        if (!before) return null;
+        return {
+          channelId: id,
+          patch: { groupName: before.groupName } satisfies ChannelUndoPatch,
+        };
+      })
+      .filter((a): a is NonNullable<typeof a> => Boolean(a));
     setBulkBusy(true);
     try {
       const res = await fetch(`/api/shows/${token}/channels`, {
@@ -1233,6 +1378,21 @@ export function MarkBoard({
       applyShow(data.show);
       ensureSectionOpen("group", groupName);
       setSelectedIds({});
+      if (actions.length > 0) {
+        const one = show.channels.find((c) => c.id === ids[0]);
+        setUndoStack((prev) =>
+          [
+            {
+              label:
+                ids.length === 1 && one
+                  ? describeChannelUndo(one, { groupName })
+                  : `Set group on ${ids.length} channels`,
+              actions,
+            },
+            ...prev,
+          ].slice(0, UNDO_STACK_MAX),
+        );
+      }
     } finally {
       setBulkBusy(false);
     }
@@ -1240,6 +1400,16 @@ export function MarkBoard({
 
   async function bulkRoom(ids: string[], roomName: string | null) {
     if (!admin || !features.rooms || ids.length === 0 || bulkBusy) return;
+    const actions = ids
+      .map((id) => {
+        const before = show.channels.find((c) => c.id === id);
+        if (!before) return null;
+        return {
+          channelId: id,
+          patch: { roomName: before.roomName } satisfies ChannelUndoPatch,
+        };
+      })
+      .filter((a): a is NonNullable<typeof a> => Boolean(a));
     setBulkBusy(true);
     try {
       const res = await fetch(`/api/shows/${token}/channels`, {
@@ -1259,6 +1429,21 @@ export function MarkBoard({
       applyShow(data.show);
       ensureSectionOpen("room", roomName);
       setSelectedIds({});
+      if (actions.length > 0) {
+        const one = show.channels.find((c) => c.id === ids[0]);
+        setUndoStack((prev) =>
+          [
+            {
+              label:
+                ids.length === 1 && one
+                  ? describeChannelUndo(one, { roomName })
+                  : `Stage room on ${ids.length} channels`,
+              actions,
+            },
+            ...prev,
+          ].slice(0, UNDO_STACK_MAX),
+        );
+      }
     } finally {
       setBulkBusy(false);
     }
@@ -1537,6 +1722,21 @@ export function MarkBoard({
             >
               {copied ? "Copied" : "Copy link"}
             </button>
+            {admin ? (
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={undoBusy || undoStack.length === 0}
+                title={
+                  undoStack[0]
+                    ? `Undo: ${undoStack[0].label} (⌘Z)`
+                    : "Nothing to undo yet"
+                }
+                onClick={() => void undoLastChange()}
+              >
+                {undoBusy ? "Undoing…" : "Undo"}
+              </button>
+            ) : null}
             <button
               type="button"
               className={`btn-quiet${toolsOpen ? " active" : ""}`}
