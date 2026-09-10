@@ -10,6 +10,8 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
   enableLogs: true,
   environment: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.NODE_ENV || "development",
+  // Ably teardown / tab close — not actionable product bugs
+  ignoreErrors: ["Connection closed", /^Connection closed$/],
   integrations: [
     Sentry.browserProfilingIntegration(),
     Sentry.replayIntegration({

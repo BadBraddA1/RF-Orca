@@ -152,6 +152,12 @@ function loadCollapsed(token: string): Record<string, true> {
   }
 }
 
+function defaultListSort(features: ShowFeatures): ListSort {
+  if (features.groups) return "group";
+  if (features.rooms) return "room";
+  return "flat";
+}
+
 function loadListSort(token: string, features: ShowFeatures): ListSort {
   try {
     const raw = localStorage.getItem(listSortKey(token));
@@ -167,9 +173,7 @@ function loadListSort(token: string, features: ShowFeatures): ListSort {
   } catch {
     /* ignore */
   }
-  if (features.groups) return "group";
-  if (features.rooms) return "room";
-  return "flat";
+  return defaultListSort(features);
 }
 
 function loadFocus(token: string): FocusState {
@@ -257,7 +261,7 @@ export function MarkBoard({
   const [search, setSearch] = useState("");
   const [boardView, setBoardView] = useState<BoardView>("list");
   const [listSort, setListSort] = useState<ListSort>(() =>
-    loadListSort(token, initialShow.features),
+    defaultListSort(initialShow.features),
   );
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, true>
@@ -1463,7 +1467,7 @@ export function MarkBoard({
           {show.activity.slice(0, 6).map((a) => (
             <div key={a.id} className="activity-item">
               <span className="activity-msg">{a.message}</span>
-              <span className="activity-time">
+              <span className="activity-time" suppressHydrationWarning>
                 {formatAgo(a.at)}
               </span>
             </div>

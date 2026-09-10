@@ -75,9 +75,16 @@ export function useShowLive(
         ably.connection.on("disconnected", () => {
           if (!cancelled) setLive(false);
         });
+        ably.connection.on("closed", () => {
+          if (!cancelled) setLive(false);
+        });
         ably.connection.on("failed", () => {
           if (cancelled) return;
-          ably?.close();
+          try {
+            ably?.close();
+          } catch {
+            /* Ably close can reject with "Connection closed" */
+          }
           ably = null;
           startPoll();
         });
@@ -96,7 +103,15 @@ export function useShowLive(
     return () => {
       cancelled = true;
       if (pollId != null) window.clearInterval(pollId);
-      ably?.close();
+      if (ably) {
+        try {
+          ably.connection.off();
+          ably.close();
+        } catch {
+          /* expected on teardown */
+        }
+        ably = null;
+      }
     };
   }, [token]);
 
