@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type WhoAssignProps = {
   value: string | null;
@@ -9,6 +10,14 @@ type WhoAssignProps = {
   onAssign: (name: string | null) => void;
   /** Slightly denser control for rack cells */
   compact?: boolean;
+};
+
+type MenuCoords = {
+  left: number;
+  width: number;
+  maxHeight: number;
+  top?: number;
+  bottom?: number;
 };
 
 export function WhoAssign({
@@ -20,7 +29,10 @@ export function WhoAssign({
 }: WhoAssignProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const [coords, setCoords] = useState<MenuCoords | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const listId = useId();
 
   const list = useMemo(() => {
@@ -43,10 +55,61 @@ export function WhoAssign({
 
   const label = value?.trim() || "No who yet";
 
+  const updatePosition = () => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const gap = 6;
+    const viewportPad = 8;
+    const ideal = Math.min(window.innerHeight * 0.55, 18 * 16);
+    const spaceBelow = window.innerHeight - rect.bottom - gap - viewportPad;
+    const spaceAbove = rect.top - gap - viewportPad;
+    const openUp =
+      spaceBelow < Math.min(ideal, 12 * 16) && spaceAbove > spaceBelow;
+
+    if (openUp) {
+      setCoords({
+        left: rect.left,
+        width: rect.width,
+        bottom: window.innerHeight - rect.top + gap,
+        maxHeight: Math.max(9 * 16, Math.min(ideal, spaceAbove)),
+      });
+    } else {
+      setCoords({
+        left: rect.left,
+        width: rect.width,
+        top: rect.bottom + gap,
+        maxHeight: Math.max(9 * 16, Math.min(ideal, spaceBelow)),
+      });
+    }
+  };
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null);
+      return;
+    }
+    updatePosition();
+  }, [open, list.length]);
+
   useEffect(() => {
     if (!open) return;
-    const onPointer = (e: MouseEvent | PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    const onReposition = () => updatePosition();
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
@@ -73,6 +136,84 @@ export function WhoAssign({
     setOpen(false);
   }
 
+  const menu =
+    open && coords
+      ? createPortal(
+          <div
+            ref={menuRef}
+            className="who-menu who-menu--portal"
+            role="presentation"
+            style={{
+              left: coords.left,
+              width: coords.width,
+              maxHeight: coords.maxHeight,
+              top: coords.top,
+              bottom: coords.bottom,
+            }}
+          >
+            <div
+              id={listId}
+              className="who-menu-list"
+              role="listbox"
+              aria-label="Who names"
+            >
+              <button
+                type="button"
+                role="option"
+                aria-selected={!value?.trim()}
+                className={`who-option${!value?.trim() ? " active" : ""}`}
+                onClick={() => pick(null)}
+              >
+                No who yet
+              </button>
+              {list.map((name) => {
+                const active = (value ?? "").trim() === name;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    className={`who-option${active ? " active" : ""}`}
+                    onClick={() => pick(name)}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="who-menu-add">
+              <input
+                value={draft}
+                disabled={disabled}
+                placeholder="Add name…"
+                maxLength={80}
+                autoComplete="off"
+                aria-label="Add who name"
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    submitNew();
+                  }
+                  e.stopPropagation();
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                type="button"
+                className="chip who-add-btn"
+                disabled={disabled || !draft.trim()}
+                onClick={submitNew}
+              >
+                Add
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <div
       ref={rootRef}
@@ -80,6 +221,7 @@ export function WhoAssign({
     >
       <span className="who-assign-label">Who</span>
       <button
+        ref={triggerRef}
         type="button"
         className="who-trigger"
         disabled={disabled}
@@ -95,69 +237,7 @@ export function WhoAssign({
           {label}
         </span>
       </button>
-
-      {open ? (
-        <div className="who-menu" role="presentation">
-          <div
-            id={listId}
-            className="who-menu-list"
-            role="listbox"
-            aria-label="Who names"
-          >
-            <button
-              type="button"
-              role="option"
-              aria-selected={!value?.trim()}
-              className={`who-option${!value?.trim() ? " active" : ""}`}
-              onClick={() => pick(null)}
-            >
-              No who yet
-            </button>
-            {list.map((name) => {
-              const active = (value ?? "").trim() === name;
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  className={`who-option${active ? " active" : ""}`}
-                  onClick={() => pick(name)}
-                >
-                  {name}
-                </button>
-              );
-            })}
-          </div>
-          <div className="who-menu-add">
-            <input
-              value={draft}
-              disabled={disabled}
-              placeholder="Add name…"
-              maxLength={80}
-              autoComplete="off"
-              aria-label="Add who name"
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  submitNew();
-                }
-                e.stopPropagation();
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button
-              type="button"
-              className="chip who-add-btn"
-              disabled={disabled || !draft.trim()}
-              onClick={submitNew}
-            >
-              Add
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {menu}
     </div>
   );
 }

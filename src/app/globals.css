@@ -1687,6 +1687,14 @@ a {
   box-shadow: var(--shadow);
 }
 
+.who-menu--portal {
+  position: fixed;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  z-index: 80;
+}
+
 .who-menu-list {
   display: grid;
   gap: 0.15rem;
