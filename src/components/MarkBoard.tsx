@@ -263,6 +263,7 @@ export function MarkBoard({
     Record<string, true>
   >({});
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
   const [roomsText, setRoomsText] = useState(
@@ -1209,13 +1210,61 @@ export function MarkBoard({
     ] as const
   ).filter(Boolean) as [Filter, string][];
 
+  const filtersAtDefault =
+    bandFilter === "all" && groupFilter === "all" && filter === "all";
+  const filtersExpanded = filtersOpen || !filtersAtDefault;
+
+  const filterSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (bandNames.length > 0) {
+      parts.push(bandFilter === "all" ? "All bands" : bandFilter);
+    }
+    if (
+      features.groups &&
+      (groupNames.length > 0 || show.channels.some((c) => !c.groupName))
+    ) {
+      parts.push(
+        groupFilter === "all"
+          ? "All groups"
+          : groupFilter === "__ungrouped__"
+            ? "Ungrouped"
+            : groupFilter,
+      );
+    }
+    if (filterOptions.length > 1) {
+      const match = filterOptions.find(([key]) => key === filter);
+      parts.push(match ? match[1].replace(/\s*\(.*\)$/, "") : "All");
+    }
+    return parts.length > 0 ? parts.join(" · ") : "Filters";
+  }, [
+    bandFilter,
+    bandNames.length,
+    features.groups,
+    filter,
+    filterOptions,
+    groupFilter,
+    groupNames.length,
+    show.channels,
+  ]);
+
+  const showRack = features.assignments && boardView === "rack";
+  const showSelectBar =
+    admin &&
+    !showRack &&
+    visibleWithRoomFocus.length > 0 &&
+    (toolsOpen || selectedList.length > 0);
+  const showStatusBulk =
+    admin &&
+    features.status &&
+    toolsOpen &&
+    visibleWithRoomFocus.length > 0;
+
   const pct =
     counts.all > 0 ? Math.round((counts.deployed / counts.all) * 100) : 0;
   const assignPct =
     counts.all > 0 ? Math.round((counts.assigned / counts.all) * 100) : 0;
   const usePct =
     counts.all > 0 ? Math.round((counts.inuse / counts.all) * 100) : 0;
-  const showRack = features.assignments && boardView === "rack";
   const slotTotal = rackSlotCount(show);
 
   return (
@@ -1973,117 +2022,154 @@ export function MarkBoard({
           (groupNames.length > 0 ||
             show.channels.some((c) => !c.groupName))) ||
         filterOptions.length > 1 ||
-        (admin && !showRack && visibleWithRoomFocus.length > 0) ||
-        (admin &&
-          features.status &&
-          visibleWithRoomFocus.length > 0)) ? (
+        showSelectBar ||
+        showStatusBulk) ? (
         <div className="board-scope">
           {(bandNames.length > 0 ||
             (features.groups &&
               (groupNames.length > 0 ||
                 show.channels.some((c) => !c.groupName))) ||
             filterOptions.length > 1) ? (
-            <div
-              className="filters filters-unified"
-              role="toolbar"
-              aria-label="Board filters"
-            >
-              {bandNames.length > 0 ? (
-                <>
+            filtersExpanded ? (
+              <div className="filters-expanded">
+                <div
+                  className="filters filters-unified"
+                  role="toolbar"
+                  aria-label="Board filters"
+                >
+                  {bandNames.length > 0 ? (
+                    <>
+                      <button
+                        type="button"
+                        className={
+                          bandFilter === "all" ? "filter active" : "filter"
+                        }
+                        onClick={() => setBandFilter("all")}
+                      >
+                        All bands
+                      </button>
+                      {bandNames.map((b) => (
+                        <button
+                          key={b}
+                          type="button"
+                          className={
+                            bandFilter === b ? "filter active" : "filter"
+                          }
+                          onClick={() => setBandFilter(b)}
+                        >
+                          {b}
+                        </button>
+                      ))}
+                    </>
+                  ) : null}
+
+                  {bandNames.length > 0 &&
+                  ((features.groups &&
+                    (groupNames.length > 0 ||
+                      show.channels.some((c) => !c.groupName))) ||
+                    filterOptions.length > 1) ? (
+                    <span className="filter-sep" aria-hidden />
+                  ) : null}
+
+                  {features.groups &&
+                  (groupNames.length > 0 ||
+                    show.channels.some((c) => !c.groupName)) ? (
+                    <>
+                      <button
+                        type="button"
+                        className={
+                          groupFilter === "all" ? "filter active" : "filter"
+                        }
+                        onClick={() => setGroupFilter("all")}
+                      >
+                        All groups
+                      </button>
+                      {groupNames.map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          className={
+                            groupFilter === g ? "filter active" : "filter"
+                          }
+                          onClick={() => setGroupFilter(g)}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className={
+                          groupFilter === "__ungrouped__"
+                            ? "filter active"
+                            : "filter"
+                        }
+                        onClick={() => setGroupFilter("__ungrouped__")}
+                      >
+                        Ungrouped
+                      </button>
+                    </>
+                  ) : null}
+
+                  {features.groups &&
+                  (groupNames.length > 0 ||
+                    show.channels.some((c) => !c.groupName)) &&
+                  filterOptions.length > 1 ? (
+                    <span className="filter-sep" aria-hidden />
+                  ) : null}
+
+                  {filterOptions.length > 1
+                    ? filterOptions.map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          className={
+                            filter === key ? "filter active" : "filter"
+                          }
+                          onClick={() => setFilter(key)}
+                        >
+                          {label}
+                        </button>
+                      ))
+                    : null}
+                </div>
+                {filtersAtDefault ? (
                   <button
                     type="button"
-                    className={
-                      bandFilter === "all" ? "filter active" : "filter"
-                    }
-                    onClick={() => setBandFilter("all")}
+                    className="chip"
+                    onClick={() => setFiltersOpen(false)}
                   >
-                    All bands
+                    Hide filters
                   </button>
-                  {bandNames.map((b) => (
-                    <button
-                      key={b}
-                      type="button"
-                      className={
-                        bandFilter === b ? "filter active" : "filter"
-                      }
-                      onClick={() => setBandFilter(b)}
-                    >
-                      {b}
-                    </button>
-                  ))}
-                </>
-              ) : null}
-
-              {bandNames.length > 0 &&
-              ((features.groups &&
-                (groupNames.length > 0 ||
-                  show.channels.some((c) => !c.groupName))) ||
-                filterOptions.length > 1) ? (
-                <span className="filter-sep" aria-hidden />
-              ) : null}
-
-              {features.groups &&
-              (groupNames.length > 0 ||
-                show.channels.some((c) => !c.groupName)) ? (
-                <>
+                ) : (
                   <button
                     type="button"
-                    className={
-                      groupFilter === "all" ? "filter active" : "filter"
-                    }
-                    onClick={() => setGroupFilter("all")}
+                    className="chip"
+                    onClick={() => {
+                      setBandFilter("all");
+                      setGroupFilter("all");
+                      setFilter("all");
+                      setFiltersOpen(false);
+                    }}
                   >
-                    All groups
+                    Clear filters
                   </button>
-                  {groupNames.map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      className={
-                        groupFilter === g ? "filter active" : "filter"
-                      }
-                      onClick={() => setGroupFilter(g)}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className={
-                      groupFilter === "__ungrouped__"
-                        ? "filter active"
-                        : "filter"
-                    }
-                    onClick={() => setGroupFilter("__ungrouped__")}
-                  >
-                    Ungrouped
-                  </button>
-                </>
-              ) : null}
-
-              {features.groups &&
-              (groupNames.length > 0 ||
-                show.channels.some((c) => !c.groupName)) &&
-              filterOptions.length > 1 ? (
-                <span className="filter-sep" aria-hidden />
-              ) : null}
-
-              {filterOptions.length > 1
-                ? filterOptions.map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={filter === key ? "filter active" : "filter"}
-                      onClick={() => setFilter(key)}
-                    >
-                      {label}
-                    </button>
-                  ))
-                : null}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="filters-summary">
+                <button
+                  type="button"
+                  className={`filter${filtersAtDefault ? "" : " has-scope"}`}
+                  aria-expanded={false}
+                  onClick={() => setFiltersOpen(true)}
+                >
+                  Filters · {filterSummary}
+                </button>
+              </div>
+            )
           ) : null}
 
-          {admin && !showRack && visibleWithRoomFocus.length > 0 ? (
+          {showSelectBar ? (
             <div
               className="bulk-bar select-bar"
               role="group"
@@ -2193,9 +2279,7 @@ export function MarkBoard({
             </div>
           ) : null}
 
-          {admin &&
-          features.status &&
-          visibleWithRoomFocus.length > 0 ? (
+          {showStatusBulk ? (
             <div
               className="bulk-bar"
               role="group"

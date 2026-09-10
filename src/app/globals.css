@@ -825,10 +825,22 @@ a {
   font-weight: 650;
 }
 
+/** Idle filters sit quieter so Deploy / active chips lead */
+.filter {
+  background: color-mix(in oklab, var(--panel) 55%, transparent);
+  border-color: color-mix(in oklab, var(--line) 75%, transparent);
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
 .filter:hover,
 .chip:hover {
   border-color: color-mix(in oklab, var(--sea-bright) 40%, var(--line));
   background: color-mix(in oklab, var(--panel) 75%, transparent);
+}
+
+.filter:hover {
+  color: var(--ink);
 }
 
 .filter.active,
@@ -837,6 +849,30 @@ a {
   color: var(--ink-on-sea);
   border-color: var(--sea-bright);
   font-weight: 750;
+}
+
+.filters-expanded {
+  display: grid;
+  gap: var(--space-xs);
+  justify-items: start;
+}
+
+.filters-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.filters-summary .filter {
+  max-width: min(100%, 28rem);
+  text-align: left;
+}
+
+.filters-summary .filter.has-scope {
+  color: var(--ink);
+  border-color: color-mix(in oklab, var(--sea-bright) 35%, var(--line));
+  background: color-mix(in oklab, var(--sea) 12%, var(--panel));
 }
 
 /** Soft group for Rack/List + sort — still pills, one frame */
@@ -983,11 +1019,11 @@ a {
   min-width: 5.75rem;
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: color-mix(in oklab, var(--panel) 80%, transparent);
+  border: 1px solid color-mix(in oklab, var(--sea-bright) 38%, var(--line));
+  background: color-mix(in oklab, var(--sea) 14%, var(--panel));
   color: var(--ink);
   font: inherit;
-  font-weight: 700;
+  font-weight: 750;
   font-size: var(--text-label);
   cursor: pointer;
 }
@@ -2124,13 +2160,14 @@ a {
 .group-heading {
   margin: 0 0 0.55rem;
   font-family: var(--font-display);
-  font-size: var(--text-body);
-  letter-spacing: 0.04em;
+  font-size: var(--text-label);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--heading-mist);
+  color: var(--ink-soft);
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-weight: 700;
 }
 
 .group-count {

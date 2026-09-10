@@ -33,7 +33,7 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — All bands / G50 / H50 / G57+ chips after import
-- **Select → group** — unlock Tools, tap the circle on any channels (or Select all visible), then **Set group** from the sticky bar
+- **Select → group** — unlock Tools (open Tools panel), tap the circle on channels (or Select all), then **Set group** from the sticky bar; select bar also appears once any channel is selected
 - **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or Select all → **Delete N** (confirms first)
 - **List sort** — **By group**, **By room**, or **Flat**; caret to close one section; **Close all** / **Open all** for every section
 - **Prestage rooms** — pick **Stage room** on a channel (or Select all → Stage room) before Deploy; undeploy keeps the staged room; filters **Staged** / **No room**
@@ -100,7 +100,7 @@ NEXT_PUBLIC_POSTHOG_UI_HOST=https://us.posthog.com
 
 Transparent logo assets in `public/brand/` (navy plate removed). Favicon / apple icon use the emblem mark only.
 
-**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Type ramp uses `--text-*` roles (headline → caption); tags/micro badges share `--text-caption` only. Spacing uses `--space-xs…xl`; mark-board filters share one unified strip (familiar pills, clearer grouping). Shared sea focus rings, sea caret, and thin activity/import scrollbars. Mobile explore B parked.
+**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Type ramp uses `--text-*` roles; spacing `--space-xs…xl`. Mark board: collapsible filter summary, softer idle filters, stronger Deploy, Tools-gated bulk chrome. Mobile explore B parked.
 
 ## Site chrome
 

@@ -249,7 +249,7 @@ Floor controls share `--touch-min`. Narrow filters/bulk rows fade at the trailin
 ### Named Rules
 **The Thumb Floor Rule.** Interactive mark-board controls meet ≥44px hit targets even when the visible glyph is smaller (e.g. select circle).
 
-**The Scope Cluster Rule.** Band / group / status filters share one `.filters-unified` strip (with light separators) so families stay findable without three stacked chrome rows. Pills stay Night Watch; Deploy stays the primary action on each channel. **Mobile floor-first (explore B)** is parked — desktop adjustments first.
+**The Scope Cluster Rule.** Band / group / status filters share one strip; when idle they collapse to a **Filters · …** summary. Idle filter pills stay softer than active; Deploy stays the primary channel action. Select / bulk status appear when Tools are open (or once channels are selected). **Mobile floor-first (explore B)** remains parked.
 
 **The Sticky Stack Rule.** Progress HUD sticks above the select bar; select never shares the same `top` as the HUD.
 
