@@ -15,6 +15,7 @@ import { ChoiceMenu, RoomAssign } from "@/components/WhoAssign";
 import { withinDeployGrace } from "@/lib/board-helpers";
 import {
   defaultListSortParam,
+  buildCrewShareUrl,
   parseBoardShareSearch,
   syncBoardShareUrl,
 } from "@/lib/board-share";
@@ -1478,36 +1479,27 @@ export function MarkBoard({
     setImportMsg(`Added ${manualName.trim()}.`);
   }
 
+  function crewLinkForShare(): string {
+    const state = {
+      view: boardView,
+      sort: listSort,
+      room: focusRoom,
+      band: bandFilter,
+      group: groupFilter,
+      filter,
+    } as const;
+    syncBoardShareUrl(state, features);
+    return buildCrewShareUrl(window.location.origin, token, state, features);
+  }
+
   async function copyLink() {
-    syncBoardShareUrl(
-      {
-        view: boardView,
-        sort: listSort,
-        room: focusRoom,
-        band: bandFilter,
-        group: groupFilter,
-        filter,
-      },
-      features,
-    );
-    await navigator.clipboard.writeText(window.location.href);
+    await navigator.clipboard.writeText(crewLinkForShare());
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   }
 
   async function shareOrCopy() {
-    syncBoardShareUrl(
-      {
-        view: boardView,
-        sort: listSort,
-        room: focusRoom,
-        band: bandFilter,
-        group: groupFilter,
-        filter,
-      },
-      features,
-    );
-    const url = window.location.href;
+    const url = crewLinkForShare();
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({ title: show.name, url });

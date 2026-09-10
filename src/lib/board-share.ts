@@ -117,8 +117,30 @@ export function syncBoardShareUrl(
 ): void {
   if (typeof window === "undefined") return;
   const q = buildBoardShareQuery(state, features);
-  const next = `${window.location.pathname}${q}${window.location.hash}`;
+  // Always the crew path — never /bo/{leadToken} even if the address bar still has it.
+  const path = crewShowPath(window.location.pathname);
+  const next = `${path}${q}${window.location.hash}`;
   const cur = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   if (next === cur) return;
   window.history.replaceState(window.history.state, "", next);
+}
+
+/** `/s/{token}` — strips a trailing `/bo/...` BO Lead claim path. */
+export function crewShowPath(pathname: string): string {
+  const match = pathname.match(/^(\/s\/[^/]+)/);
+  return match ? match[1] : pathname;
+}
+
+/**
+ * Absolute crew share URL for clipboard / navigator.share.
+ * Never includes the BO Lead secret path or `?bo=` claim params.
+ */
+export function buildCrewShareUrl(
+  origin: string,
+  shareToken: string,
+  state: BoardShareState,
+  features: ShowFeatures,
+): string {
+  const q = buildBoardShareQuery(state, features);
+  return `${origin.replace(/\/$/, "")}/s/${shareToken}${q}`;
 }
