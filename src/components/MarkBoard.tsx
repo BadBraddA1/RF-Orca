@@ -2793,62 +2793,44 @@ export function MarkBoard({
             Clear
           </button>
           {features.groups ? (
-            <label className="bulk-group-pick">
-              <span className="sr-only">Set group</span>
-              <select
-                disabled={bulkBusy || savedGroupNames.length === 0}
-                defaultValue=""
-                aria-label="Set group"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (!value) return;
-                  const groupName = value === "__none__" ? null : value;
-                  void bulkGroup(selectedList, groupName);
-                  e.target.value = "";
-                }}
-              >
-                <option value="">
-                  {savedGroupNames.length
-                    ? "Set group…"
-                    : "Save groups in Tools first"}
-                </option>
-                {savedGroupNames.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-                <option value="__none__">Ungrouped</option>
-              </select>
-            </label>
+            <ChoiceMenu
+              label="Set group"
+              hideLabel
+              compact
+              allowAdd={false}
+              value={null}
+              options={savedGroupNames}
+              emptyLabel="Ungrouped"
+              placeholder={
+                savedGroupNames.length
+                  ? "Set group…"
+                  : "Save groups in Tools first"
+              }
+              disabled={bulkBusy || savedGroupNames.length === 0}
+              onPick={(groupName) => {
+                void bulkGroup(selectedList, groupName);
+              }}
+            />
           ) : null}
           {features.rooms ? (
-            <label className="bulk-group-pick">
-              <span className="sr-only">Stage room</span>
-              <select
-                disabled={bulkBusy || show.rooms.length === 0}
-                defaultValue=""
-                aria-label="Stage room"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (!value) return;
-                  const roomName = value === "__none__" ? null : value;
-                  void bulkRoom(selectedList, roomName);
-                  e.target.value = "";
-                }}
-              >
-                <option value="">
-                  {show.rooms.length
-                    ? "Stage room…"
-                    : "Save rooms in Tools first"}
-                </option>
-                {show.rooms.map((r) => (
-                  <option key={r.id} value={r.name}>
-                    {r.name}
-                  </option>
-                ))}
-                <option value="__none__">Clear room</option>
-              </select>
-            </label>
+            <ChoiceMenu
+              label="Stage room"
+              hideLabel
+              compact
+              allowAdd={false}
+              value={null}
+              options={show.rooms.map((r) => r.name)}
+              emptyLabel="Clear room"
+              placeholder={
+                show.rooms.length
+                  ? "Stage room…"
+                  : "Save rooms in Tools first"
+              }
+              disabled={bulkBusy || show.rooms.length === 0}
+              onPick={(roomName) => {
+                void bulkRoom(selectedList, roomName);
+              }}
+            />
           ) : null}
           <button
             type="button"
@@ -3105,35 +3087,22 @@ function ChannelRow({
             />
           ) : null}
           {admin && features.groups ? (
-            <label className="quiet-field">
-              <span>Group</span>
-              <select
-                value={channel.groupName ?? ""}
-                disabled={savedGroupNames.length === 0 && !channel.groupName}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const groupName = value ? value : null;
-                  void onPatch(channel.id, { groupName });
-                }}
-              >
-                <option value="">
-                  {savedGroupNames.length
-                    ? "Ungrouped"
-                    : "Save groups in Tools first"}
-                </option>
-                {savedGroupNames.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-                {channel.groupName &&
-                !savedGroupNames.includes(channel.groupName) ? (
-                  <option value={channel.groupName}>
-                    {channel.groupName} (not in list)
-                  </option>
-                ) : null}
-              </select>
-            </label>
+            <ChoiceMenu
+              label="Group"
+              compact
+              allowAdd={false}
+              value={channel.groupName}
+              options={savedGroupNames}
+              emptyLabel={
+                savedGroupNames.length
+                  ? "Ungrouped"
+                  : "Save groups in Tools first"
+              }
+              disabled={savedGroupNames.length === 0 && !channel.groupName}
+              onPick={(groupName) => {
+                void onPatch(channel.id, { groupName });
+              }}
+            />
           ) : null}
           {onDelete ? (
             <button

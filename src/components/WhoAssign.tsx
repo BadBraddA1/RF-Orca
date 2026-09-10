@@ -9,9 +9,13 @@ export type ChoiceMenuProps = {
   options: string[];
   disabled?: boolean;
   emptyLabel?: string;
+  /** Trigger text when value is empty (defaults to emptyLabel). */
+  placeholder?: string;
   addPlaceholder?: string;
   /** Hide the add row (pick-only). Default true. */
   allowAdd?: boolean;
+  /** Hide the visible label (still used for aria). */
+  hideLabel?: boolean;
   onPick: (value: string | null) => void;
   /** Slightly denser control for rack cells */
   compact?: boolean;
@@ -31,8 +35,10 @@ export function ChoiceMenu({
   options,
   disabled = false,
   emptyLabel = "None yet",
+  placeholder,
   addPlaceholder = "Add…",
   allowAdd = true,
+  hideLabel = false,
   onPick,
   compact = false,
 }: ChoiceMenuProps) {
@@ -62,7 +68,7 @@ export function ChoiceMenu({
     return out;
   }, [options, value]);
 
-  const display = value?.trim() || emptyLabel;
+  const display = value?.trim() || placeholder || emptyLabel;
 
   const updatePosition = () => {
     const trigger = triggerRef.current;
@@ -228,14 +234,19 @@ export function ChoiceMenu({
   return (
     <div
       ref={rootRef}
-      className={`pick-field room-field${compact ? " pick-field--compact" : ""}${disabled ? " disabled" : ""}`}
+      className={`pick-field room-field${compact ? " pick-field--compact" : ""}${hideLabel ? " pick-field--nolabel" : ""}${disabled ? " disabled" : ""}`}
     >
-      <span className="pick-field-label">{label}</span>
+      {hideLabel ? (
+        <span className="sr-only">{label}</span>
+      ) : (
+        <span className="pick-field-label">{label}</span>
+      )}
       <button
         ref={triggerRef}
         type="button"
         className="pick-trigger"
         disabled={disabled}
+        aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
@@ -244,7 +255,11 @@ export function ChoiceMenu({
           setOpen((v) => !v);
         }}
       >
-        <span className={value?.trim() ? undefined : "pick-trigger-placeholder"}>
+        <span
+          className={
+            value?.trim() ? undefined : "pick-trigger-placeholder"
+          }
+        >
           {display}
         </span>
       </button>
