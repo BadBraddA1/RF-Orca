@@ -56,9 +56,6 @@ export default async function Image() {
           >
             {siteName}
           </div>
-          <div style={{ fontSize: 28, color: "#38d6f2", fontWeight: 600 }}>
-            Radio Frequency Orchestrator
-          </div>
           <div style={{ fontSize: 24, color: "#b6c5de", lineHeight: 1.35 }}>
             Share the plan. Group channels. Track what’s deployed.
           </div>

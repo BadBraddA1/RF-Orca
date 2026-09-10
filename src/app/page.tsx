@@ -12,7 +12,7 @@ export default async function HomePage() {
   return (
     <main className="hero hero-create">
       <div className="hero-create-inner">
-        <BrandLockup size="header" showTagline />
+        <BrandLockup size="header" />
 
         <div className="hero-create-grid">
           <div className="hero-copy">

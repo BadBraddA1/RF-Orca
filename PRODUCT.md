@@ -14,7 +14,7 @@ RF Orca is a crew-facing mark board for live RF: after the frequency plan is coo
 
 ## Brand Personality
 
-Lean · crew-first · signal-clear. Confident and practical. Nickname **Orca**; full name **Radio Frequency Orchestrator**. Speak in our own voice — describe what Orca does, not what it replaces.
+Lean · crew-first · signal-clear. Confident and practical. Public name **RForca**; nickname **Orca**. Speak in our own voice — describe what Orca does, not what it replaces.
 
 ## Anti-references
 

@@ -1440,6 +1440,32 @@ export function MarkBoard({
     window.setTimeout(() => setCopied(false), 2000);
   }
 
+  async function shareOrCopy() {
+    syncBoardShareUrl(
+      {
+        view: boardView,
+        sort: listSort,
+        room: focusRoom,
+        band: bandFilter,
+        group: groupFilter,
+        filter,
+      },
+      features,
+    );
+    const url = window.location.href;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: show.name, url });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      }
+    }
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }
+
   async function bulkStatus(ids: string[], status: ChannelStatus) {
     if (!admin || !features.status || ids.length === 0 || bulkBusy) return;
     setBulkBusy(true);
@@ -1780,18 +1806,23 @@ export function MarkBoard({
         </header>
       ) : (
         <header className="board-header">
-          <div>
-            <BrandLockup size="header" showTagline />
+          <div className="board-brand">
+            <div className="board-brand-desk">
+              <BrandLockup size="header" />
+            </div>
+            <p className="board-wordmark phone-only">RForca</p>
             <h1>{show.name}</h1>
             <p className="board-sub">
-              {features.rooms
-                ? "Rack: pick a room, then work that room's gear"
-                : features.assignments
-                  ? `${show.rackCols}×${show.rackRows} rack — who has which mic, mark in use`
-                  : features.deploy
-                    ? "Tap Deploy"
-                    : "Frequency board"}
-              .
+              <span className="board-sub-copy desk-only">
+                {features.rooms
+                  ? "Rack: pick a room, then work that room's gear"
+                  : features.assignments
+                    ? `${show.rackCols}×${show.rackRows} rack — who has which mic, mark in use`
+                    : features.deploy
+                      ? "Tap Deploy"
+                      : "Frequency board"}
+                .
+              </span>
               <span className={`live-pill${live ? " on" : ""}`}>
                 {live
                   ? transport === "ably"
@@ -1805,7 +1836,7 @@ export function MarkBoard({
             </p>
           </div>
           <div className="board-actions">
-            <label className="crew-toggle">
+            <label className="crew-toggle desk-only">
               <input
                 type="checkbox"
                 checked={flashChanges}
@@ -1815,30 +1846,39 @@ export function MarkBoard({
             </label>
             <button
               type="button"
-              className="btn-ghost"
+              className="btn-ghost desk-only"
               onClick={() => enterCrewMode()}
             >
               Audio Crew
             </button>
             <button
               type="button"
-              className="btn-ghost"
+              className="btn-ghost desk-only"
               onClick={() => downloadShowCsv(show)}
             >
               Export CSV
             </button>
             <button
               type="button"
-              className="btn-ghost"
+              className="btn-ghost desk-only"
               title="Copy link with current view, sort, and filters"
               onClick={() => void copyLink()}
             >
               {copied ? "Copied" : "Copy link"}
             </button>
+            <button
+              type="button"
+              className="icon-btn phone-only"
+              title={copied ? "Copied" : "Share board link"}
+              aria-label={copied ? "Link copied" : "Share board link"}
+              onClick={() => void shareOrCopy()}
+            >
+              {copied ? <CheckIcon /> : <ShareIcon />}
+            </button>
             {admin ? (
               <button
                 type="button"
-                className="btn-ghost"
+                className="btn-ghost desk-only"
                 disabled={undoBusy || undoStack.length === 0}
                 title={
                   undoStack[0]
@@ -1850,13 +1890,39 @@ export function MarkBoard({
                 {undoBusy ? "Undoing…" : "Undo"}
               </button>
             ) : null}
+            {admin ? (
+              <button
+                type="button"
+                className="icon-btn phone-only"
+                disabled={undoBusy || undoStack.length === 0}
+                title={
+                  undoStack[0]
+                    ? `Undo: ${undoStack[0].label}`
+                    : "Nothing to undo yet"
+                }
+                aria-label="Undo last change"
+                onClick={() => void undoLastChange()}
+              >
+                <UndoIcon />
+              </button>
+            ) : null}
             <button
               type="button"
-              className={`btn-quiet${toolsOpen ? " active" : ""}`}
+              className={`btn-quiet desk-only${toolsOpen ? " active" : ""}`}
               onClick={() => setToolsOpen((v) => !v)}
               aria-expanded={toolsOpen}
             >
               {admin ? "Tools" : "Coordinator"}
+            </button>
+            <button
+              type="button"
+              className={`icon-btn phone-only${toolsOpen ? " active" : ""}`}
+              onClick={() => setToolsOpen((v) => !v)}
+              aria-expanded={toolsOpen}
+              aria-label={admin ? "Tools" : "Coordinator tools"}
+              title={admin ? "Tools" : "Coordinator"}
+            >
+              <GearIcon />
             </button>
           </div>
         </header>
@@ -3495,5 +3561,66 @@ function ChannelRow({
         </div>
       ) : null}
     </li>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3v12M12 3l-3.5 3.5M12 3l3.5 3.5M5 14v4.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V14"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+        stroke="currentColor"
+        strokeWidth="1.85"
+      />
+      <path
+        d="M19.4 13.1a1.4 1.4 0 0 0 .28 1.54l.06.06a1.7 1.7 0 1 1-2.4 2.4l-.06-.06a1.4 1.4 0 0 0-1.54-.28 1.4 1.4 0 0 0-.84 1.28V18a1.7 1.7 0 1 1-3.4 0v-.08a1.4 1.4 0 0 0-.92-1.28 1.4 1.4 0 0 0-1.54.28l-.06.06a1.7 1.7 0 1 1-2.4-2.4l.06-.06a1.4 1.4 0 0 0 .28-1.54 1.4 1.4 0 0 0-1.28-.84H6a1.7 1.7 0 1 1 0-3.4h.08a1.4 1.4 0 0 0 1.28-.92 1.4 1.4 0 0 0-.28-1.54l-.06-.06a1.7 1.7 0 1 1 2.4-2.4l.06.06a1.4 1.4 0 0 0 1.54.28H11a1.4 1.4 0 0 0 .84-1.28V6a1.7 1.7 0 1 1 3.4 0v.08a1.4 1.4 0 0 0 .84 1.28 1.4 1.4 0 0 0 1.54-.28l.06-.06a1.7 1.7 0 1 1 2.4 2.4l-.06.06a1.4 1.4 0 0 0-.28 1.54V11c0 .55.32 1.05.84 1.28h.08a1.7 1.7 0 1 1 0 3.4h-.08a1.4 1.4 0 0 0-1.28.84Z"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function UndoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M9 7H5v4M5.5 11A7 7 0 1 0 8 6.3"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5 12.5 10 17.5 19 7.5"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

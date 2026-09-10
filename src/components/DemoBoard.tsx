@@ -104,11 +104,14 @@ export function DemoBoard() {
       </div>
 
       <header className="board-header">
-        <div>
-          <BrandLockup size="header" showTagline />
+        <div className="board-brand">
+          <div className="board-brand-desk">
+            <BrandLockup size="header" />
+          </div>
+          <p className="board-wordmark phone-only">RForca</p>
           <h1>{show.name}</h1>
           <p className="board-sub">
-            Tap Deploy, set the room.
+            <span className="board-sub-copy desk-only">Tap Deploy, set the room.</span>
             <span className="live-pill on">Live · demo</span>
           </p>
         </div>

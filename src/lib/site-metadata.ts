@@ -1,17 +1,17 @@
 /**
- * Shared meta for RF Orca (Radio Frequency Orchestrator).
+ * Shared meta for RForca (RF Orca).
  * Keep og descriptions ~125 characters for social previews.
  *
  * og:image / metadataBase must resolve on a host crawlers can fetch.
  */
-export const siteName = "RF Orca"
-export const siteShortName = "Orca"
-export const siteTitle = "RF Orca — Radio Frequency Orchestrator"
+export const siteName = "RForca"
+export const siteShortName = "RForca"
+export const siteTitle = "RForca"
 /** Keep ≤ ~125 characters for social truncations. */
 export const siteDescription =
   "Share a frequency plan with the floor: group channels and track what’s deployed by room — no accounts."
 export const ogImageAlt =
-  "RF Orca — Radio Frequency Orchestrator, crew mark board for live RF deploy tracking"
+  "RForca — crew mark board for live RF deploy tracking"
 
 /** Working production host. */
 const LIVE_SITE_URL = "https://rforca.com"
@@ -38,8 +38,8 @@ export const ogImagePath = "/opengraph-image"
 export const twitterImagePath = "/twitter-image"
 
 export const siteKeywords = [
+  "RForca",
   "RF Orca",
-  "Radio Frequency Orchestrator",
   "wireless microphone",
   "frequency coordination",
   "Shure Workbench",

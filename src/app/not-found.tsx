@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <main className="hero" style={{ minHeight: "100dvh" }}>
       <div className="hero-inner">
-        <BrandLockup size="header" showTagline />
+        <BrandLockup size="header" />
         <p className="tools-whisper" style={{ marginTop: "1.5rem" }}>
           Error 404
         </p>

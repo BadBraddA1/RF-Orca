@@ -132,11 +132,57 @@ a {
 }
 
 .brand-tagline {
+  display: none;
+}
+
+.board-brand {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.board-wordmark {
   margin: 0;
-  font-size: var(--text-caption);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 0.95rem;
+  line-height: 1.1;
   color: var(--ink-soft);
+}
+
+.phone-only {
+  display: none !important;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 0.65rem;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.icon-btn:hover,
+.icon-btn.active {
+  border-color: color-mix(in oklab, var(--sea) 55%, transparent);
+  background: color-mix(in oklab, var(--sea) 14%, transparent);
+  color: var(--sea-bright);
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--sea-bright);
+  outline-offset: 2px;
 }
 
 .hero {
@@ -3064,23 +3110,48 @@ a {
     gap: var(--space-md);
   }
 
+  .desk-only {
+    display: none !important;
+  }
+
+  .phone-only {
+    display: inline-flex !important;
+  }
+
+  .board-wordmark.phone-only {
+    display: block !important;
+  }
+
+  .board-brand-desk {
+    display: none;
+  }
+
   .board-header {
-    gap: var(--space-md);
+    gap: var(--space-sm);
+    align-items: flex-start;
   }
 
   .board-header h1 {
-    font-size: var(--text-display-sm);
+    font-size: 1.35rem;
+    margin-top: 0.15rem;
+  }
+
+  .board-sub {
+    margin: 0.25rem 0 0;
   }
 
   .board-actions {
-    width: 100%;
+    width: auto;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
   }
 
-  .board-actions .btn-ghost,
-  .board-actions .btn-quiet {
-    flex: 1 1 auto;
+  .board-actions .icon-btn {
+    flex: 0 0 auto;
+    width: 2.65rem;
+    height: 2.65rem;
     min-height: var(--touch-min);
-    justify-content: center;
   }
 
   .filters,

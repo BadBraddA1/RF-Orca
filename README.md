@@ -1,4 +1,4 @@
-# RF Orca (Radio Frequency Orchestrator)
+# RForca (RF Orca)
 
 Crew-facing RF mark board — nickname **Orca**. After frequency coordination is done (e.g. Shure Wireless Workbench), share one link so the floor can group channels and mark what’s deployed by room.
 

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <main className="board" style={{ maxWidth: "40rem" }}>
-      <BrandLockup size="header" showTagline />
+      <BrandLockup size="header" />
       <h1
         style={{
           margin: "1rem 0 0",
