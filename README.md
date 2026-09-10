@@ -15,16 +15,15 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - Home → **New Show** + **Happening now** (shows created in the last 10 days; older ones drop off the list but are not deleted)
 - Create with an **admin password**
 - Crews open the show link → **mark view** (stage room + Deploy), no login
-- Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms, allow/block
+- Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms
 - **Rename show** — Tools → Show name → Rename (share link stays the same)
 - **Rooms** — edit lines in Tools → Save rooms; stage channels before Deploy; renames update staged/deployed channels; remove a line to drop a room
 - **Delete all channels** — Tools → Danger zone; type `DELETE CHANNELS` (keeps the show, rooms, groups, names, and share link)
 - **Delete show** — Tools → Danger zone; type the show name to confirm (permanent)
-- **Show options** (toggles): Deploy, Rooms, Groups on by default; **Mic rack assignments** and **Allow/Block** off until you need them; **Lock after deploy** on; **Lock board for crew** off
+- **Show options** (toggles): Deploy, Rooms, Groups on by default; **Mic rack assignments** off until you need it; **Allow/Block** parked for now; **Lock after deploy** on; **Lock board for crew** off
 - Tools → rack presets / custom **cols × rows** + **Fill empty** (when Mic rack assignments is on)
 - Schema v6: `rack_cols` / `rack_rows`, `mic_kind` (handheld|lav), `assigned_to`, `in_use`, `rack_slot`
 - Rack grids up to **20×20** (200 slots) so large Workbench imports fit; import grows the rack automatically
-- Bulk status: set all **visible** (filter/group) channels to Allowed / Blocked / Unreviewed, or per group heading
 
 **Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room after a short **undo grace** (~8s / toast Undo). Coordinator can still change anytime with Tools unlocked.
 
@@ -34,18 +33,16 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 
 - **Share view links** — the show URL keeps current **view / sort / My room / Filters** (`?sort=room&room=Ballroom+A&filter=staged…`). **Copy link** pastes that view for crew
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
-- **Band filters** — tap **Filters** for a popup (bands / groups / status); summary stays on the board so you don’t scroll to change scope
-- **Select → group** — unlock Tools, tap the circle on channels (or Select all in the rail); bulk **Set group / Stage room / Delete** appear in a bottom dock over empty space so the list doesn’t jump
-- **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or select → **Delete N** in the bottom dock (confirms first)
+- **Band filters** — tap **Filters** for a popup (bands / groups); summary stays on the board so you don’t scroll to change scope
+- **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel (confirms first)
 - **List sort** — **By group**, **By room**, or **Flat**; caret to close one section; **Close all** / **Open all** for every section
 - **Open on move** — staging a channel into a room (or group) auto-opens that section if it was closed
-- **Prestage rooms** — pick **Stage room** on a channel (or Select all → Stage room) before Deploy; undeploy keeps the staged room; filters **Staged** / **No room**
-- **Select all** — with Tools unlocked, selects every channel currently on screen (respects band / group / All filters); bulk actions stay in the bottom dock
+- **Prestage rooms** — pick **Stage room** on a channel before Deploy; undeploy keeps the staged room; filters **Staged** / **No room**
 - **Rename channels** — with Tools unlocked, edit the channel name inline on the list
 - **Groups** — save names in Tools first, then pick from a dropdown on each channel (no free-typing)
-- **Who / Stage room** — matching dropdowns (portal + flip up near the page bottom); **Who** lives on **Rack** only; List keeps Stage room + Deploy / Spare
+- **Who / Stage room** — matching dropdowns (portal + flip up near the page bottom); **Who** lives on **Rack** only; List keeps Stage room + Group side by side, Deploy / Spare on the name row
 - **Mic rack (A2)** — when **Rooms** is on: **Rack** → pick a room → see/mark that room’s gear (Who, Handheld/Lav, Spare/In use, Deploy). **Change room** returns to the picker. Without Rooms: physical slot grid (cols×rows, Fill empty) when Mic rack assignments is on
-- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — **3-wide** on desktop (2 on tablet, 1 on phone), compact cards that share the row; Stage room / Deploy wrap under the name; larger select circles
+- **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — **3-wide** on desktop (2 on tablet, 1 on phone); name + Deploy/Spare on one row; Stage room + Group side by side; no G/Ch line; Allow/Block and multi-select parked for now
 - **Deploy vs Spare** — **Deploy** (pill) marks the channel live in a room; **Spare / In use** (quieter dashed toggle) is rack occupancy, not the same action
 - **Crew mode** — header **Crew** button: fullscreen-friendly view (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
 - **Flash changes** — pulse a rack cell / channel card when it updates (respects `prefers-reduced-motion` — static highlight instead); most recently changed keep an orange “Updated” tint

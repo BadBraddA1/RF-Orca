@@ -576,6 +576,12 @@ a {
     align-items: end;
   }
 
+  .board--desk .channel-name-actions .deploy-btn,
+  .board--desk .channel-name-actions .use-toggle {
+    min-height: 2.35rem;
+    padding-block: 0.35rem;
+  }
+
   .board--desk .channel-top-actions .pick-field {
     min-width: 0;
     max-width: none;
@@ -1308,11 +1314,21 @@ a {
 .channel-top-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: var(--space-sm);
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem 0.65rem;
   min-width: 0;
   max-width: 100%;
+}
+
+.channel-name-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  margin-inline-start: auto;
 }
 
 .channel-top-actions {
@@ -1968,16 +1984,24 @@ a {
 }
 
 .channel-floor-fields {
-  display: grid;
-  gap: 0.45rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.45rem 0.55rem;
   margin-top: 0;
+  min-width: 0;
 }
 
-@media (min-width: 560px) {
-  .channel-floor-fields:has(.pick-field + .pick-field) {
-    grid-template-columns: 1fr 1fr;
-    align-items: end;
-  }
+.channel-floor-fields > .pick-field,
+.channel-floor-fields > .quiet-field {
+  flex: 1 1 7.5rem;
+  min-width: 0;
+}
+
+.channel-delete--floor {
+  flex: 0 0 auto;
+  align-self: end;
+  padding-bottom: 0.35rem;
 }
 
 .progress-hud {

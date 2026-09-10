@@ -104,11 +104,7 @@ const FEATURE_TOGGLES: {
     label: "Channel groups",
     hint: "Vocals / IEMs / sections on the board",
   },
-  {
-    key: "status",
-    label: "Allow / Block",
-    hint: "Allowed, blocked, and unreviewed workflow",
-  },
+  // Allow / Block (status) parked for now — force-off in MarkBoard features
   {
     key: "lockDeployed",
     label: "Lock after deploy",
@@ -330,7 +326,7 @@ export function MarkBoard({
   const shareHydratedRef = useRef(false);
   const [, startTransition] = useTransition();
 
-  const features = show.features;
+  const features = { ...show.features, status: false };
 
   useEffect(() => {
     const board = boardRef.current;
@@ -1426,14 +1422,9 @@ export function MarkBoard({
     });
   }, [show.rooms, show.channels]);
 
-  const showSelectBar =
-    admin && !showRack && visibleWithRoomFocus.length > 0;
-  const showSelectionDock = showSelectBar && selectedList.length > 0;
-  const showStatusBulk =
-    admin &&
-    features.status &&
-    toolsOpen &&
-    visibleWithRoomFocus.length > 0;
+  const showSelectBar = false;
+  const showSelectionDock = false;
+  const showStatusBulk = false;
 
   const pct =
     counts.all > 0 ? Math.round((counts.deployed / counts.all) * 100) : 0;
@@ -2746,9 +2737,7 @@ export function MarkBoard({
                     conflicted={show.conflicts?.some((c) =>
                       c.channels.some((x) => x.id === channel.id),
                     )}
-                    onToggleSelect={
-                      admin ? () => toggleSelected(channel.id) : undefined
-                    }
+                    onToggleSelect={undefined}
                     onPatch={patchChannel}
                     onDelete={
                       admin
@@ -2959,15 +2948,6 @@ function ChannelRow({
       className={`channel-row status-${channel.status}${channel.deployed ? " is-deployed" : ""}${channel.inUse ? " is-inuse" : ""}${deployLocked ? " is-locked" : ""}${highlighted ? " is-highlight" : ""}${selected ? " is-selected" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${conflicted ? " is-conflict" : ""}`}
     >
       <div className="channel-top-row">
-        {onToggleSelect ? (
-          <button
-            type="button"
-            className={`select-toggle${selected ? " on" : ""}`}
-            aria-pressed={Boolean(selected)}
-            aria-label={selected ? "Deselect channel" : "Select channel"}
-            onClick={onToggleSelect}
-          />
-        ) : null}
         <div className="channel-main">
           <div className="channel-title">
             {admin ? (
@@ -2997,22 +2977,12 @@ function ChannelRow({
               {channel.frequencyMhz.toFixed(3)} MHz
             </span>
           </div>
-          {(channel.groupChannel ||
-            channel.isBackup ||
-            features.status ||
+          {(channel.isBackup ||
             conflicted ||
             deployLocked ||
             (inGrace && !admin)) ? (
             <div className="channel-meta">
-              {channel.groupChannel ? (
-                <span>G/Ch {channel.groupChannel}</span>
-              ) : null}
               {channel.isBackup ? <span className="tag">Backup</span> : null}
-              {features.status ? (
-                <span className={`tag status-${channel.status}`}>
-                  {channel.status}
-                </span>
-              ) : null}
               {conflicted ? (
                 <span className="tag conflict-tag">Conflict</span>
               ) : null}
@@ -3026,20 +2996,8 @@ function ChannelRow({
           ) : null}
         </div>
 
-        {features.deploy || features.assignments || features.rooms ? (
-          <div className="channel-top-actions">
-            {features.rooms ? (
-              <RoomAssign
-                compact
-                value={channel.roomName}
-                rooms={rooms}
-                disabled={markDisabled}
-                label={channel.deployed ? "Room" : "Stage room"}
-                onAssign={(roomName) => {
-                  void onPatch(channel.id, { roomName });
-                }}
-              />
-            ) : null}
+        {features.deploy || features.assignments ? (
+          <div className="channel-name-actions">
             {features.deploy ? (
               <button
                 type="button"
@@ -3116,26 +3074,21 @@ function ChannelRow({
         ) : null}
       </div>
 
-      {admin ? (
-        <div className="admin-inline">
-          {features.status ? (
-            <label className="quiet-field">
-              <span>Status</span>
-              <select
-                value={channel.status}
-                onChange={(e) =>
-                  void onPatch(channel.id, {
-                    status: e.target.value as ChannelStatus,
-                  })
-                }
-              >
-                <option value="unreviewed">unreviewed</option>
-                <option value="allowed">allowed</option>
-                <option value="blocked">blocked</option>
-              </select>
-            </label>
+      {features.rooms || (admin && features.groups) || onDelete ? (
+        <div className="channel-floor-fields">
+          {features.rooms ? (
+            <RoomAssign
+              compact
+              value={channel.roomName}
+              rooms={rooms}
+              disabled={markDisabled}
+              label={channel.deployed ? "Room" : "Stage room"}
+              onAssign={(roomName) => {
+                void onPatch(channel.id, { roomName });
+              }}
+            />
           ) : null}
-          {features.groups ? (
+          {admin && features.groups ? (
             <label className="quiet-field">
               <span>Group</span>
               <select
@@ -3169,7 +3122,7 @@ function ChannelRow({
           {onDelete ? (
             <button
               type="button"
-              className="btn-quiet channel-delete"
+              className="btn-quiet channel-delete channel-delete--floor"
               onClick={onDelete}
             >
               Delete freq

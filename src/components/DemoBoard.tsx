@@ -228,15 +228,9 @@ export function DemoBoard() {
                           </span>
                         </div>
                         <div className="channel-meta">
-                          {channel.groupChannel ? (
-                            <span>G/Ch {channel.groupChannel}</span>
-                          ) : null}
                           {channel.isBackup ? (
                             <span className="tag">Backup</span>
                           ) : null}
-                          <span className={`tag status-${channel.status}`}>
-                            {channel.status}
-                          </span>
                           {channel.inUse ? (
                             <span className="tag">In use</span>
                           ) : (
