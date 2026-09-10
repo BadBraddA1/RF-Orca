@@ -38,6 +38,19 @@
   --font-display: var(--font-syne), "Avenir Next", sans-serif;
   --font-body: var(--font-source-sans), "Source Sans 3", sans-serif;
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  /** Type ramp — Night Watch Desk (Operate: few roles, clear hierarchy) */
+  --text-headline: clamp(2.5rem, 8vw, 5.5rem);
+  --text-display: clamp(1.6rem, 4vw, 2.4rem);
+  --text-display-sm: clamp(1.45rem, 7vw, 1.9rem);
+  --text-lead: clamp(1.85rem, 4vw, 2.35rem);
+  --text-lead-sub: clamp(1.05rem, 2vw, 1.2rem);
+  --text-channel: 1.15rem;
+  --text-title: 1rem;
+  --text-body: 1rem;
+  --text-label: 0.85rem;
+  --text-chip: 0.88rem;
+  --text-mono: 0.95rem;
+  --text-caption: 0.72rem;
 }
 
 * {
@@ -74,7 +87,7 @@ a {
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.04em;
-  font-size: clamp(2.5rem, 8vw, 5.5rem);
+  font-size: var(--text-headline);
   line-height: 0.9;
   color: var(--ink);
 }
@@ -113,7 +126,7 @@ a {
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.03em;
-  font-size: 1.15rem;
+  font-size: var(--text-channel);
   line-height: 1.1;
 }
 
@@ -123,7 +136,7 @@ a {
 
 .brand-tagline {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: var(--text-caption);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -213,21 +226,21 @@ a {
 .active-shows-head h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--text-channel);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .active-shows-head p {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-label);
   color: var(--ink-soft);
 }
 
 .active-shows-empty {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 0.95rem;
+  font-size: var(--text-mono);
 }
 
 .active-shows-list {
@@ -260,11 +273,11 @@ a {
 
 .active-show-name {
   font-weight: 750;
-  font-size: 1.02rem;
+  font-size: var(--text-body);
 }
 
 .active-show-meta {
-  font-size: 0.88rem;
+  font-size: var(--text-chip);
   color: var(--ink-soft);
 }
 
@@ -282,7 +295,7 @@ a {
 }
 
 .hero-create .brand-name {
-  font-size: 1.35rem;
+  font-size: var(--text-channel);
 }
 
 .hero-create-grid {
@@ -311,7 +324,7 @@ a {
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in oklab, var(--sea-bright) 35%, var(--line));
   background: color-mix(in oklab, var(--sea) 14%, transparent);
-  font-size: 0.92rem;
+  font-size: var(--text-label);
 }
 
 .demo-banner-actions {
@@ -325,7 +338,7 @@ a {
   text-align: right;
   color: var(--signal-hot);
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: var(--text-label);
 }
 
 .demo-timeline {
@@ -370,7 +383,7 @@ a {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(1.85rem, 4vw, 2.35rem);
+  font-size: var(--text-lead);
   letter-spacing: -0.03em;
   line-height: 1.05;
   text-wrap: balance;
@@ -378,7 +391,7 @@ a {
 
 .hero-lead {
   margin: 0;
-  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  font-size: var(--text-lead-sub);
   line-height: 1.35;
   max-width: 28rem;
   color: var(--ink);
@@ -389,7 +402,7 @@ a {
   margin: 0;
   color: var(--ink-soft);
   max-width: 28rem;
-  font-size: 0.95rem;
+  font-size: var(--text-mono);
   line-height: 1.4;
   text-wrap: pretty;
 }
@@ -513,7 +526,7 @@ a {
 .field {
   display: grid;
   gap: 0.35rem;
-  font-size: 0.92rem;
+  font-size: var(--text-label);
   font-weight: 600;
   min-width: 0;
 }
@@ -614,7 +627,7 @@ a {
 .board-sub {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 0.92rem;
+  font-size: var(--text-label);
   line-height: 1.4;
 }
 
@@ -641,13 +654,13 @@ a {
 }
 
 .board-header .brand-mark {
-  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-size: var(--text-display);
 }
 
 .board-header h1 {
   margin: 0.2rem 0 0;
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-size: var(--text-display);
   letter-spacing: -0.03em;
 }
 
@@ -664,7 +677,7 @@ a {
   border-radius: 999px;
   background: color-mix(in oklab, var(--signal) 18%, white);
   color: var(--signal-deep);
-  font-size: 0.8rem;
+  font-size: var(--text-label);
   font-weight: 700;
 }
 
@@ -719,7 +732,7 @@ a {
   color: var(--ink);
   min-height: var(--touch-min);
   padding: 0.5rem 0.85rem;
-  font-size: 0.88rem;
+  font-size: var(--text-chip);
   font-weight: 650;
 }
 
@@ -776,15 +789,16 @@ a {
 
 .channel-title strong {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--text-channel);
   letter-spacing: -0.02em;
 }
 
 .freq {
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  font-size: var(--text-mono);
   color: var(--sea);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .channel-meta {
@@ -792,7 +806,7 @@ a {
   flex-wrap: wrap;
   gap: 0.4rem;
   color: color-mix(in oklab, var(--ink) 60%, transparent);
-  font-size: 0.85rem;
+  font-size: var(--text-label);
 }
 
 .tag {
@@ -800,6 +814,7 @@ a {
   padding: 0.1rem 0.45rem;
   background: color-mix(in oklab, var(--sea-bright) 14%, transparent);
   color: var(--ink-soft);
+  font-size: var(--text-caption);
   font-weight: 650;
 }
 
@@ -837,7 +852,7 @@ a {
   color: var(--ink);
   font: inherit;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: var(--text-label);
   cursor: pointer;
 }
 
@@ -866,7 +881,7 @@ a {
 
 .channel-who {
   margin: 0.15rem 0 0;
-  font-size: 1rem;
+  font-size: var(--text-body);
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--signal-hot);
@@ -874,7 +889,7 @@ a {
 
 .rack-ch-inline {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   color: var(--sea-bright);
   letter-spacing: 0.04em;
@@ -914,7 +929,7 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.92rem;
+  font-size: var(--text-label);
   color: var(--ink-soft);
 }
 
@@ -944,7 +959,7 @@ a {
   background: color-mix(in oklab, var(--panel) 80%, transparent);
   color: var(--ink-soft);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--text-label);
   font-weight: 700;
   cursor: pointer;
 }
@@ -1024,7 +1039,7 @@ a {
 
 .rack-ch {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--sea-bright);
@@ -1032,14 +1047,14 @@ a {
 
 .rack-empty-label {
   margin-top: 1.25rem;
-  font-size: 0.9rem;
+  font-size: var(--text-label);
   color: var(--ink-soft);
 }
 
 .rack-headline {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 0.98rem;
+  font-size: var(--text-mono);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -1049,14 +1064,14 @@ a {
 
 .rack-mic-name {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-label);
   color: var(--ink-soft);
 }
 
 .rack-field {
   display: grid;
   gap: 0.2rem;
-  font-size: 0.78rem;
+  font-size: var(--text-caption);
   font-weight: 650;
   color: var(--ink-soft);
 }
@@ -1104,7 +1119,7 @@ a {
   background: color-mix(in oklab, var(--panel) 80%, transparent);
   color: var(--ink-soft);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   cursor: pointer;
 }
@@ -1117,7 +1132,7 @@ a {
 
 .rack-freq {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: var(--text-caption);
   color: color-mix(in oklab, var(--sea) 85%, transparent);
   display: flex;
   flex-wrap: wrap;
@@ -1135,7 +1150,7 @@ a {
 
 .deploy-btn.use-btn {
   min-width: 5.25rem;
-  font-size: 0.8rem;
+  font-size: var(--text-label);
 }
 
 .channel-floor-fields {
@@ -1156,14 +1171,14 @@ a {
   justify-content: space-between;
   gap: 0.75rem;
   margin-top: 0.45rem;
-  font-size: 0.88rem;
+  font-size: var(--text-chip);
   color: var(--ink-soft);
 }
 
 .room-field {
   display: grid;
   gap: 0.3rem;
-  font-size: 0.88rem;
+  font-size: var(--text-chip);
   font-weight: 650;
   max-width: none;
 }
@@ -1183,7 +1198,7 @@ a {
   color: var(--ink-soft);
   min-height: var(--touch-min);
   padding: 0.45rem 0.85rem;
-  font-size: 0.85rem;
+  font-size: var(--text-label);
   font-weight: 600;
 }
 
@@ -1204,7 +1219,7 @@ a {
 
 .tools-whisper {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-label);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1268,7 +1283,7 @@ a {
 .toggle-copy {
   display: grid;
   gap: 0.15rem;
-  font-size: 0.88rem;
+  font-size: var(--text-chip);
   color: var(--ink-soft);
 }
 
@@ -1317,7 +1332,7 @@ a {
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
-  font-size: 0.92rem;
+  font-size: var(--text-label);
   font-weight: 650;
 }
 
@@ -1353,7 +1368,7 @@ a {
   margin-left: 0.55rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1384,7 +1399,7 @@ a {
   justify-content: space-between;
   align-items: baseline;
   gap: 0.75rem;
-  font-size: 0.95rem;
+  font-size: var(--text-mono);
 }
 
 .progress-track {
@@ -1407,7 +1422,7 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem 0.75rem;
-  font-size: 0.8rem;
+  font-size: var(--text-label);
   color: var(--ink-soft);
 }
 
@@ -1432,7 +1447,7 @@ a {
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  font-size: 0.86rem;
+  font-size: var(--text-label);
 }
 
 .activity-msg {
@@ -1467,13 +1482,13 @@ a {
   color: var(--ink);
   padding: 0.55rem 0.8rem;
   font: inherit;
-  font-size: 1rem;
+  font-size: var(--text-body);
 }
 
 .focus-field {
   display: grid;
   gap: 0.25rem;
-  font-size: 0.8rem;
+  font-size: var(--text-label);
   font-weight: 650;
   color: var(--ink-soft);
   min-width: 9rem;
@@ -1521,7 +1536,7 @@ a {
   display: grid;
   grid-template-columns: 1.4fr 0.9fr 0.9fr;
   gap: 0.5rem;
-  font-size: 0.86rem;
+  font-size: var(--text-label);
   padding: 0.35rem 0;
   border-bottom: 1px solid color-mix(in oklab, var(--line) 55%, transparent);
 }
@@ -1581,7 +1596,7 @@ a {
 .channel-name-input {
   font: inherit;
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--text-channel);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -1611,7 +1626,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.85rem;
+  font-size: var(--text-label);
   font-weight: 650;
 }
 
@@ -1656,7 +1671,7 @@ a {
 .rack-cell.is-last-change::after {
   content: "Updated";
   justify-self: start;
-  font-size: 0.65rem;
+  font-size: var(--text-caption);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1680,7 +1695,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.86rem;
+  font-size: var(--text-label);
   font-weight: 650;
   color: var(--ink-soft);
   cursor: pointer;
@@ -1716,7 +1731,7 @@ a {
 
 .crew-show-name {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--text-channel);
   letter-spacing: -0.02em;
 }
 
@@ -1755,7 +1770,7 @@ a {
 }
 
 .board--crew .mic-rack-hud {
-  font-size: 0.85rem;
+  font-size: var(--text-label);
 }
 
 .board--crew .mic-rack-grid {
@@ -1771,31 +1786,31 @@ a {
 }
 
 .board--crew .rack-headline {
-  font-size: 0.82rem;
+  font-size: var(--text-label);
   line-height: 1.2;
 }
 
 .board--crew .rack-kind-btn {
   min-height: 1.85rem;
-  font-size: 0.68rem;
+  font-size: var(--text-caption);
   padding: 0.2rem 0.3rem;
 }
 
 .board--crew .rack-field input,
 .board--crew .rack-drop-select {
-  font-size: 0.78rem;
+  font-size: var(--text-caption);
   padding: 0.28rem 0.4rem;
 }
 
 .board--crew .rack-use-btn {
-  font-size: 0.72rem;
+  font-size: var(--text-caption);
   padding: 0.25rem 0.45rem;
 }
 
 @media (max-height: 900px) and (orientation: landscape) {
   .board--crew .rack-mic-name,
   .board--crew .rack-freq {
-    font-size: 0.72rem;
+    font-size: var(--text-caption);
   }
 }
 
@@ -1845,7 +1860,7 @@ a {
 }
 
 .field-note {
-  font-size: 0.78rem;
+  font-size: var(--text-caption);
   font-weight: 500;
   color: var(--ink-soft);
 }
@@ -1900,7 +1915,7 @@ a {
 
 .group-heading-toggle .group-heading {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-body);
 }
 
 .section-caret {
@@ -1913,7 +1928,7 @@ a {
   border-radius: var(--radius-sm);
   border: 1.5px solid color-mix(in oklab, var(--sea) 50%, transparent);
   background: color-mix(in oklab, var(--sea) 14%, transparent);
-  font-size: 1rem;
+  font-size: var(--text-body);
   font-weight: 800;
   line-height: 1;
   color: var(--sea-bright);
@@ -1926,7 +1941,7 @@ a {
 }
 
 .section-closed-hint {
-  font-size: 0.72rem;
+  font-size: var(--text-caption);
   font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1955,7 +1970,7 @@ a {
 }
 
 .bulk-label {
-  font-size: 0.82rem;
+  font-size: var(--text-label);
   font-weight: 650;
   color: var(--ink-soft);
   margin-right: 0.25rem;
@@ -1970,7 +1985,7 @@ a {
 .group-heading {
   margin: 0 0 0.55rem;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: var(--text-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--heading-mist);
@@ -1981,7 +1996,7 @@ a {
 
 .group-count {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-label);
   opacity: 0.75;
 }
 
@@ -1994,7 +2009,7 @@ a {
 .quiet-field {
   display: grid;
   gap: 0.25rem;
-  font-size: 0.82rem;
+  font-size: var(--text-label);
   font-weight: 650;
   color: var(--ink-soft);
 }
@@ -2048,7 +2063,7 @@ a {
   padding: 1rem clamp(1rem, 3vw, 2rem) 1.35rem;
   border-top: 1px solid var(--line);
   color: var(--ink-soft);
-  font-size: 0.85rem;
+  font-size: var(--text-label);
 }
 
 .site-footer a {
@@ -2076,7 +2091,7 @@ a {
   }
 
   .board-header h1 {
-    font-size: clamp(1.45rem, 7vw, 1.9rem);
+    font-size: var(--text-display-sm);
   }
 
   .board-actions {
@@ -2131,7 +2146,7 @@ a {
   }
 
   .channel-title strong {
-    font-size: 1.05rem;
+    font-size: var(--text-title);
   }
 
   .deploy-btn {
@@ -2152,7 +2167,7 @@ a {
   .quiet-field input,
   .room-field select,
   .room-field input {
-    font-size: 1rem; /* avoid iOS zoom */
+    font-size: var(--text-body); /* avoid iOS zoom */
   }
 
   .channel-floor-fields {
@@ -2196,7 +2211,7 @@ a {
   }
 
   .hero-create .brand-name {
-    font-size: 1.2rem;
+    font-size: var(--text-lead-sub);
   }
 
   .hero-create .brand-tagline {
@@ -2208,15 +2223,15 @@ a {
   }
 
   .hero-create h1 {
-    font-size: 1.7rem;
+    font-size: var(--text-display);
   }
 
   .hero-lead {
-    font-size: 1rem;
+    font-size: var(--text-body);
   }
 
   .hero-support {
-    font-size: 0.9rem;
+    font-size: var(--text-label);
   }
 
   .hero-inner {
@@ -2236,7 +2251,7 @@ a {
   .field input,
   .btn-primary {
     min-height: 2.85rem;
-    font-size: 1rem;
+    font-size: var(--text-body);
   }
 
   .tools-panel {

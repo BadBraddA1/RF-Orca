@@ -89,6 +89,8 @@ ABLY_API_KEY=…   # Ably app “RF Orca” server key (token auth via /api/ably
 
 Transparent logo assets in `public/brand/` (navy plate removed). Favicon / apple icon use the emblem mark only.
 
+**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Type ramp uses `--text-*` roles (headline → caption); tags/micro badges share `--text-caption` only.
+
 ## Site chrome
 
 Day-one chrome: `lib/site-metadata.ts`, `/opengraph-image` + `/twitter-image` (1200×630), branded `/not-found`, `/privacy`, `robots.ts`, `sitemap.ts`, Vercel Analytics.

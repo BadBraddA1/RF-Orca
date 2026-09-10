@@ -4,44 +4,422 @@
   "title": "Design System: RF Orca",
   "extensions": {
     "colorMeta": {
-      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#f2f6ff", "tonalRamp": ["#0a1018", "#1a2433", "#2e3d52", "#4a5d75", "#6f849c", "#9aabbf", "#c5d2e8", "#f2f6ff"] },
-      "ink-soft": { "role": "neutral", "displayName": "Ink Soft", "canonical": "#c5d2e8", "tonalRamp": ["#0d1520", "#1c2838", "#2f4054", "#4a6078", "#6d8399", "#94a8bc", "#c5d2e8", "#e8eef6"] },
-      "navy": { "role": "primary", "displayName": "Deep Watch Navy", "canonical": "#06101f", "tonalRamp": ["#03080f", "#06101f", "#0a1a30", "#10263f", "#1a3a5c", "#2a5478", "#4a7a9e", "#8eb4d0"] },
-      "navy-2": { "role": "neutral", "displayName": "Navy Mid", "canonical": "#0a1a30", "tonalRamp": ["#040a12", "#06101f", "#0a1a30", "#10263f", "#183552", "#264a6a", "#3d6a8e", "#7aa0c0"] },
-      "panel": { "role": "neutral", "displayName": "Panel Steel", "canonical": "#10263f", "tonalRamp": ["#06101f", "#0a1a30", "#10263f", "#183552", "#244866", "#3a6488", "#5a88ac", "#9ec0d8"] },
-      "foam": { "role": "neutral", "displayName": "Foam", "canonical": "#0d2038", "tonalRamp": ["#050c14", "#0d2038", "#143048", "#1c4060", "#2a5878", "#3e7494", "#5e98b4", "#9ec4d8"] },
-      "sand": { "role": "neutral", "displayName": "Sand Dark", "canonical": "#0b1728", "tonalRamp": ["#04080e", "#0b1728", "#122238", "#1a3048", "#264060", "#385878", "#547898", "#90b0c8"] },
-      "sea": { "role": "primary", "displayName": "Sea Cyan", "canonical": "#1aa7c4", "tonalRamp": ["#062028", "#0a3848", "#105868", "#1aa7c4", "#3ec4dc", "#6ad8ec", "#9ee8f4", "#d4f6fa"] },
-      "sea-bright": { "role": "primary", "displayName": "Sonar Bright", "canonical": "#4ae0f5", "tonalRamp": ["#0a3038", "#105868", "#1aa7c4", "#4ae0f5", "#6ee8f8", "#92f0fa", "#b8f6fc", "#e0fbfd"] },
-      "signal": { "role": "secondary", "displayName": "Signal Orange", "canonical": "#ff7a1a", "tonalRamp": ["#3a1808", "#6a2c0c", "#a04810", "#ff7a1a", "#ff9a48", "#ffb878", "#ffd4a8", "#fff0dc"] },
-      "signal-hot": { "role": "secondary", "displayName": "Signal Hot", "canonical": "#ffb060", "tonalRamp": ["#3a2410", "#6a4018", "#a06828", "#ffb060", "#ffc484", "#ffd6a8", "#ffe8cc", "#fff6ea"] },
-      "danger": { "role": "tertiary", "displayName": "Danger Coral", "canonical": "#ff7a88", "tonalRamp": ["#3a1018", "#6a2030", "#a03848", "#ff7a88", "#ff9aa4", "#ffb8c0", "#ffd6da", "#fff0f2"] },
-      "ok": { "role": "secondary", "displayName": "Ok Mint", "canonical": "#5dffc0", "tonalRamp": ["#0a2820", "#144838", "#1e7860", "#5dffc0", "#7affe0", "#9cffec", "#c0fff4", "#e8fffa"] },
-      "ok-ink": { "role": "neutral", "displayName": "Ok Ink", "canonical": "#b8ffe0", "tonalRamp": ["#143828", "#2a5848", "#4a8870", "#7affe0", "#b8ffe0", "#d0ffe8", "#e4fff2", "#f4fffa"] },
-      "ok-soft": { "role": "neutral", "displayName": "Ok Soft", "canonical": "#9bffd8", "tonalRamp": ["#143828", "#2a5848", "#4a8870", "#7affe0", "#9bffd8", "#b8ffe0", "#d0ffe8", "#e8fffa"] },
-      "danger-ink": { "role": "tertiary", "displayName": "Danger Ink", "canonical": "#ffb0b8", "tonalRamp": ["#3a1018", "#6a2030", "#a03848", "#ff7a88", "#ffb0b8", "#ffd0d5", "#ffe8ea", "#fff5f6"] },
-      "danger-soft": { "role": "tertiary", "displayName": "Danger Soft", "canonical": "#ffd0d5", "tonalRamp": ["#3a1018", "#6a2030", "#a03848", "#ff7a88", "#ffb0b8", "#ffd0d5", "#ffe8ea", "#fff5f6"] },
-      "ink-on-signal": { "role": "neutral", "displayName": "Ink on Signal", "canonical": "#1a0b00", "tonalRamp": ["#1a0b00", "#3a2410", "#6a4018", "#8a4b00", "#c08040", "#e0b080", "#f0d8b8", "#fff6ea"] },
-      "ink-on-sea": { "role": "neutral", "displayName": "Ink on Sea", "canonical": "#041018", "tonalRamp": ["#041018", "#0a2030", "#143848", "#1a6070", "#4ae0f5", "#8eecf8", "#c4f6fb", "#e8fcfe"] },
-      "signal-deep": { "role": "secondary", "displayName": "Signal Deep", "canonical": "#8a4b00", "tonalRamp": ["#1a0b00", "#3a2410", "#6a4018", "#8a4b00", "#c08040", "#e0b080", "#f0d8b8", "#fff6ea"] },
-      "input-deep": { "role": "neutral", "displayName": "Input Deep", "canonical": "#0c1c30", "tonalRamp": ["#06101f", "#0a1a30", "#0c1c30", "#10263f", "#183552", "#2a5478", "#4a7a9e", "#8eb4d0"] },
-      "panel-lift": { "role": "neutral", "displayName": "Panel Lift", "canonical": "#0f243f", "tonalRamp": ["#06101f", "#0a1a30", "#0f243f", "#10263f", "#183552", "#2a5478", "#4a7a9e", "#8eb4d0"] },
-      "heading-mist": { "role": "neutral", "displayName": "Heading Mist", "canonical": "#d7e3f7", "tonalRamp": ["#0a1018", "#1a2433", "#2e3d52", "#4a5d75", "#6f849c", "#9aabbf", "#d7e3f7", "#f2f6ff"] },
-      "navy-deep": { "role": "neutral", "displayName": "Navy Deep", "canonical": "#071526", "tonalRamp": ["#03080f", "#06101f", "#071526", "#0a1a30", "#10263f", "#1a3a5c", "#2a5478", "#4a7a9e"] }
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#f2f6ff",
+        "tonalRamp": [
+          "#0a1018",
+          "#1a2433",
+          "#2e3d52",
+          "#4a5d75",
+          "#6f849c",
+          "#9aabbf",
+          "#c5d2e8",
+          "#f2f6ff"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Ink Soft",
+        "canonical": "#c5d2e8",
+        "tonalRamp": [
+          "#0d1520",
+          "#1c2838",
+          "#2f4054",
+          "#4a6078",
+          "#6d8399",
+          "#94a8bc",
+          "#c5d2e8",
+          "#e8eef6"
+        ]
+      },
+      "navy": {
+        "role": "primary",
+        "displayName": "Deep Watch Navy",
+        "canonical": "#06101f",
+        "tonalRamp": [
+          "#03080f",
+          "#06101f",
+          "#0a1a30",
+          "#10263f",
+          "#1a3a5c",
+          "#2a5478",
+          "#4a7a9e",
+          "#8eb4d0"
+        ]
+      },
+      "navy-2": {
+        "role": "neutral",
+        "displayName": "Navy Mid",
+        "canonical": "#0a1a30",
+        "tonalRamp": [
+          "#040a12",
+          "#06101f",
+          "#0a1a30",
+          "#10263f",
+          "#183552",
+          "#264a6a",
+          "#3d6a8e",
+          "#7aa0c0"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel Steel",
+        "canonical": "#10263f",
+        "tonalRamp": [
+          "#06101f",
+          "#0a1a30",
+          "#10263f",
+          "#183552",
+          "#244866",
+          "#3a6488",
+          "#5a88ac",
+          "#9ec0d8"
+        ]
+      },
+      "foam": {
+        "role": "neutral",
+        "displayName": "Foam",
+        "canonical": "#0d2038",
+        "tonalRamp": [
+          "#050c14",
+          "#0d2038",
+          "#143048",
+          "#1c4060",
+          "#2a5878",
+          "#3e7494",
+          "#5e98b4",
+          "#9ec4d8"
+        ]
+      },
+      "sand": {
+        "role": "neutral",
+        "displayName": "Sand Dark",
+        "canonical": "#0b1728",
+        "tonalRamp": [
+          "#04080e",
+          "#0b1728",
+          "#122238",
+          "#1a3048",
+          "#264060",
+          "#385878",
+          "#547898",
+          "#90b0c8"
+        ]
+      },
+      "sea": {
+        "role": "primary",
+        "displayName": "Sea Cyan",
+        "canonical": "#1aa7c4",
+        "tonalRamp": [
+          "#062028",
+          "#0a3848",
+          "#105868",
+          "#1aa7c4",
+          "#3ec4dc",
+          "#6ad8ec",
+          "#9ee8f4",
+          "#d4f6fa"
+        ]
+      },
+      "sea-bright": {
+        "role": "primary",
+        "displayName": "Sonar Bright",
+        "canonical": "#4ae0f5",
+        "tonalRamp": [
+          "#0a3038",
+          "#105868",
+          "#1aa7c4",
+          "#4ae0f5",
+          "#6ee8f8",
+          "#92f0fa",
+          "#b8f6fc",
+          "#e0fbfd"
+        ]
+      },
+      "signal": {
+        "role": "secondary",
+        "displayName": "Signal Orange",
+        "canonical": "#ff7a1a",
+        "tonalRamp": [
+          "#3a1808",
+          "#6a2c0c",
+          "#a04810",
+          "#ff7a1a",
+          "#ff9a48",
+          "#ffb878",
+          "#ffd4a8",
+          "#fff0dc"
+        ]
+      },
+      "signal-hot": {
+        "role": "secondary",
+        "displayName": "Signal Hot",
+        "canonical": "#ffb060",
+        "tonalRamp": [
+          "#3a2410",
+          "#6a4018",
+          "#a06828",
+          "#ffb060",
+          "#ffc484",
+          "#ffd6a8",
+          "#ffe8cc",
+          "#fff6ea"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger Coral",
+        "canonical": "#ff7a88",
+        "tonalRamp": [
+          "#3a1018",
+          "#6a2030",
+          "#a03848",
+          "#ff7a88",
+          "#ff9aa4",
+          "#ffb8c0",
+          "#ffd6da",
+          "#fff0f2"
+        ]
+      },
+      "ok": {
+        "role": "secondary",
+        "displayName": "Ok Mint",
+        "canonical": "#5dffc0",
+        "tonalRamp": [
+          "#0a2820",
+          "#144838",
+          "#1e7860",
+          "#5dffc0",
+          "#7affe0",
+          "#9cffec",
+          "#c0fff4",
+          "#e8fffa"
+        ]
+      },
+      "ok-ink": {
+        "role": "neutral",
+        "displayName": "Ok Ink",
+        "canonical": "#b8ffe0",
+        "tonalRamp": [
+          "#143828",
+          "#2a5848",
+          "#4a8870",
+          "#7affe0",
+          "#b8ffe0",
+          "#d0ffe8",
+          "#e4fff2",
+          "#f4fffa"
+        ]
+      },
+      "ok-soft": {
+        "role": "neutral",
+        "displayName": "Ok Soft",
+        "canonical": "#9bffd8",
+        "tonalRamp": [
+          "#143828",
+          "#2a5848",
+          "#4a8870",
+          "#7affe0",
+          "#9bffd8",
+          "#b8ffe0",
+          "#d0ffe8",
+          "#e8fffa"
+        ]
+      },
+      "danger-ink": {
+        "role": "tertiary",
+        "displayName": "Danger Ink",
+        "canonical": "#ffb0b8",
+        "tonalRamp": [
+          "#3a1018",
+          "#6a2030",
+          "#a03848",
+          "#ff7a88",
+          "#ffb0b8",
+          "#ffd0d5",
+          "#ffe8ea",
+          "#fff5f6"
+        ]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Danger Soft",
+        "canonical": "#ffd0d5",
+        "tonalRamp": [
+          "#3a1018",
+          "#6a2030",
+          "#a03848",
+          "#ff7a88",
+          "#ffb0b8",
+          "#ffd0d5",
+          "#ffe8ea",
+          "#fff5f6"
+        ]
+      },
+      "ink-on-signal": {
+        "role": "neutral",
+        "displayName": "Ink on Signal",
+        "canonical": "#1a0b00",
+        "tonalRamp": [
+          "#1a0b00",
+          "#3a2410",
+          "#6a4018",
+          "#8a4b00",
+          "#c08040",
+          "#e0b080",
+          "#f0d8b8",
+          "#fff6ea"
+        ]
+      },
+      "ink-on-sea": {
+        "role": "neutral",
+        "displayName": "Ink on Sea",
+        "canonical": "#041018",
+        "tonalRamp": [
+          "#041018",
+          "#0a2030",
+          "#143848",
+          "#1a6070",
+          "#4ae0f5",
+          "#8eecf8",
+          "#c4f6fb",
+          "#e8fcfe"
+        ]
+      },
+      "signal-deep": {
+        "role": "secondary",
+        "displayName": "Signal Deep",
+        "canonical": "#8a4b00",
+        "tonalRamp": [
+          "#1a0b00",
+          "#3a2410",
+          "#6a4018",
+          "#8a4b00",
+          "#c08040",
+          "#e0b080",
+          "#f0d8b8",
+          "#fff6ea"
+        ]
+      },
+      "input-deep": {
+        "role": "neutral",
+        "displayName": "Input Deep",
+        "canonical": "#0c1c30",
+        "tonalRamp": [
+          "#06101f",
+          "#0a1a30",
+          "#0c1c30",
+          "#10263f",
+          "#183552",
+          "#2a5478",
+          "#4a7a9e",
+          "#8eb4d0"
+        ]
+      },
+      "panel-lift": {
+        "role": "neutral",
+        "displayName": "Panel Lift",
+        "canonical": "#0f243f",
+        "tonalRamp": [
+          "#06101f",
+          "#0a1a30",
+          "#0f243f",
+          "#10263f",
+          "#183552",
+          "#2a5478",
+          "#4a7a9e",
+          "#8eb4d0"
+        ]
+      },
+      "heading-mist": {
+        "role": "neutral",
+        "displayName": "Heading Mist",
+        "canonical": "#d7e3f7",
+        "tonalRamp": [
+          "#0a1018",
+          "#1a2433",
+          "#2e3d52",
+          "#4a5d75",
+          "#6f849c",
+          "#9aabbf",
+          "#d7e3f7",
+          "#f2f6ff"
+        ]
+      },
+      "navy-deep": {
+        "role": "neutral",
+        "displayName": "Navy Deep",
+        "canonical": "#071526",
+        "tonalRamp": [
+          "#03080f",
+          "#06101f",
+          "#071526",
+          "#0a1a30",
+          "#10263f",
+          "#1a3a5c",
+          "#2a5478",
+          "#4a7a9e"
+        ]
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Show name on the mark board." },
-      "headline": { "displayName": "Headline", "purpose": "Home / brand lock moments only." },
-      "title": { "displayName": "Title", "purpose": "Group and room section headings (often uppercase)." },
-      "body": { "displayName": "Body", "purpose": "Tools copy and general UI text." },
-      "label": { "displayName": "Label", "purpose": "Chip labels and field captions." },
-      "mono": { "displayName": "Mono", "purpose": "MHz, rack CH, and measurement data only." }
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Home / brand lock moments only."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Show name on the mark board."
+      },
+      "display-sm": {
+        "displayName": "Display SM",
+        "purpose": "Narrow-viewport board title."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Home supporting titles."
+      },
+      "lead-sub": {
+        "displayName": "Lead Sub",
+        "purpose": "Home blurbs under lead."
+      },
+      "channel": {
+        "displayName": "Channel",
+        "purpose": "Channel name on list rows."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Group and room section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Tools copy and general UI text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field captions and quiet chrome."
+      },
+      "chip": {
+        "displayName": "Chip",
+        "purpose": "Filter and sort chip labels."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Tags and micro badges \u2014 single micro size."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "MHz, rack CH, and measurement data only."
+      }
     },
     "shadows": [
       {
         "name": "ambient-desk",
         "value": "0 22px 60px color-mix(in oklab, black 55%, transparent)",
-        "purpose": "Hero / brand lockup lift only — not default on list rows."
+        "purpose": "Hero / brand lockup lift only \u2014 not default on list rows."
       }
     ],
     "motion": [
@@ -52,16 +430,31 @@
       },
       {
         "name": "mic-flash",
-        "value": "0.45s ease-out ×4",
+        "value": "0.45s ease-out \u00d74",
         "purpose": "Flash Changes pulse; under reduced-motion becomes static sea highlight."
       }
     ],
     "breakpoints": [
-      { "name": "rack-narrow", "value": "639px" },
-      { "name": "board-mobile", "value": "720px" },
-      { "name": "tools-wide", "value": "800px" },
-      { "name": "home-split", "value": "840px" },
-      { "name": "home-wide", "value": "1100px" }
+      {
+        "name": "rack-narrow",
+        "value": "639px"
+      },
+      {
+        "name": "board-mobile",
+        "value": "720px"
+      },
+      {
+        "name": "tools-wide",
+        "value": "800px"
+      },
+      {
+        "name": "home-split",
+        "value": "840px"
+      },
+      {
+        "name": "home-wide",
+        "value": "1100px"
+      }
     ]
   },
   "components": [
@@ -102,7 +495,7 @@
       "kind": "input",
       "refersTo": "input-field",
       "description": "Mark-board channel search.",
-      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Search</span><input class=\"ds-input\" type=\"search\" placeholder=\"Search name or MHz…\" /></label>",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Search</span><input class=\"ds-input\" type=\"search\" placeholder=\"Search name or MHz\u2026\" /></label>",
       "css": ".ds-field { display: grid; gap: 0.35rem; font-family: 'Source Sans 3', sans-serif; } .ds-field-label { font-size: 0.85rem; font-weight: 650; color: #c5d2e8; } .ds-input { min-height: 2.75rem; width: 100%; border-radius: 0.75rem; border: 1px solid color-mix(in oklab, #4ae0f5 28%, transparent); background: color-mix(in oklab, #10263f 85%, transparent); color: #f2f6ff; padding: 0.55rem 0.8rem; font: inherit; font-size: 1rem; } .ds-input:focus-visible { outline: 2px solid #4ae0f5; outline-offset: 2px; } .ds-input::placeholder { color: color-mix(in oklab, #c5d2e8 70%, transparent); }"
     },
     {
@@ -118,37 +511,66 @@
       "kind": "chip",
       "refersTo": "tag-staged",
       "description": "Staged vs deployed room tags on a channel.",
-      "html": "<span class=\"ds-tag ds-tag-staged\">Staged · Ballroom A</span><span class=\"ds-tag ds-tag-deployed\">Ballroom A</span>",
+      "html": "<span class=\"ds-tag ds-tag-staged\">Staged \u00b7 Ballroom A</span><span class=\"ds-tag ds-tag-deployed\">Ballroom A</span>",
       "css": ".ds-tag { display: inline-flex; align-items: center; font-family: 'Source Sans 3', sans-serif; font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 0.45rem; margin-right: 0.35rem; } .ds-tag-staged { background: color-mix(in oklab, #1aa7c4 18%, transparent); color: #4ae0f5; border: 1px dashed color-mix(in oklab, #1aa7c4 45%, transparent); } .ds-tag-deployed { background: color-mix(in oklab, #ff7a1a 22%, transparent); color: #ffb060; border: 1px solid transparent; }"
     }
   ],
   "narrative": {
     "northStar": "Night Watch Desk",
-    "overview": "RF Orca’s visual world is a dark RF desk under house lights: lean, scannable, and signal-clear. Coordinators and crews work on phones in time pressure — the UI earns trust by staying quiet until Tools unlock, then offering dense but readable mark controls. Brand personality from the product record (lean · crew-first · signal-clear) shows up as cyan “sonar” accents on deep navy, orange for attention and deploy heat, and monospace MHz as the only costume for “technical.”\n\nDepth is tonal, not theatrical: navy → panel → foam layers, soft ambient shadow on hero moments, pill chips for filters and actions. Operate mode wins over marketing chrome. Confirmed rejections: purple SaaS gradients, cream-serif AI landings, bloated A/V dashboards, account-walled directories, and decorative glass as identity.",
+    "overview": "RF Orca\u2019s visual world is a dark RF desk under house lights: lean, scannable, and signal-clear. Coordinators and crews work on phones in time pressure \u2014 the UI earns trust by staying quiet until Tools unlock, then offering dense but readable mark controls. Brand personality from the product record (lean \u00b7 crew-first \u00b7 signal-clear) shows up as cyan \u201csonar\u201d accents on deep navy, orange for attention and deploy heat, and monospace MHz as the only costume for \u201ctechnical.\u201d\n\nDepth is tonal, not theatrical: navy \u2192 panel \u2192 foam layers, soft ambient shadow on hero moments, pill chips for filters and actions. Operate mode wins over marketing chrome. Confirmed rejections: purple SaaS gradients, cream-serif AI landings, bloated A/V dashboards, account-walled directories, and decorative glass as identity.",
     "keyCharacteristics": [
       "Dark navy hull with cyan sea accents and orange signal heat",
       "Syne display + Source Sans body + IBM Plex Mono for frequencies",
       "Pill chips / Deploy buttons; panels with soft radius (~0.85rem)",
-      "Floor tap targets ≥44px (--touch-min)",
+      "Floor tap targets \u226544px (--touch-min)",
       "Motion respects prefers-reduced-motion; flash becomes static highlight"
     ],
     "rules": [
-      { "name": "The Signal Rarity Rule", "body": "Orange and bright cyan mark state and action — never flood a screen. If every chip is bright, nothing is urgent.", "section": "colors" },
-      { "name": "The Label-Plus-Color Rule", "body": "Allowed / Blocked / Deployed / Staged always carry text tags, not color alone.", "section": "colors" },
-      { "name": "The Mono-Is-Data Rule", "body": "IBM Plex Mono is for measurements and channel IDs only — never for marketing headlines.", "section": "typography" },
-      { "name": "The Thumb Floor Rule", "body": "Interactive mark-board controls meet ≥44px hit targets even when the visible glyph is smaller (e.g. select circle).", "section": "layout" },
-      { "name": "The Flat-By-Default Rule", "body": "List rows and chips stay flat at rest; depth comes from tone and border, not stacked shadows.", "section": "elevation" },
-      { "name": "The Quiet Tools Rule", "body": "Coordinator power stays collapsed until unlocked — never permanent admin chrome on the floor view.", "section": "components" }
+      {
+        "name": "The Signal Rarity Rule",
+        "body": "Orange and bright cyan mark state and action \u2014 never flood a screen. If every chip is bright, nothing is urgent.",
+        "section": "colors"
+      },
+      {
+        "name": "The Label-Plus-Color Rule",
+        "body": "Allowed / Blocked / Deployed / Staged always carry text tags, not color alone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono-Is-Data Rule",
+        "body": "IBM Plex Mono is for measurements and channel IDs only \u2014 never for marketing headlines.",
+        "section": "typography"
+      },
+      {
+        "name": "The Thumb Floor Rule",
+        "body": "Interactive mark-board controls meet \u226544px hit targets even when the visible glyph is smaller (e.g. select circle).",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "List rows and chips stay flat at rest; depth comes from tone and border, not stacked shadows.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Quiet Tools Rule",
+        "body": "Coordinator power stays collapsed until unlocked \u2014 never permanent admin chrome on the floor view.",
+        "section": "components"
+      },
+      {
+        "name": "The One Caption Rule",
+        "body": "All micro labels share --text-caption (0.72rem) \u2014 no 0.65 / 0.68 / 0.78 scatter.",
+        "section": "typography"
+      }
     ],
     "dos": [
-      "Do keep the Night Watch Desk: dark navy, cyan state, orange heat, mint for “live/deployed.”",
+      "Do keep the Night Watch Desk: dark navy, cyan state, orange heat, mint for \u201clive/deployed.\u201d",
       "Do use pill chips for filters and Syne for show/channel titles.",
       "Do meet --touch-min (2.75rem) on mark-board controls.",
       "Do honor prefers-reduced-motion (no flash pulse; keep static highlight).",
       "Do pair status color with text labels (Staged / Deployed / Locked)."
     ],
     "donts": [
-      "Don't introduce purple gradients, cream paper, or serif “AI landing” aesthetics.",
+      "Don't introduce purple gradients, cream paper, or serif \u201cAI landing\u201d aesthetics.",
       "Don't use cards-of-cards or dashboard nav that buries Deploy.",
       "Don't put account walls or permanent show libraries on the home fold.",
       "Don't use monospace for display headlines or emoji as the icon system.",

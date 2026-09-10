@@ -27,32 +27,50 @@ colors:
   heading-mist: "#d7e3f7"
   navy-deep: "#071526"
 typography:
-  display:
-    fontFamily: "Syne, Avenir Next, sans-serif"
-    fontSize: "clamp(1.6rem, 4vw, 2.4rem)"
-    fontWeight: 700
-    lineHeight: 1.1
-    letterSpacing: "-0.02em"
   headline:
     fontFamily: "Syne, Avenir Next, sans-serif"
     fontSize: "clamp(2.5rem, 8vw, 5.5rem)"
     fontWeight: 800
     lineHeight: 0.95
     letterSpacing: "-0.03em"
-  title:
+  display:
     fontFamily: "Syne, Avenir Next, sans-serif"
-    fontSize: "1rem"
+    fontSize: "clamp(1.6rem, 4vw, 2.4rem)"
     fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: "0.04em"
+    lineHeight: 1.1
+    letterSpacing: "-0.02em"
+  display-sm:
+    fontFamily: "Syne, Avenir Next, sans-serif"
+    fontSize: "clamp(1.45rem, 7vw, 1.9rem)"
+    fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: "-0.02em"
+  lead:
+    fontFamily: "Syne, Avenir Next, sans-serif"
+    fontSize: "clamp(1.85rem, 4vw, 2.35rem)"
+    fontWeight: 700
+    lineHeight: 1.15
+    letterSpacing: "-0.02em"
+  lead-sub:
+    fontFamily: "Source Sans 3, sans-serif"
+    fontSize: "clamp(1.05rem, 2vw, 1.2rem)"
+    fontWeight: 500
+    lineHeight: 1.4
+    letterSpacing: "normal"
   channel:
     fontFamily: "Syne, Avenir Next, sans-serif"
     fontSize: "1.15rem"
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "-0.02em"
+  title:
+    fontFamily: "Syne, Avenir Next, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "0.04em"
   body:
-    fontFamily: "Source Sans 3, Source Sans 3, sans-serif"
+    fontFamily: "Source Sans 3, sans-serif"
     fontSize: "1rem"
     fontWeight: 500
     lineHeight: 1.45
@@ -63,6 +81,12 @@ typography:
     fontWeight: 650
     lineHeight: 1.3
     letterSpacing: "0.02em"
+  chip:
+    fontFamily: "Source Sans 3, sans-serif"
+    fontSize: "0.88rem"
+    fontWeight: 650
+    lineHeight: 1.3
+    letterSpacing: "normal"
   caption:
     fontFamily: "Source Sans 3, sans-serif"
     fontSize: "0.72rem"
@@ -198,17 +222,21 @@ A night-ops palette: deep navy fields, cyan for live/active chrome, orange for u
 **Character:** Syne is confident and slightly geometric for show titles and channel names; Source Sans stays readable on phones; Plex Mono owns MHz, rack CH, and data so “tech” never leaks into body copy.
 
 ### Hierarchy
-- **Headline** (800, `clamp(2.5rem, 8vw, 5.5rem)`): Home / brand lock moments only.
-- **Display** (700, `clamp(1.6rem–2.4rem)`): Show name on the mark board.
-- **Title** (700, ~1rem, uppercase tracking): Group / room section headings.
-- **Channel** (700, 1.15rem): Channel name on the list row.
-- **Body** (400–600, 1rem): Tools copy, notes; inputs use ≥16px on mobile to avoid iOS zoom.
-- **Label** (650, ~0.85rem): Chip text, field captions.
-- **Caption** (650, ~0.72rem): Tiny tags, “closed”, Updated badge.
-- **Mono** (600, ~0.95rem): Frequencies, rack slots.
+- **Headline** (`--text-headline`, 800): Home / brand lock moments only.
+- **Display** (`--text-display`, 700): Show name on the mark board; **Display-sm** on narrow boards.
+- **Lead / Lead-sub** (`--text-lead`, `--text-lead-sub`): Home supporting titles and blurbs.
+- **Channel** (`--text-channel`, 1.15rem): Channel name on the list row.
+- **Title** (`--text-title`, 1rem): Group / room section headings.
+- **Body** (`--text-body`, 1rem): Tools copy; inputs stay ≥16px on mobile.
+- **Label** (`--text-label`, 0.85rem): Field captions, quiet chrome.
+- **Chip** (`--text-chip`, 0.88rem): Filter and sort chips only.
+- **Caption** (`--text-caption`, 0.72rem): Tags, “closed”, Updated badge — one micro size.
+- **Mono** (`--text-mono`, 0.95rem): Frequencies, rack slots.
 
 ### Named Rules
 **The Mono-Is-Data Rule.** IBM Plex Mono is for measurements and channel IDs only — never for marketing headlines.
+
+**The One Caption Rule.** All micro labels share `--text-caption` (0.72rem) — no 0.65 / 0.68 / 0.78 scatter.
 
 ## Layout
 
