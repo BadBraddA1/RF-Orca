@@ -244,7 +244,7 @@ Single-column Operate surfaces. Home: brand + **New show** above the fold; recen
 
 **Spacing tokens** (`--space-xs` → `--space-xl`): xs `0.35rem`, sm `0.45rem`, md `0.75rem`, lg `1.05rem`, xl `1.25rem`, plus `--touch-min: 2.75rem`. Board siblings use **lg**; filter/bulk cluster (`.board-scope`) uses **xs** between rows and an extra **sm** before the list/rack. Section blocks use **xl**; channels inside a section stay tighter (`--space-md`).
 
-Floor controls share `--touch-min`. Narrow filters/bulk rows fade at the trailing edge so overflow is discoverable. Sticky select bar sits under the measured progress HUD (`--sticky-hud-clearance`).
+Floor controls share `--touch-min`. Narrow filters/bulk rows fade at the trailing edge so overflow is discoverable. Sticky select bar sits under the measured progress HUD (`--sticky-hud-clearance`). Keyboard focus uses a shared sea-bright ring; `caret-color` is sea-bright on dark fields. Activity / import scroll areas use thin sea-tinted scrollbars (filter rows stay scrollbar-hidden).
 
 ### Named Rules
 **The Thumb Floor Rule.** Interactive mark-board controls meet ≥44px hit targets even when the visible glyph is smaller (e.g. select circle).

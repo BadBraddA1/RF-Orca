@@ -83,7 +83,18 @@ TURSO_DATABASE_URL=libsql://rf-orca-….turso.io
 TURSO_AUTH_TOKEN=…
 NEXT_PUBLIC_SITE_URL=https://rforca.com
 ABLY_API_KEY=…   # Ably app “RF Orca” server key (token auth via /api/ably-auth)
+
+# Observability
+NEXT_PUBLIC_SENTRY_DSN=…   # Sentry project rf-orca (also set SENTRY_DSN)
+SENTRY_AUTH_TOKEN=…        # source maps upload on Vercel build
+NEXT_PUBLIC_POSTHOG_KEY=…  # shared Default PostHog project; product super-property rf-orca
+NEXT_PUBLIC_POSTHOG_HOST=https://n.braddcorp.com
+NEXT_PUBLIC_POSTHOG_UI_HOST=https://us.posthog.com
 ```
+
+**Sentry** — client + server + edge init (`src/instrumentation*.ts`, `sentry.*.config.ts`), `global-error` capture, tunnel `/monitoring`, no floating Report a Bug widget. Code mappings: `BadBraddA1/RF-Orca`.
+
+**PostHog** — `posthog-js` in `instrumentation-client.ts` (`product: "rf-orca"`); optional server helper `src/lib/posthog-server.ts`. Org is still on one PostHog project (plan limit); filter by `product` until a dedicated `rf-orca` project can be created.
 
 ## Brand
 

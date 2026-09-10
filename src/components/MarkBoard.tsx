@@ -2053,10 +2053,12 @@ export function MarkBoard({
               className="bulk-bar select-bar"
               role="group"
               aria-label="Select channels"
+              aria-busy={bulkBusy || undefined}
             >
               <button
                 type="button"
                 className={`chip${allVisibleSelected ? " active" : ""}`}
+                disabled={bulkBusy}
                 onClick={() => {
                   if (allVisibleSelected) setSelectedIds({});
                   else selectVisible();
@@ -2066,7 +2068,9 @@ export function MarkBoard({
                   ? `Deselect all (${visibleWithRoomFocus.length})`
                   : `Select all (${visibleWithRoomFocus.length})`}
               </button>
-              {selectedList.length > 0 ? (
+              {bulkBusy ? (
+                <span className="field-note">Working…</span>
+              ) : selectedList.length > 0 ? (
                 <>
                   <span className="bulk-label">
                     {selectedList.length} selected
@@ -2161,9 +2165,12 @@ export function MarkBoard({
               className="bulk-bar"
               role="group"
               aria-label="Bulk status for visible channels"
+              aria-busy={bulkBusy || undefined}
             >
               <span className="bulk-label">
-                Set {visibleWithRoomFocus.length} visible →
+                {bulkBusy
+                  ? "Working…"
+                  : `Set ${visibleWithRoomFocus.length} visible →`}
               </span>
               <button
                 type="button"
@@ -2572,68 +2579,74 @@ function ChannelRow({
           </div>
         </div>
 
-        {features.deploy ? (
-          <button
-            type="button"
-            className={`deploy-btn${channel.deployed ? " on" : ""}${markDisabled ? " disabled" : ""}`}
-            disabled={markDisabled}
-            aria-pressed={channel.deployed}
-            onClick={() => {
-              if (markDisabled) return;
-              if (channel.deployed) {
-                void onPatch(channel.id, { deployed: false });
-                return;
-              }
-              if (!features.rooms) {
-                void onPatch(
-                  channel.id,
-                  { deployed: true, roomName: null },
-                  { undoToast: true },
-                );
-                return;
-              }
-              const roomName = channel.roomName || roomDraft.trim() || null;
-              if (!roomName && rooms.length === 0) {
-                const room = window.prompt("Room? (optional — cancel to deploy without)");
-                if (room === null) return;
-                const trimmed = room.trim();
-                void onPatch(
-                  channel.id,
-                  { deployed: true, roomName: trimmed || null },
-                  { undoToast: true },
-                );
-                return;
-              }
-              if (!roomName && rooms.length > 0) {
-                // Prefer prestage: ask if nothing staged yet
-                alert("Stage a room first (Room menu), then Deploy.");
-                return;
-              }
-              void onPatch(
-                channel.id,
-                {
-                  deployed: true,
-                  roomName,
-                },
-                { undoToast: true },
-              );
-            }}
-          >
-            {channel.deployed ? "Deployed" : "Deploy"}
-          </button>
-        ) : null}
-        {features.assignments ? (
-          <button
-            type="button"
-            className={`deploy-btn use-btn${channel.inUse ? " on" : ""}${assignDisabled ? " disabled" : ""}`}
-            disabled={assignDisabled}
-            aria-pressed={channel.inUse}
-            onClick={() =>
-              void onPatch(channel.id, { inUse: !channel.inUse })
-            }
-          >
-            {channel.inUse ? "In use" : "Not in use"}
-          </button>
+        {features.deploy || features.assignments ? (
+          <div className="channel-top-actions">
+            {features.deploy ? (
+              <button
+                type="button"
+                className={`deploy-btn${channel.deployed ? " on" : ""}${markDisabled ? " disabled" : ""}`}
+                disabled={markDisabled}
+                aria-pressed={channel.deployed}
+                onClick={() => {
+                  if (markDisabled) return;
+                  if (channel.deployed) {
+                    void onPatch(channel.id, { deployed: false });
+                    return;
+                  }
+                  if (!features.rooms) {
+                    void onPatch(
+                      channel.id,
+                      { deployed: true, roomName: null },
+                      { undoToast: true },
+                    );
+                    return;
+                  }
+                  const roomName = channel.roomName || roomDraft.trim() || null;
+                  if (!roomName && rooms.length === 0) {
+                    const room = window.prompt(
+                      "Room? (optional — cancel to deploy without)",
+                    );
+                    if (room === null) return;
+                    const trimmed = room.trim();
+                    void onPatch(
+                      channel.id,
+                      { deployed: true, roomName: trimmed || null },
+                      { undoToast: true },
+                    );
+                    return;
+                  }
+                  if (!roomName && rooms.length > 0) {
+                    // Prefer prestage: ask if nothing staged yet
+                    alert("Stage a room first (Room menu), then Deploy.");
+                    return;
+                  }
+                  void onPatch(
+                    channel.id,
+                    {
+                      deployed: true,
+                      roomName,
+                    },
+                    { undoToast: true },
+                  );
+                }}
+              >
+                {channel.deployed ? "Deployed" : "Deploy"}
+              </button>
+            ) : null}
+            {features.assignments ? (
+              <button
+                type="button"
+                className={`deploy-btn use-btn${channel.inUse ? " on" : ""}${assignDisabled ? " disabled" : ""}`}
+                disabled={assignDisabled}
+                aria-pressed={channel.inUse}
+                onClick={() =>
+                  void onPatch(channel.id, { inUse: !channel.inUse })
+                }
+              >
+                {channel.inUse ? "In use" : "Not in use"}
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
