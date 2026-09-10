@@ -475,7 +475,7 @@ a {
   }
 
   .board-toolbar {
-    gap: var(--space-md);
+    gap: var(--space-sm);
     align-items: end;
   }
 
