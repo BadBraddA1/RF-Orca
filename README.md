@@ -100,7 +100,7 @@ NEXT_PUBLIC_POSTHOG_UI_HOST=https://us.posthog.com
 
 Transparent logo assets in `public/brand/` (navy plate removed). Favicon / apple icon use the emblem mark only.
 
-**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Type ramp uses `--text-*` roles (headline → caption); tags/micro badges share `--text-caption` only. Spacing uses `--space-xs…xl`; mark-board filters/bulk sit in a tight `.board-scope` above the list. Shared sea focus rings, sea caret, and thin activity/import scrollbars.
+**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Type ramp uses `--text-*` roles (headline → caption); tags/micro badges share `--text-caption` only. Spacing uses `--space-xs…xl`; mark-board filters sit in one quiet unified strip (desktop hierarchy first; mobile floor-first explore B parked). Shared sea focus rings, sea caret, and thin activity/import scrollbars.
 
 ## Site chrome
 

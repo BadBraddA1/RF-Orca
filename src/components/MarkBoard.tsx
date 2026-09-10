@@ -1491,10 +1491,10 @@ export function MarkBoard({
               Flat
             </button>
             {listSort !== "flat" && namedSectionCount > 0 ? (
-              <>
+              <div className="section-fold-actions">
                 <button
                   type="button"
-                  className="chip"
+                  className="chip chip-quiet"
                   disabled={collapsedNamedCount === namedSectionCount}
                   onClick={() => setAllSectionsCollapsed(true)}
                 >
@@ -1502,13 +1502,13 @@ export function MarkBoard({
                 </button>
                 <button
                   type="button"
-                  className="chip"
+                  className="chip chip-quiet"
                   disabled={collapsedNamedCount === 0}
                   onClick={() => setAllSectionsCollapsed(false)}
                 >
                   Open all
                 </button>
-              </>
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -1978,73 +1978,108 @@ export function MarkBoard({
           features.status &&
           visibleWithRoomFocus.length > 0)) ? (
         <div className="board-scope">
-          {bandNames.length > 0 ? (
-            <div className="filters band-filters" aria-label="RF bands">
-              <button
-                type="button"
-                className={bandFilter === "all" ? "filter active" : "filter"}
-                onClick={() => setBandFilter("all")}
-              >
-                All bands
-              </button>
-              {bandNames.map((b) => (
-                <button
-                  key={b}
-                  type="button"
-                  className={bandFilter === b ? "filter active" : "filter"}
-                  onClick={() => setBandFilter(b)}
-                >
-                  {b}
-                </button>
-              ))}
-            </div>
-          ) : null}
+          {(bandNames.length > 0 ||
+            (features.groups &&
+              (groupNames.length > 0 ||
+                show.channels.some((c) => !c.groupName))) ||
+            filterOptions.length > 1) ? (
+            <div
+              className="filters filters-unified"
+              role="toolbar"
+              aria-label="Board filters"
+            >
+              {bandNames.length > 0 ? (
+                <>
+                  <button
+                    type="button"
+                    className={
+                      bandFilter === "all" ? "filter active" : "filter"
+                    }
+                    onClick={() => setBandFilter("all")}
+                  >
+                    All bands
+                  </button>
+                  {bandNames.map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      className={
+                        bandFilter === b ? "filter active" : "filter"
+                      }
+                      onClick={() => setBandFilter(b)}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </>
+              ) : null}
 
-          {features.groups &&
-          (groupNames.length > 0 ||
-            show.channels.some((c) => !c.groupName)) ? (
-            <div className="filters group-filters" aria-label="Channel groups">
-              <button
-                type="button"
-                className={groupFilter === "all" ? "filter active" : "filter"}
-                onClick={() => setGroupFilter("all")}
-              >
-                All groups
-              </button>
-              {groupNames.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  className={groupFilter === g ? "filter active" : "filter"}
-                  onClick={() => setGroupFilter(g)}
-                >
-                  {g}
-                </button>
-              ))}
-              <button
-                type="button"
-                className={
-                  groupFilter === "__ungrouped__" ? "filter active" : "filter"
-                }
-                onClick={() => setGroupFilter("__ungrouped__")}
-              >
-                Ungrouped
-              </button>
-            </div>
-          ) : null}
+              {bandNames.length > 0 &&
+              ((features.groups &&
+                (groupNames.length > 0 ||
+                  show.channels.some((c) => !c.groupName))) ||
+                filterOptions.length > 1) ? (
+                <span className="filter-sep" aria-hidden />
+              ) : null}
 
-          {filterOptions.length > 1 ? (
-            <div className="filters">
-              {filterOptions.map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={filter === key ? "filter active" : "filter"}
-                  onClick={() => setFilter(key)}
-                >
-                  {label}
-                </button>
-              ))}
+              {features.groups &&
+              (groupNames.length > 0 ||
+                show.channels.some((c) => !c.groupName)) ? (
+                <>
+                  <button
+                    type="button"
+                    className={
+                      groupFilter === "all" ? "filter active" : "filter"
+                    }
+                    onClick={() => setGroupFilter("all")}
+                  >
+                    All groups
+                  </button>
+                  {groupNames.map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      className={
+                        groupFilter === g ? "filter active" : "filter"
+                      }
+                      onClick={() => setGroupFilter(g)}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={
+                      groupFilter === "__ungrouped__"
+                        ? "filter active"
+                        : "filter"
+                    }
+                    onClick={() => setGroupFilter("__ungrouped__")}
+                  >
+                    Ungrouped
+                  </button>
+                </>
+              ) : null}
+
+              {features.groups &&
+              (groupNames.length > 0 ||
+                show.channels.some((c) => !c.groupName)) &&
+              filterOptions.length > 1 ? (
+                <span className="filter-sep" aria-hidden />
+              ) : null}
+
+              {filterOptions.length > 1
+                ? filterOptions.map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={filter === key ? "filter active" : "filter"}
+                      onClick={() => setFilter(key)}
+                    >
+                      {label}
+                    </button>
+                  ))
+                : null}
             </div>
           ) : null}
 
@@ -2057,7 +2092,7 @@ export function MarkBoard({
             >
               <button
                 type="button"
-                className={`chip${allVisibleSelected ? " active" : ""}`}
+                className={`chip chip-quiet${allVisibleSelected ? " active" : ""}`}
                 disabled={bulkBusy}
                 onClick={() => {
                   if (allVisibleSelected) setSelectedIds({});
@@ -2080,7 +2115,7 @@ export function MarkBoard({
                   </span>
                   <button
                     type="button"
-                    className="chip"
+                    className="chip chip-quiet"
                     onClick={() => setSelectedIds({})}
                   >
                     Clear
@@ -2162,55 +2197,36 @@ export function MarkBoard({
           features.status &&
           visibleWithRoomFocus.length > 0 ? (
             <div
-              className="bulk-bar"
+              className="bulk-bar bulk-bar-quiet"
               role="group"
               aria-label="Bulk status for visible channels"
               aria-busy={bulkBusy || undefined}
             >
-              <span className="bulk-label">
-                {bulkBusy
-                  ? "Working…"
-                  : `Set ${visibleWithRoomFocus.length} visible →`}
-              </span>
-              <button
-                type="button"
-                className="chip"
-                disabled={bulkBusy}
-                onClick={() =>
-                  void bulkStatus(
-                    visibleWithRoomFocus.map((c) => c.id),
-                    "allowed",
-                  )
-                }
-              >
-                Allowed
-              </button>
-              <button
-                type="button"
-                className="chip"
-                disabled={bulkBusy}
-                onClick={() =>
-                  void bulkStatus(
-                    visibleWithRoomFocus.map((c) => c.id),
-                    "blocked",
-                  )
-                }
-              >
-                Blocked
-              </button>
-              <button
-                type="button"
-                className="chip"
-                disabled={bulkBusy}
-                onClick={() =>
-                  void bulkStatus(
-                    visibleWithRoomFocus.map((c) => c.id),
-                    "unreviewed",
-                  )
-                }
-              >
-                Unreviewed
-              </button>
+              <label className="bulk-group-pick">
+                <span>
+                  {bulkBusy
+                    ? "Working…"
+                    : `Set ${visibleWithRoomFocus.length} visible`}
+                </span>
+                <select
+                  disabled={bulkBusy}
+                  defaultValue=""
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (!value) return;
+                    void bulkStatus(
+                      visibleWithRoomFocus.map((c) => c.id),
+                      value as "allowed" | "blocked" | "unreviewed",
+                    );
+                    e.target.value = "";
+                  }}
+                >
+                  <option value="">Status…</option>
+                  <option value="allowed">Allowed</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="unreviewed">Unreviewed</option>
+                </select>
+              </label>
             </div>
           ) : null}
         </div>

@@ -458,6 +458,38 @@ a {
 
   .hero-copy {
     padding-top: 0.35rem;
+    gap: var(--space-sm);
+  }
+
+  .hero-create .brand-lockup-header .brand-logo {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  .hero-create .brand-name {
+    font-size: var(--text-lead-sub);
+  }
+
+  .hero-create-inner {
+    gap: var(--space-xl);
+  }
+
+  .board {
+    max-width: 980px;
+    gap: var(--space-xl);
+  }
+
+  .board-toolbar {
+    gap: var(--space-md);
+    align-items: end;
+  }
+
+  .filters-unified {
+    row-gap: var(--space-xs);
+  }
+
+  .channel-row {
+    padding: 1.1rem 1.15rem;
   }
 }
 
@@ -769,25 +801,98 @@ a {
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  align-items: center;
+  gap: 0.2rem var(--space-xs);
+}
+
+.filter-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  align-self: stretch;
+  min-height: 1.5rem;
+  margin: 0.4rem var(--space-xs);
+  background: color-mix(in oklab, var(--sea-bright) 28%, transparent);
+  opacity: 0.7;
 }
 
 .filter,
 .chip {
-  background: color-mix(in oklab, var(--panel) 88%, white 6%);
-  border-color: var(--line);
-  color: var(--ink);
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-soft);
   min-height: var(--touch-min);
-  padding: 0.5rem 0.85rem;
+  padding: 0.45rem 0.7rem;
   font-size: var(--text-chip);
   font-weight: 650;
 }
 
+.filter:hover,
+.chip:hover {
+  color: var(--ink);
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  border-color: transparent;
+}
+
 .filter.active,
 .chip.active {
-  background: var(--sea-bright);
-  color: var(--ink-on-sea);
-  border-color: var(--sea-bright);
+  background: color-mix(in oklab, var(--sea) 28%, transparent);
+  color: var(--sea-bright);
+  border-color: color-mix(in oklab, var(--sea-bright) 45%, transparent);
+  font-weight: 750;
+}
+
+/** Segmented toolbar (Rack/List, sort) — one control, not a pill swarm */
+.view-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--foam) 85%, transparent);
+}
+
+.view-toggle .chip {
+  min-height: calc(var(--touch-min) - 0.35rem);
+  padding: 0.35rem 0.7rem;
+}
+
+.view-toggle .chip.active {
+  background: color-mix(in oklab, var(--panel) 90%, transparent);
+  color: var(--ink);
+  border-color: transparent;
+  box-shadow: 0 1px 0 color-mix(in oklab, black 25%, transparent);
+}
+
+.section-fold-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-inline-start: var(--space-sm);
+}
+
+.chip-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in oklab, var(--sea) 40%, transparent);
+}
+
+.chip-quiet:hover {
+  color: var(--sea-bright);
+  background: transparent;
+  transform: none;
+}
+
+.chip-quiet.active {
+  color: var(--signal-hot);
+  text-decoration-color: var(--signal-hot);
+  background: transparent;
+  border-color: transparent;
 }
 
 .channel-list {
@@ -903,13 +1008,14 @@ a {
   min-width: 5.75rem;
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: color-mix(in oklab, var(--panel) 80%, transparent);
+  border: 1px solid color-mix(in oklab, var(--sea-bright) 40%, var(--line));
+  background: color-mix(in oklab, var(--sea) 16%, var(--panel));
   color: var(--ink);
   font: inherit;
-  font-weight: 700;
+  font-weight: 800;
   font-size: var(--text-label);
   cursor: pointer;
+  letter-spacing: 0.01em;
 }
 
 .deploy-btn.on {
@@ -951,18 +1057,11 @@ a {
   letter-spacing: 0.04em;
 }
 
-.view-toggle,
 .rack-size-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
   align-items: center;
-}
-
-.chip.active {
-  background: color-mix(in oklab, var(--sea-bright) 22%, transparent);
-  border-color: color-mix(in oklab, var(--sea-bright) 50%, transparent);
-  color: var(--ink);
 }
 
 .rack-tools {
@@ -1715,8 +1814,10 @@ a {
   gap: 0.55rem;
 }
 
-.band-filters .filter.active {
-  border-color: color-mix(in oklab, var(--signal) 55%, transparent);
+.bulk-label {
+  font-size: var(--text-label);
+  font-weight: 650;
+  color: var(--ink-soft);
 }
 
 .channel-row.is-flash,
@@ -2033,6 +2134,12 @@ a {
   background: color-mix(in oklab, var(--panel) 90%, transparent);
 }
 
+.bulk-bar-quiet {
+  border-style: dashed;
+  background: transparent;
+  padding: 0.35rem 0.15rem;
+}
+
 .bulk-label {
   font-size: var(--text-label);
   font-weight: 650;
@@ -2273,10 +2380,6 @@ a {
   }
 
   .hero-create .brand-tagline {
-    display: none;
-  }
-
-  .hero-kicker {
     display: none;
   }
 

@@ -16,7 +16,6 @@ export default async function HomePage() {
 
         <div className="hero-create-grid">
           <div className="hero-copy">
-            <p className="hero-kicker">Radio Frequency Orchestrator</p>
             <h1>New show</h1>
             <p className="hero-lead">
               Share the plan with the floor — one link to group channels and
