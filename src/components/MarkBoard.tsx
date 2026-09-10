@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { BrandLockup } from "@/components/BrandLockup";
 import { MicRackGrid } from "@/components/MicRackGrid";
+import { WhoAssign } from "@/components/WhoAssign";
 import { withinDeployGrace } from "@/lib/board-helpers";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
 import { useShowLive } from "@/hooks/useShowLive";
@@ -279,9 +280,7 @@ export function MarkBoard({
   const [groupsText, setGroupsText] = useState(
     initialShow.groups.map((g) => g.name).join("\n"),
   );
-  const [peopleText, setPeopleText] = useState(
-    (initialShow.people ?? []).map((p) => p.name).join("\n"),
-  );
+  const [toolsPersonDraft, setToolsPersonDraft] = useState("");
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(
     null,
@@ -461,7 +460,6 @@ export function MarkBoard({
     setShowNameDraft(next.name);
     setRoomsText(next.rooms.map((r) => r.name).join("\n"));
     setGroupsText(next.groups.map((g) => g.name).join("\n"));
-    setPeopleText((next.people ?? []).map((p) => p.name).join("\n"));
     setCustomCols(String(next.rackCols ?? 4));
     setCustomRows(String(next.rackRows ?? 3));
   }, []);
@@ -1026,11 +1024,8 @@ export function MarkBoard({
     applyShow(data.show);
   }
 
-  async function savePeople() {
-    const people = peopleText
-      .split("\n")
-      .map((r) => r.trim())
-      .filter(Boolean);
+  async function savePeople(names: string[]) {
+    const people = names.map((r) => r.trim()).filter(Boolean);
     const res = await fetch(`/api/shows/${token}/people`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -1042,6 +1037,25 @@ export function MarkBoard({
       return;
     }
     applyShow(data.show);
+  }
+
+  async function addPersonName(raw: string) {
+    const name = raw.trim();
+    if (!name) return;
+    const existing = (show.people ?? []).map((p) => p.name.trim()).filter(Boolean);
+    if (existing.some((n) => n.toLowerCase() === name.toLowerCase())) {
+      setToolsPersonDraft("");
+      return;
+    }
+    await savePeople([...existing, name]);
+    setToolsPersonDraft("");
+  }
+
+  async function removePersonName(name: string) {
+    const next = (show.people ?? [])
+      .map((p) => p.name.trim())
+      .filter((n) => n && n.toLowerCase() !== name.toLowerCase());
+    await savePeople(next);
   }
 
   async function addManual(e: React.FormEvent) {
@@ -2335,26 +2349,56 @@ export function MarkBoard({
                 ) : null}
 
                 {features.assignments ? (
-                  <label className="field">
-                    <span>Saved names (one per line)</span>
-                    <textarea
-                      rows={4}
-                      value={peopleText}
-                      onChange={(e) => setPeopleText(e.target.value)}
-                      placeholder={"Bradd\nMaya Chen\nJordan Lee"}
-                    />
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => void savePeople()}
-                    >
-                      Save names
-                    </button>
+                  <div className="field people-roster">
+                    <span>Saved names</span>
+                    {(show.people ?? []).length > 0 ? (
+                      <div className="who-assign-names people-roster-names">
+                        {(show.people ?? []).map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            className="who-name people-roster-name"
+                            onClick={() => void removePersonName(p.name)}
+                            title={`Remove ${p.name}`}
+                            aria-label={`Remove ${p.name}`}
+                          >
+                            {p.name}
+                            <span aria-hidden>×</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="field-note">No names yet</p>
+                    )}
+                    <div className="who-assign-add">
+                      <input
+                        value={toolsPersonDraft}
+                        placeholder="Add name…"
+                        maxLength={80}
+                        autoComplete="off"
+                        aria-label="Add saved name"
+                        onChange={(e) => setToolsPersonDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void addPersonName(toolsPersonDraft);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="chip who-add-btn"
+                        disabled={!toolsPersonDraft.trim()}
+                        onClick={() => void addPersonName(toolsPersonDraft)}
+                      >
+                        Add
+                      </button>
+                    </div>
                     <span className="field-note">
-                      Drop these into any channel’s Who menu. Typing a new Who
-                      also saves the name for reuse.
+                      Names show on each channel’s Who list. Tap a name here to
+                      remove it. Assigning Who on the board also saves the name.
                     </span>
-                  </label>
+                  </div>
                 ) : null}
 
                 {features.rooms ? (
@@ -2660,14 +2704,6 @@ export function MarkBoard({
         </div>
       )}
 
-      {!showRack && features.assignments && assigneeNames.length > 0 ? (
-        <datalist id="assignee-options">
-          {assigneeNames.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
-      ) : null}
-
       {undo ? (
         <div className="undo-toast" role="status">
           <span>Deployed {undo.channelName}</span>
@@ -2755,7 +2791,6 @@ function ChannelRow({
   const assignDisabled = crewFrozen;
   const [roomDraft, setRoomDraft] = useState(channel.roomName ?? "");
   const [nameDraft, setNameDraft] = useState(channel.name);
-  const [whoDraft, setWhoDraft] = useState(channel.assignedTo ?? "");
 
   useEffect(() => {
     setRoomDraft(channel.roomName ?? "");
@@ -2764,10 +2799,6 @@ function ChannelRow({
   useEffect(() => {
     setNameDraft(channel.name);
   }, [channel.name]);
-
-  useEffect(() => {
-    setWhoDraft(channel.assignedTo ?? "");
-  }, [channel.assignedTo]);
 
   return (
     <li
@@ -2988,47 +3019,14 @@ function ChannelRow({
       {features.assignments || features.rooms ? (
         <div className="channel-floor-fields">
           {features.assignments ? (
-            <label
-              className={`room-field assign-field${assignDisabled ? " disabled" : ""}`}
-            >
-              <span>Who</span>
-              {assigneeNames.length > 0 ? (
-                <select
-                  className="rack-drop-select"
-                  value=""
-                  disabled={assignDisabled}
-                  aria-label="Drop in saved name"
-                  onChange={(e) => {
-                    const assignedTo = e.target.value || null;
-                    if (!assignedTo) return;
-                    setWhoDraft(assignedTo);
-                    void onPatch(channel.id, { assignedTo });
-                    e.target.value = "";
-                  }}
-                >
-                  <option value="">Drop in name…</option>
-                  {assigneeNames.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
-              <input
-                list="assignee-options"
-                value={whoDraft}
-                disabled={assignDisabled}
-                placeholder="Talent / wearer"
-                maxLength={80}
-                autoComplete="off"
-                onChange={(e) => setWhoDraft(e.target.value)}
-                onBlur={() => {
-                  const assignedTo = whoDraft.trim() || null;
-                  if (assignedTo === (channel.assignedTo ?? null)) return;
-                  void onPatch(channel.id, { assignedTo });
-                }}
-              />
-            </label>
+            <WhoAssign
+              value={channel.assignedTo}
+              names={assigneeNames}
+              disabled={assignDisabled}
+              onAssign={(assignedTo) => {
+                void onPatch(channel.id, { assignedTo });
+              }}
+            />
           ) : null}
           {features.rooms ? (
             <label className={`room-field${markDisabled ? " disabled" : ""}`}>

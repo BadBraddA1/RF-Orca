@@ -1594,6 +1594,129 @@ a {
   opacity: 0.45;
 }
 
+.who-assign {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.who-assign.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.who-assign-label {
+  font-size: var(--text-caption);
+  font-weight: 650;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+
+.who-assign-empty {
+  margin: 0;
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+}
+
+.who-assign-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 6.5rem;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.who-assign--compact .who-assign-names {
+  max-height: 5.25rem;
+}
+
+.who-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  min-height: 2.2rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--panel) 55%, transparent);
+  color: var(--ink-soft);
+  font-size: var(--text-chip);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.who-name:hover {
+  border-color: color-mix(in oklab, var(--sea-bright) 40%, var(--line));
+  color: var(--ink);
+  background: color-mix(in oklab, var(--panel) 75%, transparent);
+}
+
+.who-name.active {
+  background: var(--sea-bright);
+  color: var(--ink-on-sea);
+  border-color: var(--sea-bright);
+  font-weight: 750;
+}
+
+.people-roster-name span[aria-hidden] {
+  opacity: 0.7;
+  font-weight: 800;
+}
+
+.who-assign-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.who-assign-add input {
+  min-height: var(--touch-min);
+  width: 100%;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.7rem;
+  background: color-mix(in oklab, var(--panel) 85%, transparent);
+}
+
+.who-assign--compact .who-assign-add input {
+  min-height: 2.4rem;
+  font-size: var(--text-label);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--input-deep);
+}
+
+.who-add-btn {
+  min-height: var(--touch-min);
+  padding-inline: 0.85rem;
+}
+
+.who-assign--compact .who-add-btn {
+  min-height: 2.4rem;
+}
+
+.people-roster {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.people-roster > span:first-child {
+  font-size: var(--text-label);
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+.people-roster-names {
+  max-height: 9rem;
+}
+
 .rack-use-btn {
   flex: 0 0 auto;
   min-height: var(--touch-min);
@@ -2288,9 +2411,22 @@ a {
 }
 
 .board--crew .rack-field input,
-.board--crew .rack-drop-select {
+.board--crew .rack-drop-select,
+.board--crew .who-assign-add input {
   font-size: var(--text-caption);
   padding: 0.28rem 0.4rem;
+}
+
+.board--crew .who-name {
+  min-height: 1.85rem;
+  padding: 0.2rem 0.55rem;
+  font-size: var(--text-caption);
+}
+
+.board--crew .who-add-btn {
+  min-height: 1.85rem;
+  font-size: var(--text-caption);
+  padding: 0.2rem 0.55rem;
 }
 
 .board--crew .rack-use-btn {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { WhoAssign } from "@/components/WhoAssign";
 import { channelsByRackSlot } from "@/lib/rack";
 import type { Channel, MicKind, ShowFeatures } from "@/lib/types";
 import { formatRackSlot, micKindLabel, rackSlotCount } from "@/lib/types";
@@ -189,14 +190,6 @@ export function MicRackGrid({
             ))}
           </div>
         )}
-
-        {assigneeNames.length > 0 ? (
-          <datalist id="assignee-options">
-            {assigneeNames.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
-        ) : null}
       </div>
     );
   }
@@ -244,14 +237,6 @@ export function MicRackGrid({
           />
         ))}
       </div>
-
-      {assigneeNames.length > 0 ? (
-        <datalist id="assignee-options">
-          {assigneeNames.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
-      ) : null}
     </div>
   );
 }
@@ -279,12 +264,7 @@ function RackCell({
   lastChanged?: boolean;
   onPatch: (id: string, patch: Patch) => Promise<void>;
 }) {
-  const [whoDraft, setWhoDraft] = useState(channel?.assignedTo ?? "");
   const [nameDraft, setNameDraft] = useState(channel?.name ?? "");
-
-  useEffect(() => {
-    setWhoDraft(channel?.assignedTo ?? "");
-  }, [channel?.assignedTo, channel?.id]);
 
   useEffect(() => {
     setNameDraft(channel?.name ?? "");
@@ -394,45 +374,15 @@ function RackCell({
       )}
 
       {features.assignments ? (
-        <label className={`rack-field${frozen ? " disabled" : ""}`}>
-          <span>Who</span>
-          {assigneeNames.length > 0 ? (
-            <select
-              className="rack-drop-select"
-              value=""
-              disabled={frozen}
-              aria-label="Drop in saved name"
-              onChange={(e) => {
-                const assignedTo = e.target.value || null;
-                if (!assignedTo) return;
-                setWhoDraft(assignedTo);
-                void onPatch(ch.id, { assignedTo });
-                e.target.value = "";
-              }}
-            >
-              <option value="">Drop in name…</option>
-              {assigneeNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          <input
-            list="assignee-options"
-            value={whoDraft}
-            disabled={frozen}
-            placeholder="e.g. Bradd"
-            maxLength={80}
-            autoComplete="off"
-            onChange={(e) => setWhoDraft(e.target.value)}
-            onBlur={() => {
-              const assignedTo = whoDraft.trim() || null;
-              if (assignedTo === (ch.assignedTo ?? null)) return;
-              void onPatch(ch.id, { assignedTo });
-            }}
-          />
-        </label>
+        <WhoAssign
+          compact
+          value={ch.assignedTo}
+          names={assigneeNames}
+          disabled={frozen}
+          onAssign={(assignedTo) => {
+            void onPatch(ch.id, { assignedTo });
+          }}
+        />
       ) : null}
 
       {roomMode && features.deploy ? (
