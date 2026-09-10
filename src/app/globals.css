@@ -78,11 +78,53 @@ body {
   color: var(--ink);
   caret-color: var(--sea-bright);
   font-family: var(--font-body);
-  background:
+  /* Solid navy first so the page paints instantly; gradients layer on top. */
+  background-color: var(--navy);
+  background-image:
     radial-gradient(900px 500px at 12% -8%, color-mix(in oklab, var(--sea) 28%, transparent), transparent 55%),
     radial-gradient(700px 420px at 90% 8%, color-mix(in oklab, var(--signal) 18%, transparent), transparent 50%),
     linear-gradient(165deg, var(--navy) 0%, var(--navy-2) 55%, var(--navy-deep) 100%);
-  background-attachment: fixed;
+  /* fixed attachment is expensive on phones — desk only below */
+  background-attachment: scroll;
+}
+
+@media (min-width: 900px) {
+  body {
+    background-attachment: fixed;
+  }
+}
+
+/* Phones / weak GPUs: skip layered gradients — solid navy paints immediately. */
+@media (max-width: 720px) {
+  body {
+    background-image: none;
+    background-color: var(--navy);
+  }
+
+  .hero::before,
+  .hero-create::before {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero::before,
+  .hero-create::before {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-data: reduce) {
+  body {
+    background-image: none;
+    background-color: var(--navy);
+    background-attachment: scroll;
+  }
+
+  .hero::before,
+  .hero-create::before {
+    display: none;
+  }
 }
 
 a {

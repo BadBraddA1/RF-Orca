@@ -17,6 +17,7 @@ export function BrandLockup({ size = "hero" }: BrandLockupProps) {
         width={hero ? 1200 : 256}
         height={hero ? 1563 : 256}
         priority={hero}
+        sizes={hero ? "(max-width: 720px) 88vw, 22rem" : "3.25rem"}
         className="brand-logo"
       />
       {!hero ? (

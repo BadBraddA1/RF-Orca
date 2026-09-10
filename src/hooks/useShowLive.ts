@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Ably from "ably";
+import type Ably from "ably";
 
 /**
  * Prefer Ably push for show board updates; fall back to revision polling.
+ * Starts on poll so weak cell/wifi get live updates without waiting on Ably's
+ * WebSocket + SDK download; upgrades to Ably when the network allows.
  */
 export function useShowLive(
   token: string,
@@ -22,8 +24,10 @@ export function useShowLive(
     let ably: Ably.Realtime | null = null;
     let pollId: number | null = null;
     let revision = -1;
+    let usingAbly = false;
 
     async function pollOnce() {
+      if (usingAbly) return;
       try {
         const res = await fetch(
           `/api/shows/${token}/live?r=${revision < 0 ? "" : revision}`,
@@ -33,12 +37,12 @@ export function useShowLive(
         const data = await res.json();
         if (typeof data.revision === "number") revision = data.revision;
         if (!data.unchanged) onInvalidateRef.current();
-        if (!cancelled) {
+        if (!cancelled && !usingAbly) {
           setLive(true);
           setTransport("poll");
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && !usingAbly) {
           setLive(false);
           setTransport("offline");
         }
@@ -47,41 +51,59 @@ export function useShowLive(
 
     function startPoll() {
       void pollOnce();
+      if (pollId != null) return;
       pollId = window.setInterval(() => {
         void pollOnce();
-      }, 1500);
+      }, 2000);
     }
 
-    async function start() {
+    function stopPoll() {
+      if (pollId != null) {
+        window.clearInterval(pollId);
+        pollId = null;
+      }
+    }
+
+    async function tryAbly() {
       try {
         const probe = await fetch(
           `/api/ably-auth?show=${encodeURIComponent(token)}`,
           { cache: "no-store" },
         );
-        if (!probe.ok) {
-          startPoll();
-          return;
-        }
+        if (!probe.ok || cancelled) return;
 
-        ably = new Ably.Realtime({
+        // Dynamic import keeps Ably off the critical first-paint path.
+        const { default: AblyCtor } = await import("ably");
+        if (cancelled) return;
+
+        const client = new AblyCtor.Realtime({
           authUrl: `/api/ably-auth?show=${encodeURIComponent(token)}`,
         });
+        ably = client;
 
-        ably.connection.on("connected", () => {
+        client.connection.on("connected", () => {
           if (cancelled) return;
+          usingAbly = true;
+          stopPoll();
           setLive(true);
           setTransport("ably");
         });
-        ably.connection.on("disconnected", () => {
-          if (!cancelled) setLive(false);
-        });
-        ably.connection.on("closed", () => {
-          if (!cancelled) setLive(false);
-        });
-        ably.connection.on("failed", () => {
+        client.connection.on("disconnected", () => {
           if (cancelled) return;
+          usingAbly = false;
+          setLive(false);
+          startPoll();
+        });
+        client.connection.on("closed", () => {
+          if (cancelled) return;
+          usingAbly = false;
+          setLive(false);
+        });
+        client.connection.on("failed", () => {
+          if (cancelled) return;
+          usingAbly = false;
           try {
-            ably?.close();
+            client.close();
           } catch {
             /* Ably close can reject with "Connection closed" */
           }
@@ -89,20 +111,25 @@ export function useShowLive(
           startPoll();
         });
 
-        const channel = ably.channels.get(`show:${token}`);
+        const channel = client.channels.get(`show:${token}`);
         channel.subscribe("update", () => {
           onInvalidateRef.current();
         });
       } catch {
-        startPoll();
+        if (!cancelled) startPoll();
       }
     }
 
-    void start();
+    // Poll first so the board stays fresh on bad networks; Ably upgrades later.
+    startPoll();
+    const ablyDelay = window.setTimeout(() => {
+      void tryAbly();
+    }, 600);
 
     return () => {
       cancelled = true;
-      if (pollId != null) window.clearInterval(pollId);
+      window.clearTimeout(ablyDelay);
+      stopPoll();
       if (ably) {
         try {
           ably.connection.off();

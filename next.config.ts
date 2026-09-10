@@ -1,6 +1,8 @@
 import type { NextConfig } from "next"
 import { withSentryConfig } from "@sentry/nextjs/config"
 
+const longCache = "public, max-age=31536000, immutable"
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@sentry/profiling-node", "ably"],
   async headers() {
@@ -8,6 +10,18 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [{ key: "Document-Policy", value: "js-profiling" }],
+      },
+      {
+        source: "/brand/:path*",
+        headers: [{ key: "Cache-Control", value: longCache }],
+      },
+      {
+        source: "/favicon-:path*",
+        headers: [{ key: "Cache-Control", value: longCache }],
+      },
+      {
+        source: "/apple-touch-icon.png",
+        headers: [{ key: "Cache-Control", value: longCache }],
       },
     ]
   },

@@ -3,10 +3,11 @@ import posthog from "posthog-js"
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
-  profileSessionSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
+  tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.05,
+  profileSessionSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.05,
   profileLifecycle: "trace",
-  replaysSessionSampleRate: 0.1,
+  // Keep replay lighter on floor phones / bad venue wifi
+  replaysSessionSampleRate: 0.02,
   replaysOnErrorSampleRate: 1.0,
   enableLogs: true,
   environment: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.NODE_ENV || "development",
@@ -43,8 +44,9 @@ Sentry.init({
   ],
 })
 
-const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
-if (posthogKey) {
+function initPostHog() {
+  const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+  if (!posthogKey) return
   posthog.init(posthogKey, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://n.braddcorp.com",
     ui_host: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || "https://us.posthog.com",
@@ -57,5 +59,26 @@ if (posthogKey) {
   })
   posthog.register({ product: "rf-orca" })
 }
+
+/** Don’t compete with first paint / board hydrate on bad venue wifi. */
+function deferPostHog() {
+  if (typeof window === "undefined") return
+  const run = () => initPostHog()
+  const ric = (
+    window as Window & {
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout: number },
+      ) => number
+    }
+  ).requestIdleCallback
+  if (typeof ric === "function") {
+    ric(() => run(), { timeout: 4000 })
+  } else {
+    window.setTimeout(run, 1500)
+  }
+}
+
+deferPostHog()
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

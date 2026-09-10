@@ -8,7 +8,9 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 `/demo` plays a simulated show (fake Workbench import, deploys by room, progress HUD, activity strip, frequency conflict, board lock). Nothing is written to the database. Home links **Watch a live demo**.
 
-Compact header brand + **New show** form above the fold. Below that, **Happening now** lists shows created in the last **10 days** (name, deploy progress, age). Older shows stay in the database and remain reachable by share link — they just leave the home list.
+- Compact header brand + **New show** form above the fold. Below that, **Happening now** lists shows created in the last **10 days** (name, deploy progress, age). Older shows stay in the database and remain reachable by share link — they just leave the home list.
+
+**Floor networks:** phones use a solid navy paint (no fixed multi-layer background), fewer font files, poll-first live sync (Ably loads after), and deferred PostHog so the board stays usable on weak venue wifi/cell.
 
 ## Access model
 
