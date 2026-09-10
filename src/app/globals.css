@@ -26,6 +26,11 @@
   box-sizing: border-box;
 }
 
+::selection {
+  background: color-mix(in oklab, var(--sea) 45%, transparent);
+  color: var(--ink);
+}
+
 html,
 body {
   margin: 0;
@@ -437,9 +442,43 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .hero::before,
-  .new-show-form {
-    animation: none;
+  .new-show-form,
+  .channel-row,
+  .channel-row.is-flash,
+  .rack-cell.is-flash {
+    animation: none !important;
   }
+
+  .channel-row.is-flash,
+  .rack-cell.is-flash {
+    /* Keep hierarchy without pulsing — match last-change tint */
+    background: color-mix(in oklab, var(--sea-bright) 18%, var(--panel));
+    border-color: color-mix(in oklab, var(--sea-bright) 45%, var(--line));
+  }
+}
+
+/* Shared keyboard focus for mark-board controls */
+.filter:focus-visible,
+.chip:focus-visible,
+.deploy-btn:focus-visible,
+.btn-quiet:focus-visible,
+.btn-ghost:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.rack-kind-btn:focus-visible,
+.rack-use-btn:focus-visible,
+.group-heading-toggle:focus-visible,
+.select-toggle:focus-visible,
+.channel-delete:focus-visible,
+.search-field input:focus-visible,
+.focus-field select:focus-visible,
+.room-field select:focus-visible,
+.room-field input:focus-visible,
+.quiet-field select:focus-visible,
+.bulk-group-pick select:focus-visible,
+.channel-name-input:focus-visible {
+  outline: 2px solid var(--sea-bright);
+  outline-offset: 2px;
 }
 
 @keyframes rise {
@@ -702,6 +741,19 @@ a {
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
   align-items: baseline;
+  min-width: 0;
+}
+
+.channel-title strong,
+.channel-name-input {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.channel-main {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .channel-title strong {
@@ -1508,11 +1560,6 @@ a {
     color-mix(in oklab, var(--navy) 70%, transparent);
 }
 
-.select-toggle:focus-visible {
-  outline: 2px solid var(--sea-bright);
-  outline-offset: 2px;
-}
-
 .channel-name-input {
   font: inherit;
   font-family: var(--font-display);
@@ -1528,7 +1575,8 @@ a {
   max-width: min(100%, 18rem);
 }
 
-.channel-name-input:focus {
+.channel-name-input:focus,
+.channel-name-input:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--sea) 50%, transparent);
   outline-offset: 1px;
 }

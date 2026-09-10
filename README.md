@@ -43,7 +43,8 @@ Compact header brand + **New show** form above the fold. Below that, **Happening
 - **Mic rack (A2)** — custom grid (4×1, 3×3, …); **Handheld / Lav**; **saved names** roster with drop-in Who menu; set Who; toggle In use; shows **band** (G50 / H50 / G57+) next to MHz; live via Ably
 - **List is the default board view** (Rack still available when Mic rack assignments is on)
 - **Crew mode** — header **Crew** button: fullscreen-friendly view (hides tools/activity/search); **Exit Crew** to return. Preference saved per show; tries browser Fullscreen when allowed
-- **Flash changes** — toggle in the header (and Crew bar): pulse a rack cell / channel card four times when it updates locally or via live sync; the most recently changed cell(s) keep an orange “Updated” tint until something else changes
+- **Flash changes** — pulse a rack cell / channel card when it updates (respects `prefers-reduced-motion` — static highlight instead); most recently changed keep an orange “Updated” tint
+- **Focus** — shared sea-bright focus rings on mark-board controls for keyboard use
 - **Import preview** — Workbench **Coordination report** or Inventory CSV: imports **primary** frequencies only (skips Backup section); keeps band + names; preview then confirm
 - **Search** — name / who / MHz / band jump (Enter scrolls to first match)
 - **My room** focus — filter to the room you’re dressing (persists in localStorage)
