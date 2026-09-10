@@ -240,10 +240,18 @@ A night-ops palette: deep navy fields, cyan for live/active chrome, orange for u
 
 ## Layout
 
-Single-column Operate surfaces. Home: brand + **New show** above the fold; recent shows below. Mark board: sticky progress / select bar, horizontal scroll chip rows on narrow viewports, channel list as the primary scroll. Breakpoints observed: ~560 / 639 (rack 2-col) / 720 (board mobile) / 800+ denser tools. Spacing rhythm uses tight gaps inside controls (`0.35–0.55rem`) and clearer separation between sections (`0.85–1.25rem`). Floor controls share `--touch-min: 2.75rem`.
+Single-column Operate surfaces. Home: brand + **New show** above the fold; recent shows below. Mark board: sticky progress / select bar, horizontal scroll chip rows on narrow viewports, channel list as the primary scroll. Breakpoints observed: ~560 / 639 (rack 2-col) / 720 (board mobile) / 800+ denser tools.
+
+**Spacing tokens** (`--space-xs` → `--space-xl`): xs `0.35rem`, sm `0.45rem`, md `0.75rem`, lg `1.05rem`, xl `1.25rem`, plus `--touch-min: 2.75rem`. Board siblings use **lg**; filter/bulk cluster (`.board-scope`) uses **xs** between rows and an extra **sm** before the list/rack. Section blocks use **xl**; channels inside a section stay tighter (`--space-md`).
+
+Floor controls share `--touch-min`. Narrow filters/bulk rows fade at the trailing edge so overflow is discoverable. Sticky select bar sits under the measured progress HUD (`--sticky-hud-clearance`).
 
 ### Named Rules
 **The Thumb Floor Rule.** Interactive mark-board controls meet ≥44px hit targets even when the visible glyph is smaller (e.g. select circle).
+
+**The Scope Cluster Rule.** Band / group / status filters and bulk bars share one tight `.board-scope` so chrome reads as one layer above the channel list — not equal-weight board siblings.
+
+**The Sticky Stack Rule.** Progress HUD sticks above the select bar; select never shares the same `top` as the HUD.
 
 ## Elevation & Depth
 

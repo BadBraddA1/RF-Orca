@@ -35,6 +35,12 @@
   --radius-lg: 0.85rem;
   --radius-xl: 1rem;
   --radius-pill: 999px;
+  /** Spacing scale — tight controls, clearer section breaks */
+  --space-xs: 0.35rem;
+  --space-sm: 0.45rem;
+  --space-md: 0.75rem;
+  --space-lg: 1.05rem;
+  --space-xl: 1.25rem;
   --font-display: var(--font-syne), "Avenir Next", sans-serif;
   --font-body: var(--font-source-sans), "Source Sans 3", sans-serif;
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
@@ -642,7 +648,20 @@ a {
   margin: 0 auto;
   padding: 1.5rem clamp(1rem, 3vw, 2rem) 3rem;
   display: grid;
-  gap: 1rem;
+  gap: var(--space-lg);
+  --sticky-hud-clearance: 0px;
+}
+
+/** Filters + bulk bars: tight cluster above the channel list */
+.board-scope {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.board-scope + .group-sections,
+.board-scope + .empty,
+.board-scope + .mic-rack {
+  margin-top: var(--space-sm);
 }
 
 .board-header {
@@ -722,7 +741,7 @@ a {
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: var(--space-sm);
 }
 
 .filter,
@@ -1383,14 +1402,14 @@ a {
 
 .progress-hud {
   display: grid;
-  gap: 0.45rem;
+  gap: var(--space-sm);
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--panel) 90%, transparent);
   position: sticky;
-  top: 0.35rem;
-  z-index: 5;
+  top: var(--space-xs);
+  z-index: 6;
   backdrop-filter: blur(10px);
 }
 
@@ -1616,7 +1635,7 @@ a {
 
 .select-bar {
   position: sticky;
-  top: 0.35rem;
+  top: calc(var(--space-xs) + var(--sticky-hud-clearance, 0px));
   z-index: 5;
   background: color-mix(in oklab, var(--navy) 88%, transparent);
   backdrop-filter: blur(8px);
@@ -1876,13 +1895,9 @@ a {
   gap: 0.4rem;
 }
 
-.group-filters {
-  margin-bottom: -0.35rem;
-}
-
 .group-sections {
   display: grid;
-  gap: 1.25rem;
+  gap: var(--space-xl);
 }
 
 .group-heading-row {
@@ -1890,8 +1905,8 @@ a {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin-bottom: 0.55rem;
+  gap: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
 }
 
 .group-heading-toggle {
@@ -1962,10 +1977,10 @@ a {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-sm);
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--line);
-  border-radius: 0.85rem;
+  border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--panel) 90%, transparent);
 }
 
@@ -2083,11 +2098,11 @@ a {
 @media (max-width: 720px) {
   .board {
     padding: 1rem 0.85rem calc(1.5rem + env(safe-area-inset-bottom));
-    gap: 0.85rem;
+    gap: var(--space-md);
   }
 
   .board-header {
-    gap: 0.75rem;
+    gap: var(--space-md);
   }
 
   .board-header h1 {
@@ -2101,7 +2116,7 @@ a {
   .board-actions .btn-ghost,
   .board-actions .btn-quiet {
     flex: 1 1 auto;
-    min-height: 2.75rem;
+    min-height: var(--touch-min);
     justify-content: center;
   }
 
@@ -2115,6 +2130,19 @@ a {
     padding-bottom: 0.15rem;
     margin-inline: -0.15rem;
     padding-inline: 0.15rem;
+    /* Peek that more chips sit to the right */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - 1.6rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - 1.6rem),
+      transparent 100%
+    );
   }
 
   .filters::-webkit-scrollbar,
@@ -2131,7 +2159,7 @@ a {
   }
 
   .bulk-bar {
-    gap: 0.35rem;
+    gap: var(--space-xs);
   }
 
   .channel-row {
@@ -2146,7 +2174,7 @@ a {
   }
 
   .channel-title strong {
-    font-size: var(--text-title);
+    font-size: var(--text-channel);
   }
 
   .deploy-btn {
