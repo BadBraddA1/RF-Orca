@@ -2879,12 +2879,13 @@ a {
 .selection-dock {
   position: fixed;
   z-index: 55;
-  left: max(0.75rem, env(safe-area-inset-left));
-  right: max(0.75rem, env(safe-area-inset-right));
+  left: 0;
+  right: 0;
   bottom: max(0.75rem, env(safe-area-inset-bottom));
   display: flex;
   flex-wrap: wrap;
   align-items: end;
+  justify-content: center;
   gap: var(--space-sm) 0.75rem;
   padding: 0.7rem 0.9rem;
   border: 1px solid color-mix(in oklab, var(--signal) 35%, var(--line));
@@ -2892,30 +2893,14 @@ a {
   background: color-mix(in oklab, var(--panel-lift) 92%, var(--navy) 8%);
   box-shadow: var(--shadow);
   backdrop-filter: blur(14px);
+  width: fit-content;
   max-width: min(48rem, calc(100vw - 1.5rem));
   margin-inline: auto;
-  width: fit-content;
   animation: rise 0.2s ease both;
 }
 
 .board--selecting {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
-}
-
-@media (min-width: 900px) {
-  .board--desk .selection-dock {
-    /* Sit over the main column, clear of the sticky rail */
-    left: max(
-      0.75rem,
-      calc(
-        clamp(1rem, 2vw, 2rem) + 17.5rem + clamp(1.25rem, 2vw, 2.25rem)
-      )
-    );
-    right: clamp(1rem, 2vw, 2rem);
-    margin-inline: 0;
-    width: auto;
-    max-width: none;
-  }
 }
 
 .bulk-label {
@@ -3092,13 +3077,18 @@ a {
   }
 
   .channel-title {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.15rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
   }
 
   .channel-title strong {
     font-size: var(--text-channel);
+  }
+
+  .channel-identity {
+    flex: 1 1 100%;
   }
 
   .deploy-btn {
