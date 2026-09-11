@@ -889,44 +889,47 @@ export function MarkBoard({
         // This room (staged or deployed), or still unassigned (can stage here)
         if (rn !== focusRoom && (c.deployed || rn)) return false;
       }
-      if (features.groups && groupFilter !== "all") {
-        if (groupFilter === "__ungrouped__") {
-          if (c.groupName) return false;
-        } else if (c.groupName !== groupFilter) {
-          return false;
+      // Phone floor skips band / group / status filters — Deploy next + My room only.
+      if (!isPhone) {
+        if (features.groups && groupFilter !== "all") {
+          if (groupFilter === "__ungrouped__") {
+            if (c.groupName) return false;
+          } else if (c.groupName !== groupFilter) {
+            return false;
+          }
         }
+        if (bandFilter !== "all") {
+          if ((c.band?.trim() || "") !== bandFilter) return false;
+        }
+        if (filter === "allowed") return features.status && c.status === "allowed";
+        if (filter === "blocked") return features.status && c.status === "blocked";
+        if (filter === "deployed") return features.deploy && c.deployed;
+        if (filter === "staged") {
+          return (
+            features.rooms &&
+            !c.deployed &&
+            Boolean(c.roomName?.trim())
+          );
+        }
+        if (filter === "unstaged") {
+          return features.rooms && !c.roomName?.trim();
+        }
+        if (filter === "open") {
+          return (
+            features.deploy &&
+            !c.deployed &&
+            (!features.status || c.status !== "blocked")
+          );
+        }
+        if (filter === "assigned") {
+          return features.assignments && Boolean(c.assignedTo?.trim());
+        }
+        if (filter === "unassigned") {
+          return features.assignments && !c.assignedTo?.trim();
+        }
+        if (filter === "inuse") return features.assignments && c.inUse;
+        if (filter === "spare") return features.assignments && !c.inUse;
       }
-      if (bandFilter !== "all") {
-        if ((c.band?.trim() || "") !== bandFilter) return false;
-      }
-      if (filter === "allowed") return features.status && c.status === "allowed";
-      if (filter === "blocked") return features.status && c.status === "blocked";
-      if (filter === "deployed") return features.deploy && c.deployed;
-      if (filter === "staged") {
-        return (
-          features.rooms &&
-          !c.deployed &&
-          Boolean(c.roomName?.trim())
-        );
-      }
-      if (filter === "unstaged") {
-        return features.rooms && !c.roomName?.trim();
-      }
-      if (filter === "open") {
-        return (
-          features.deploy &&
-          !c.deployed &&
-          (!features.status || c.status !== "blocked")
-        );
-      }
-      if (filter === "assigned") {
-        return features.assignments && Boolean(c.assignedTo?.trim());
-      }
-      if (filter === "unassigned") {
-        return features.assignments && !c.assignedTo?.trim();
-      }
-      if (filter === "inuse") return features.assignments && c.inUse;
-      if (filter === "spare") return features.assignments && !c.inUse;
       return true;
     });
   }, [
@@ -937,22 +940,30 @@ export function MarkBoard({
     features,
     search,
     focusRoom,
+    isPhone,
   ]);
 
   // When focusing a room, also include channels already deployed to that room
   const visibleWithRoomFocus = useMemo(() => {
     if (!focusRoom) return visible;
-    const extra = show.channels.filter(
-      (c) =>
-        c.roomName === focusRoom &&
-        channelMatchesQuery(c, search) &&
-        (bandFilter === "all" || (c.band?.trim() || "") === bandFilter) &&
-        (!features.groups ||
-          groupFilter === "all" ||
-          (groupFilter === "__ungrouped__"
-            ? !c.groupName
-            : c.groupName === groupFilter)),
-    );
+    const extra = show.channels.filter((c) => {
+      if (c.roomName !== focusRoom) return false;
+      if (!channelMatchesQuery(c, search)) return false;
+      if (isPhone) return true;
+      if (bandFilter !== "all" && (c.band?.trim() || "") !== bandFilter) {
+        return false;
+      }
+      if (
+        features.groups &&
+        groupFilter !== "all" &&
+        (groupFilter === "__ungrouped__"
+          ? Boolean(c.groupName)
+          : c.groupName !== groupFilter)
+      ) {
+        return false;
+      }
+      return true;
+    });
     const ids = new Set(visible.map((c) => c.id));
     return [...visible, ...extra.filter((c) => !ids.has(c.id))];
   }, [
@@ -960,9 +971,10 @@ export function MarkBoard({
     focusRoom,
     show.channels,
     search,
+    bandFilter,
     features.groups,
     groupFilter,
-    bandFilter,
+    isPhone,
   ]);
 
   const sections = useMemo(() => {
@@ -2148,6 +2160,22 @@ export function MarkBoard({
             >
               {copied ? <CheckIcon /> : <ShareIcon />}
             </button>
+            <button
+              type="button"
+              className={`icon-btn phone-only${phoneSearchOpen || search ? " active" : ""}`}
+              aria-expanded={phoneSearchOpen}
+              aria-label={phoneSearchOpen ? "Hide search" : "Search channels"}
+              title="Search"
+              onClick={() => {
+                setPhoneSearchOpen((open) => {
+                  const next = !open;
+                  if (!next) setSearch("");
+                  return next;
+                });
+              }}
+            >
+              <SearchIcon />
+            </button>
             {admin ? (
               <button
                 type="button"
@@ -2328,7 +2356,8 @@ export function MarkBoard({
             (features.groups &&
               (groupNames.length > 0 ||
                 show.channels.some((c) => !c.groupName))) ||
-            filterOptions.length > 1) ? (
+            filterOptions.length > 1) &&
+          !isPhone ? (
             <div className="filters-summary">
               <button
                 type="button"
@@ -2640,30 +2669,37 @@ export function MarkBoard({
         </div>
       ) : null}
 
+      {!crewMode && isPhone && phoneSearchOpen ? (
+        <div className="phone-search-bar">
+          <label className="search-field">
+            <span className="sr-only">Search channels</span>
+            <input
+              ref={searchInputRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  jumpToFirstMatch();
+                }
+              }}
+              placeholder={
+                features.assignments
+                  ? "Search who, mic, or MHz…"
+                  : "Search name or MHz…"
+              }
+              inputMode="search"
+              autoComplete="off"
+            />
+          </label>
+        </div>
+      ) : null}
+
       {!crewMode ? (
       <div className="board-toolbar">
-        <button
-          type="button"
-          className={`icon-btn phone-only${phoneSearchOpen || search ? " active" : ""}`}
-          aria-expanded={phoneSearchOpen}
-          aria-label={phoneSearchOpen ? "Hide search" : "Search channels"}
-          title="Search"
-          onClick={() => {
-            setPhoneSearchOpen((open) => {
-              const next = !open;
-              if (!next) setSearch("");
-              return next;
-            });
-          }}
-        >
-          <SearchIcon />
-        </button>
-        <label
-          className={`search-field${isPhone ? (phoneSearchOpen ? "" : " desk-only") : ""}`}
-        >
+        <label className="search-field desk-only">
           <span className="sr-only">Search channels</span>
           <input
-            ref={searchInputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
@@ -2700,7 +2736,7 @@ export function MarkBoard({
           </div>
         ) : null}
         {!showRack && (features.groups || features.rooms) ? (
-          <div className="view-toggle" role="group" aria-label="List sort">
+          <div className="view-toggle desk-only" role="group" aria-label="List sort">
             {features.groups ? (
               <button
                 type="button"

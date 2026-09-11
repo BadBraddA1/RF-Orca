@@ -10,7 +10,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 - Compact header brand + **New show** form above the fold. Below that, **Happening now** lists shows created in the last **10 days** (name, deploy progress, age). Older shows stay in the database and remain reachable by share link — they just leave the home list.
 
-**Floor networks:** phones use a solid navy paint (no fixed multi-layer background), fewer font files, poll-first live sync (Ably loads after), and deferred PostHog so the board stays usable on weak venue wifi/cell. Phone board: slim sticky HUD with **Deploy next**, optional search icon, **always-on display** (Wake Lock) next to the gear, top activity toasts, and Add to Home Screen / standalone web app meta so Safari chrome can drop away.
+**Floor networks:** phones use a solid navy paint (no fixed multi-layer background), fewer font files, poll-first live sync (Ably loads after), and deferred PostHog so the board stays usable on weak venue wifi/cell. Phone board: slim sticky HUD with **Deploy next**, search icon beside Share, full-screen Tools sheet, top activity toasts, and Add to Home Screen / standalone web app meta. Band/group Filters and By group / By room / Flat stay desk-only — section open/close is per heading caret.
 
 ## Access model
 

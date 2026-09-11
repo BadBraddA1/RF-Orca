@@ -2595,6 +2595,10 @@ a {
   background: color-mix(in oklab, var(--panel) 70%, transparent);
 }
 
+.phone-search-bar {
+  display: none;
+}
+
 .tools-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -3680,6 +3684,15 @@ a {
   .board-toolbar .search-field {
     flex: 1 1 100%;
     min-width: 0;
+  }
+
+  .phone-search-bar {
+    display: block;
+    padding: 0 0.15rem 0.35rem;
+  }
+
+  .phone-search-bar .search-field {
+    width: 100%;
   }
 
   .progress-hud {
