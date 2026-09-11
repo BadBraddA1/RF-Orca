@@ -448,7 +448,9 @@ export function MarkBoard({
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [crewMode, setCrewMode] = useState(false);
   const [flashIds, setFlashIds] = useState<Record<string, number>>({});
+  const [pingIds, setPingIds] = useState<Record<string, number>>({});
   const [lastChangeIds, setLastChangeIds] = useState<string[]>([]);
+  const [crewPingToast, setCrewPingToast] = useState<string | null>(null);
   const revisionRef = useRef(initialShow.revision ?? 0);
   const channelsRef = useRef(initialShow.channels);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -632,6 +634,28 @@ export function MarkBoard({
     return () => window.clearTimeout(id);
   }, [flashIds]);
 
+  useEffect(() => {
+    const ids = Object.keys(pingIds);
+    if (ids.length === 0) return;
+    const id = window.setTimeout(() => {
+      const cutoff = Date.now() - 1800;
+      setPingIds((prev) => {
+        const next: Record<string, number> = {};
+        for (const [k, at] of Object.entries(prev)) {
+          if (at > cutoff) next[k] = at;
+        }
+        return next;
+      });
+    }, 1900);
+    return () => window.clearTimeout(id);
+  }, [pingIds]);
+
+  useEffect(() => {
+    if (!crewPingToast) return;
+    const id = window.setTimeout(() => setCrewPingToast(null), 2400);
+    return () => window.clearTimeout(id);
+  }, [crewPingToast]);
+
   const applyShow = useCallback(
     (next: ShowPublic, nextAdmin?: boolean, nextBoLead?: boolean) => {
     const prevMap = new Map(
@@ -751,17 +775,48 @@ export function MarkBoard({
       return;
     }
     if (latest.id === seenActivityIdRef.current) return;
-    const fresh: { id: string; message: string }[] = [];
+    const fresh: {
+      id: string;
+      message: string;
+      kind: string;
+      channelId?: string | null;
+    }[] = [];
     for (const event of show.activity ?? []) {
       if (event.id === seenActivityIdRef.current) break;
       fresh.push({
         id: event.id,
         message: formatActivityMsg(event.message),
+        kind: event.kind,
+        channelId: event.channelId,
       });
     }
     seenActivityIdRef.current = latest.id;
-    if (!isPhone || fresh.length === 0) return;
-    const incoming = fresh.reverse();
+    if (fresh.length === 0) return;
+
+    const pingAt = Date.now();
+    const pinged = fresh.filter((e) => e.kind === "ping" && e.channelId);
+    if (pinged.length > 0) {
+      setPingIds((prev) => {
+        const merged = { ...prev };
+        for (const event of pinged) {
+          if (event.channelId) merged[event.channelId] = pingAt;
+        }
+        return merged;
+      });
+      const topPing = pinged[0];
+      if (crewMode && topPing) {
+        setCrewPingToast(topPing.message);
+        if (topPing.channelId) {
+          const el = document.getElementById(`ch-${topPing.channelId}`);
+          el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+      }
+    }
+
+    if (!isPhone) return;
+    const incoming = fresh
+      .map(({ id, message }) => ({ id, message }))
+      .reverse();
     for (const toast of incoming) {
       const toastId = toast.id;
       window.setTimeout(() => {
@@ -769,7 +824,7 @@ export function MarkBoard({
       }, 3200);
     }
     setActivityToasts((prev) => [...incoming, ...prev].slice(0, 3));
-  }, [show.activity, isPhone]);
+  }, [show.activity, isPhone, crewMode]);
 
 
   useEffect(() => {
@@ -2089,6 +2144,11 @@ export function MarkBoard({
           </div>
         </div>
       ) : null}
+      {crewPingToast ? (
+        <div className="crew-ping-toast" aria-live="polite" role="status">
+          {crewPingToast}
+        </div>
+      ) : null}
       {crewMode ? (
         <header className="crew-bar">
           <div className="crew-bar-main">
@@ -2100,6 +2160,9 @@ export function MarkBoard({
                   : "Live · poll"
                 : "Reconnecting…"}
             </span>
+            {showRoomGear && focusRoom ? (
+              <span className="crew-room-chip">{focusRoom}</span>
+            ) : null}
             {features.assignments ? (
               <span className="crew-progress">
                 {counts.inuse}/{counts.all} in use · {counts.assigned} who
@@ -2112,6 +2175,15 @@ export function MarkBoard({
             ) : null}
           </div>
           <div className="crew-bar-actions">
+            {showRoomGear ? (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => setFocusRoom("")}
+              >
+                Change room
+              </button>
+            ) : null}
             <button
               type="button"
               className="btn-ghost"
@@ -3482,15 +3554,37 @@ export function MarkBoard({
                   : "all"
           }
           flashIds={flashIds}
+          pingIds={pingIds}
           lastChangeIds={lastChangeIds}
           mode={showRoomGear ? "room" : "physical"}
           roomName={showRoomGear ? focusRoom : null}
           onChangeRoom={
-            showRoomGear ? () => setFocusRoom("") : undefined
+            showRoomGear && !crewMode
+              ? () => setFocusRoom("")
+              : undefined
           }
           onPatch={async (id, patch) => {
             await patchChannel(id, patch);
           }}
+          onPing={
+            crewMode
+              ? async (id) => {
+                  const res = await fetch(`/api/shows/${token}/ping`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ channelId: id }),
+                  });
+                  if (!res.ok) return;
+                  const data = await res.json().catch(() => null);
+                  setPingIds((prev) => ({ ...prev, [id]: Date.now() }));
+                  if (data?.show) {
+                    startTransition(() => {
+                      applyShow(data.show as ShowPublic);
+                    });
+                  }
+                }
+              : undefined
+          }
           onFillEmpty={
             admin && !crewMode && showPhysicalRack
               ? async () => patchRack({ fillEmpty: true })

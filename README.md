@@ -52,7 +52,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 - **Mic rack (A2)** — when **Rooms** is on: **Rack** → pick a room → see/mark that room’s gear (Who, Handheld/Lav, Spare/In use, Deploy). **Change room** returns to the picker. Without Rooms: physical slot grid (cols×rows, Fill empty) when Mic rack assignments is on
 - **List is the default board view** (Rack available when Rooms or Mic rack assignments is on) — **3-wide** on desktop (2 on tablet, 1 on phone); name + Deploy/Spare on one row; Stage room + Group side by side; no G/Ch line; Allow/Block parked for now; multi-select circles + bottom dock when Tools unlocked
 - **Deploy vs Spare** — **Deploy** (pill) marks the channel live in a room; **Spare / In use** (quieter dashed toggle) is rack occupancy, not the same action
-- **Audio Crew mode** — header **Audio Crew** button (desk/tablet only): fullscreen-friendly rack view; phones stay on **List** with share + gear icons and top activity toasts instead of the deploy log
+- **Audio Crew mode** — header **Audio Crew** button (desk/tablet only): fullscreen-friendly dense rack; room name + Change room sit in the top bar; phones stay on **List**. Tap **Ping** on a channel to flash it on every crew board (draw attention across tablets).
 - **Change flash** — one short pulse on update, then an orange “Updated” tint stays on the latest change (no multi-flash)
 - **Focus** — shared sea-bright focus rings on mark-board controls for keyboard use
 - **Import preview** — Workbench **Coordination report** or Inventory CSV: imports **primary** frequencies only (skips Backup section); keeps band + names; preview then confirm

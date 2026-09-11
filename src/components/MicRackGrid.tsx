@@ -28,10 +28,12 @@ export function MicRackGrid({
   filterWho,
   flashIds,
   lastChangeIds,
+  pingIds,
   mode = "physical",
   roomName = null,
   onChangeRoom,
   onPatch,
+  onPing,
   onFillEmpty,
   fillBusy,
 }: {
@@ -48,11 +50,13 @@ export function MicRackGrid({
   filterWho?: "all" | "assigned" | "unassigned";
   flashIds?: Record<string, number>;
   lastChangeIds?: string[];
+  pingIds?: Record<string, number>;
   /** physical = full rack map; room = gear staged/deployed in one room */
   mode?: "physical" | "room";
   roomName?: string | null;
   onChangeRoom?: () => void;
   onPatch: (id: string, patch: Patch) => Promise<void>;
+  onPing?: (id: string) => Promise<void>;
   onFillEmpty?: () => Promise<void>;
   fillBusy?: boolean;
 }) {
@@ -190,7 +194,9 @@ export function MicRackGrid({
                 roomMode
                 flashing={Boolean(flashIds?.[channel.id])}
                 lastChanged={Boolean(lastChangeIds?.includes(channel.id))}
+                pinging={Boolean(pingIds?.[channel.id])}
                 onPatch={onPatch}
+                onPing={onPing}
               />
             ))}
           </div>
@@ -239,7 +245,9 @@ export function MicRackGrid({
             lastChanged={Boolean(
               channel && lastChangeIds?.includes(channel.id),
             )}
+            pinging={Boolean(channel && pingIds?.[channel.id])}
             onPatch={onPatch}
+            onPing={onPing}
           />
         ))}
       </div>
@@ -258,7 +266,9 @@ function RackCell({
   roomMode = false,
   flashing,
   lastChanged,
+  pinging,
   onPatch,
+  onPing,
 }: {
   slot: number;
   channel: Channel | null;
@@ -270,9 +280,12 @@ function RackCell({
   roomMode?: boolean;
   flashing?: boolean;
   lastChanged?: boolean;
+  pinging?: boolean;
   onPatch: (id: string, patch: Patch) => Promise<void>;
+  onPing?: (id: string) => Promise<void>;
 }) {
   const [nameDraft, setNameDraft] = useState(channel?.name ?? "");
+  const [pingBusy, setPingBusy] = useState(false);
 
   useEffect(() => {
     setNameDraft(channel?.name ?? "");
@@ -307,10 +320,20 @@ function RackCell({
     });
   }
 
+  async function ping() {
+    if (!onPing || pingBusy) return;
+    setPingBusy(true);
+    try {
+      await onPing(ch.id);
+    } finally {
+      setPingBusy(false);
+    }
+  }
+
   return (
     <div
       id={`ch-${ch.id}`}
-      className={`rack-cell${ch.inUse ? " is-inuse" : " is-spare"}${ch.assignedTo ? " has-who" : ""}${ch.micKind ? ` kind-${ch.micKind}` : ""}${ch.deployed ? " is-deployed" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}`}
+      className={`rack-cell${ch.inUse ? " is-inuse" : " is-spare"}${ch.assignedTo ? " has-who" : ""}${ch.micKind ? ` kind-${ch.micKind}` : ""}${ch.deployed ? " is-deployed" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}${pinging ? " is-ping" : ""}`}
       role="listitem"
     >
       <div className="rack-cell-top">
@@ -414,6 +437,18 @@ function RackCell({
           }}
         >
           {ch.deployed ? "Deployed" : "Deploy"}
+        </button>
+      ) : null}
+
+      {onPing ? (
+        <button
+          type="button"
+          className="rack-ping"
+          disabled={pingBusy}
+          title="Flash this channel on every crew board"
+          onClick={() => void ping()}
+        >
+          {pingBusy ? "…" : "Ping"}
         </button>
       ) : null}
 

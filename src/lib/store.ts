@@ -1448,3 +1448,23 @@ export async function listActiveShows(
     deployedCount: Number(row.deployed_count ?? 0),
   }));
 }
+
+/** Floor ping — flash a channel for everyone on the live board. */
+export async function pingChannel(
+  shareToken: string,
+  channelId: string,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const channels = await getChannels(show.id);
+  const channel = channels.find((c) => c.id === channelId);
+  if (!channel) return null;
+  const nextShow = touchShow(
+    show,
+    "ping",
+    `Look here · ${channel.name}`,
+    channel.id,
+  );
+  await finishMutation(nextShow);
+  return toPublic(nextShow, channels);
+}

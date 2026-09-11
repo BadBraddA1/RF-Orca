@@ -98,7 +98,8 @@ export type ActivityKind =
   | "groups"
   | "rooms"
   | "people"
-  | "delete";
+  | "delete"
+  | "ping";
 
 export type ActivityEvent = {
   id: string;
