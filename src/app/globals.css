@@ -2170,14 +2170,6 @@ a {
   color: var(--signal-hot);
 }
 
-.wake-lock-icon.is-on .wake-lock-ring {
-  animation: wake-ring 1.8s ease-out infinite;
-}
-
-.wake-lock-icon.is-on .wake-lock-ring--mid {
-  animation-delay: 0.35s;
-}
-
 .wake-lock-icon.is-on .wake-lock-rays {
   animation: wake-rays 1.6s ease-in-out infinite;
   transform-origin: 12px 12px;
@@ -2187,30 +2179,13 @@ a {
   animation: wake-core 1.6s ease-in-out infinite;
 }
 
-@keyframes wake-ring {
-  0% {
-    opacity: 0.55;
-    transform: scale(0.92);
-  }
-  70% {
-    opacity: 0;
-    transform: scale(1.12);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.12);
-  }
-}
-
 @keyframes wake-rays {
   0%,
   100% {
     opacity: 0.55;
-    transform: scale(0.96);
   }
   50% {
     opacity: 1;
-    transform: scale(1.04);
   }
 }
 
@@ -2225,7 +2200,6 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wake-lock-icon.is-on .wake-lock-ring,
   .wake-lock-icon.is-on .wake-lock-rays,
   .wake-lock-icon.is-on .wake-lock-core {
     animation: none;
