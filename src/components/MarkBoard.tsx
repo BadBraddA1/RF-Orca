@@ -3714,57 +3714,111 @@ export function MarkBoard({
               </button>
             </div>
             <div className="phone-help-body">
-              <section>
-                <h3>Deploy next</h3>
-                <p>
-                  Coordinator sets the floor group in Tools. Tap{" "}
-                  <strong>Deploy next</strong>, pick a room if asked, check the
-                  green card (room + Handheld/Lav), then <strong>Press here</strong>.
-                  Hold <strong>Hold to exit</strong> to leave without deploying.
-                </p>
-              </section>
-              <section>
-                <h3>Keep screen on</h3>
-                <p>
-                  The phone icon next to Tools keeps the display awake on a stand.
-                  Tap again when you’re done — it is not a board lock.
-                </p>
-              </section>
-              <section>
-                <h3>Header icons</h3>
-                <ul>
-                  <li>
-                    <strong>Share</strong> — send the crew board link (never the
-                    BO Lead link by mistake).
-                  </li>
-                  <li>
-                    <strong>Search</strong> — find a channel by name or MHz.
-                  </li>
-                  <li>
-                    <strong>Tools</strong> — unlock coordinator options (import,
-                    rooms, groups, Deploy next group).
-                  </li>
-                  <li>
-                    <strong>?</strong> — this help sheet.
-                  </li>
-                </ul>
-              </section>
-              <section>
-                <h3>List sections</h3>
-                <p>
-                  Tap a group or room heading caret to open or close that
-                  section. No extra sort chips on phone.
-                </p>
-              </section>
-              {features.rooms ? (
-                <section>
-                  <h3>My room</h3>
+              <div className="phone-help-row">
+                <span className="phone-help-icon" aria-hidden>
+                  <GearIcon />
+                </span>
+                <div>
+                  <h3>Deploy next</h3>
                   <p>
-                    Optional focus: show channels for one room while you browse
-                    the list. Deploy next still asks for the room when you
-                    deploy.
+                    Coordinator sets the floor group in Tools. Tap{" "}
+                    <strong>Deploy next</strong>, pick a room if asked, check the
+                    green card (room + Handheld/Lav), then{" "}
+                    <strong>Press here</strong>. Hold{" "}
+                    <strong>Hold to exit</strong> to leave without deploying.
                   </p>
-                </section>
+                </div>
+              </div>
+              {wakeLockSupported ? (
+                <div className="phone-help-row">
+                  <span className="phone-help-icon" aria-hidden>
+                    <KeepAwakeIcon active />
+                  </span>
+                  <div>
+                    <h3>Keep screen on</h3>
+                    <p>
+                      This phone icon keeps the display awake on a stand. Tap
+                      again when you’re done — it is not a board lock.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+              <div className="phone-help-row">
+                <span className="phone-help-icon" aria-hidden>
+                  <ShareIcon />
+                </span>
+                <div>
+                  <h3>Share</h3>
+                  <p>
+                    Send the crew board link (never the BO Lead link by
+                    mistake).
+                  </p>
+                </div>
+              </div>
+              <div className="phone-help-row">
+                <span className="phone-help-icon" aria-hidden>
+                  <SearchIcon />
+                </span>
+                <div>
+                  <h3>Search</h3>
+                  <p>Find a channel by name or MHz.</p>
+                </div>
+              </div>
+              <div className="phone-help-row">
+                <span className="phone-help-icon" aria-hidden>
+                  <GearIcon />
+                </span>
+                <div>
+                  <h3>Tools</h3>
+                  <p>
+                    Unlock coordinator options — import, rooms, groups, and the
+                    Deploy next floor group.
+                  </p>
+                </div>
+              </div>
+              <div className="phone-help-row">
+                <span className="phone-help-icon" aria-hidden>
+                  <HelpIcon />
+                </span>
+                <div>
+                  <h3>Help</h3>
+                  <p>Opens this sheet anytime you need a refresher.</p>
+                </div>
+              </div>
+              {admin ? (
+                <div className="phone-help-row">
+                  <span className="phone-help-icon" aria-hidden>
+                    <UndoIcon />
+                  </span>
+                  <div>
+                    <h3>Undo</h3>
+                    <p>
+                      With Tools unlocked, reverse the last channel edit, bulk
+                      stage, or bulk group.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+              <div className="phone-help-row phone-help-row--text">
+                <div>
+                  <h3>List sections</h3>
+                  <p>
+                    Tap a group or room heading caret to open or close that
+                    section. No extra sort chips on phone.
+                  </p>
+                </div>
+              </div>
+              {features.rooms ? (
+                <div className="phone-help-row phone-help-row--text">
+                  <div>
+                    <h3>My room</h3>
+                    <p>
+                      Optional focus: show channels for one room while you
+                      browse. Deploy next still asks for the room when you
+                      deploy.
+                    </p>
+                  </div>
+                </div>
               ) : null}
             </div>
           </div>
