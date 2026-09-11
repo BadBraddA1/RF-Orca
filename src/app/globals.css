@@ -2440,20 +2440,51 @@ a {
   outline-offset: 3px;
 }
 
-.deploy-focus-cancel {
-  border: 0;
-  background: transparent;
+.deploy-focus-hold-exit {
+  position: relative;
+  overflow: hidden;
+  margin-top: 0.15rem;
+  min-height: var(--touch-min);
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--ink-soft) 35%, var(--line));
+  background: color-mix(in oklab, var(--foam) 88%, transparent);
   color: var(--ink-soft);
   font: inherit;
   font-size: var(--text-label);
-  font-weight: 650;
-  min-height: var(--touch-min);
+  font-weight: 700;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
-.deploy-focus-cancel:hover,
-.deploy-focus-cancel:focus-visible {
+.deploy-focus-hold-exit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.deploy-focus-hold-exit.is-holding {
   color: var(--ink);
+  border-color: color-mix(in oklab, var(--ok) 40%, var(--line));
+}
+
+.deploy-focus-hold-fill {
+  position: absolute;
+  inset: 0;
+  width: calc(var(--hold-exit, 0) * 100%);
+  background: color-mix(in oklab, var(--ok) 28%, transparent);
+  transition: none;
+  pointer-events: none;
+}
+
+.deploy-focus-hold-label {
+  position: relative;
+  z-index: 1;
+}
+
+.deploy-focus-hold-exit:focus-visible {
+  outline: 2px solid var(--sea-bright);
+  outline-offset: 2px;
 }
 
 @keyframes deploy-focus-pulse {

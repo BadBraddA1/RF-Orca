@@ -37,7 +37,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 ## Floor speed features
 
-- **Deploy next** — Tools → **Floor deploy group**. Phone HUD **Deploy next**: with rooms on, pick a room → full-screen green focus card (room, Handheld/Lav, Who) → **Press here** to deploy; without rooms, same focus card then deploy. Returns to the board ready for the next one.
+- **Deploy next** — Tools → **Floor deploy group**. Phone HUD **Deploy next**: with rooms on, pick a room → full-screen green focus card (room, Handheld/Lav, Who) → **Press here** to deploy; **Hold to exit** (~0.9s) leaves without deploying. Without rooms, same focus card. Returns to the board ready for the next one.
 - **Share view links** — the show URL keeps current **view / sort / My room / Filters** (`?sort=room&room=Ballroom+A&filter=staged…`). **Copy link** pastes that view for crew
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — tap **Filters** for a popup (bands / groups); summary stays on the board so you don’t scroll to change scope

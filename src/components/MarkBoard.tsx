@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   useTransition,
+  type CSSProperties,
 } from "react";
 import { useRouter } from "next/navigation";
 import { BrandLockup } from "@/components/BrandLockup";
@@ -413,6 +414,9 @@ export function MarkBoard({
     roomName: string | null;
   } | null>(null);
   const [deployNextBusy, setDeployNextBusy] = useState(false);
+  const [holdExitProgress, setHoldExitProgress] = useState(0);
+  const holdExitRafRef = useRef<number | null>(null);
+  const holdExitStartRef = useRef<number | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [rackBusy, setRackBusy] = useState(false);
@@ -1267,6 +1271,49 @@ export function MarkBoard({
       setDeployNextBusy(false);
     }
   }
+
+  const HOLD_EXIT_MS = 900;
+
+  function stopHoldExit() {
+    if (holdExitRafRef.current != null) {
+      cancelAnimationFrame(holdExitRafRef.current);
+      holdExitRafRef.current = null;
+    }
+    holdExitStartRef.current = null;
+    setHoldExitProgress(0);
+  }
+
+  function startHoldExit() {
+    if (deployNextBusy) return;
+    stopHoldExit();
+    holdExitStartRef.current = performance.now();
+    const tick = (now: number) => {
+      const start = holdExitStartRef.current;
+      if (start == null) return;
+      const progress = Math.min(1, (now - start) / HOLD_EXIT_MS);
+      setHoldExitProgress(progress);
+      if (progress >= 1) {
+        holdExitRafRef.current = null;
+        holdExitStartRef.current = null;
+        setHoldExitProgress(0);
+        setDeployFocus(null);
+        return;
+      }
+      holdExitRafRef.current = requestAnimationFrame(tick);
+    };
+    holdExitRafRef.current = requestAnimationFrame(tick);
+  }
+
+  useEffect(() => {
+    if (deployFocus) return;
+    stopHoldExit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- clear hold UI when overlay closes
+  }, [deployFocus]);
+
+  useEffect(() => {
+    return () => stopHoldExit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const deployFocusChannel = deployFocus
     ? show.channels.find((c) => c.id === deployFocus.channelId) ?? null
@@ -3606,11 +3653,28 @@ export function MarkBoard({
             </button>
             <button
               type="button"
-              className="deploy-focus-cancel"
+              className={`deploy-focus-hold-exit${holdExitProgress > 0 ? " is-holding" : ""}`}
               disabled={deployNextBusy}
-              onClick={() => setDeployFocus(null)}
+              aria-label="Hold to exit"
+              style={
+                {
+                  "--hold-exit": String(holdExitProgress),
+                } as CSSProperties
+              }
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                startHoldExit();
+              }}
+              onPointerUp={stopHoldExit}
+              onPointerCancel={stopHoldExit}
+              onLostPointerCapture={stopHoldExit}
+              onContextMenu={(e) => e.preventDefault()}
             >
-              Cancel
+              <span className="deploy-focus-hold-fill" aria-hidden />
+              <span className="deploy-focus-hold-label">
+                {holdExitProgress > 0.05 ? "Keep holding…" : "Hold to exit"}
+              </span>
             </button>
           </div>
         </div>
