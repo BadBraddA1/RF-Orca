@@ -2238,6 +2238,7 @@ a {
   z-index: 60;
   display: grid;
   align-items: end;
+  pointer-events: auto;
 }
 
 .deploy-room-backdrop {
@@ -2251,15 +2252,18 @@ a {
 .deploy-room-panel {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: min(85dvh, 36rem);
+  min-height: 0;
+  overflow: hidden;
   padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
   border-radius: 1.1rem 1.1rem 0 0;
   border: 1px solid var(--line);
   border-bottom: 0;
   background: color-mix(in oklab, var(--panel-lift) 96%, transparent);
   box-shadow: var(--shadow);
-  display: grid;
-  gap: 0.65rem;
-  max-height: min(70dvh, 28rem);
 }
 
 .deploy-room-head {
@@ -2267,13 +2271,25 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  flex: 0 0 auto;
+}
+
+.deploy-room-panel > .form-hint {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .deploy-room-list {
   display: grid;
   gap: 0.45rem;
-  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding-bottom: 0.25rem;
 }
 
 .deploy-room-option {
