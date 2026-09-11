@@ -2245,16 +2245,6 @@ export function MarkBoard({
                     ? `Deploy next · ${show.deployGroupName}`
                     : "Deploy next"}
               </button>
-              {groupProgress.length > 0 ? (
-                <button
-                  type="button"
-                  className="progress-groups-more"
-                  aria-expanded={groupsExpanded}
-                  onClick={() => setGroupsExpanded((v) => !v)}
-                >
-                  {groupsExpanded ? "Hide groups" : "Groups"}
-                </button>
-              ) : null}
             </div>
           ) : null}
           {features.assignments && !isPhone ? (
@@ -2265,7 +2255,7 @@ export function MarkBoard({
               <span>{usePct}%</span>
             </div>
           ) : null}
-          {groupProgress.length > 0 && (!isPhone || groupsExpanded) ? (
+          {groupProgress.length > 0 && !isPhone ? (
             <div
               className="progress-groups"
               data-expanded={groupsExpanded ? "true" : undefined}
@@ -2279,7 +2269,7 @@ export function MarkBoard({
                   </span>
                 </span>
               ))}
-              {!isPhone && hiddenGroupCount > 0 ? (
+              {hiddenGroupCount > 0 ? (
                 <button
                   type="button"
                   className="progress-groups-more"
