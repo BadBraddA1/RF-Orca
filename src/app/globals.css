@@ -3289,6 +3289,10 @@ a {
   pointer-events: none;
 }
 
+.crew-draw.is-drawing {
+  touch-action: none;
+}
+
 .crew-draw.is-drawing .crew-draw-canvas {
   pointer-events: auto;
   touch-action: none;
