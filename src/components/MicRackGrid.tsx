@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { WhoAssign } from "@/components/WhoAssign";
 import { channelsByRackSlot } from "@/lib/rack";
+import { crewGridCols } from "@/lib/crew-draw";
 import type { Channel, MicKind, ShowFeatures } from "@/lib/types";
 import { formatRackSlot, micKindLabel, rackSlotCount } from "@/lib/types";
 
@@ -34,6 +35,8 @@ export function MicRackGrid({
   onPatch,
   onFillEmpty,
   fillBusy,
+  /** Audio Crew: lock column count so draw marks land on the same channel everywhere. */
+  crewSynced = false,
 }: {
   channels: Channel[];
   rackCols: number;
@@ -55,6 +58,7 @@ export function MicRackGrid({
   onPatch: (id: string, patch: Patch) => Promise<void>;
   onFillEmpty?: () => Promise<void>;
   fillBusy?: boolean;
+  crewSynced?: boolean;
 }) {
   const canMark = elevated ?? admin;
   const size = rackSlotCount({ rackCols, rackRows });
@@ -172,27 +176,45 @@ export function MicRackGrid({
               : ""}
           </div>
         ) : (
-          <div
-            className="mic-rack-grid mic-rack-grid--room"
-            role="list"
-            aria-label={`Gear in ${roomName}`}
-          >
-            {roomChannels.map((channel) => (
-              <RackCell
-                key={channel.id}
-                slot={channel.rackSlot ?? 0}
-                channel={channel}
-                features={features}
-                admin={admin}
-                elevated={canMark}
-                frozen={features.crewLocked && !canMark}
-                assigneeNames={assigneeNames}
-                roomMode
-                flashing={Boolean(flashIds?.[channel.id])}
-                lastChanged={Boolean(lastChangeIds?.includes(channel.id))}
-                onPatch={onPatch}
-              />
-            ))}
+          <div className="mic-rack-draw-host" data-crew-draw-host>
+            <div className="mic-rack-draw-plane" data-crew-draw-plane>
+              <div
+                className={`mic-rack-grid mic-rack-grid--room${crewSynced ? " mic-rack-grid--crew" : ""}`}
+                role="list"
+                aria-label={`Gear in ${roomName}`}
+                data-crew-grid=""
+                data-crew-cols={String(crewGridCols(roomChannels.length))}
+                data-crew-count={String(roomChannels.length)}
+                data-crew-room={roomName ?? ""}
+                style={
+                  crewSynced
+                    ? ({
+                        ["--crew-cols"]: String(
+                          crewGridCols(roomChannels.length),
+                        ),
+                      } as CSSProperties)
+                    : undefined
+                }
+              >
+                {roomChannels.map((channel, index) => (
+                  <RackCell
+                    key={channel.id}
+                    slot={channel.rackSlot ?? 0}
+                    channel={channel}
+                    features={features}
+                    admin={admin}
+                    elevated={canMark}
+                    frozen={features.crewLocked && !canMark}
+                    assigneeNames={assigneeNames}
+                    roomMode
+                    crewIndex={index}
+                    flashing={Boolean(flashIds?.[channel.id])}
+                    lastChanged={Boolean(lastChangeIds?.includes(channel.id))}
+                    onPatch={onPatch}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -219,29 +241,45 @@ export function MicRackGrid({
         ) : null}
       </div>
 
-      <div
-        className="mic-rack-grid"
-        style={{ ["--rack-cols" as string]: String(rackCols) }}
-        role="list"
-        aria-label={`${rackCols} by ${rackRows} mic rack`}
-      >
-        {slots.map(({ slot, channel }) => (
-          <RackCell
-            key={slot}
-            slot={slot}
-            channel={channel}
-            features={features}
-            admin={admin}
-            elevated={canMark}
-            frozen={features.crewLocked && !canMark}
-            assigneeNames={assigneeNames}
-            flashing={Boolean(channel && flashIds?.[channel.id])}
-            lastChanged={Boolean(
-              channel && lastChangeIds?.includes(channel.id),
-            )}
-            onPatch={onPatch}
-          />
-        ))}
+      <div className="mic-rack-draw-host" data-crew-draw-host>
+        <div className="mic-rack-draw-plane" data-crew-draw-plane>
+          <div
+            className={`mic-rack-grid${crewSynced ? " mic-rack-grid--crew" : ""}`}
+            style={
+              {
+                ["--rack-cols"]: String(rackCols),
+                ...(crewSynced
+                  ? { ["--crew-cols"]: String(rackCols) }
+                  : null),
+              } as CSSProperties
+            }
+            role="list"
+            aria-label={`${rackCols} by ${rackRows} mic rack`}
+            data-crew-grid=""
+            data-crew-cols={String(rackCols)}
+            data-crew-count={String(size)}
+            data-crew-room=""
+          >
+            {slots.map(({ slot, channel }, index) => (
+              <RackCell
+                key={slot}
+                slot={slot}
+                channel={channel}
+                features={features}
+                admin={admin}
+                elevated={canMark}
+                frozen={features.crewLocked && !canMark}
+                assigneeNames={assigneeNames}
+                crewIndex={index}
+                flashing={Boolean(channel && flashIds?.[channel.id])}
+                lastChanged={Boolean(
+                  channel && lastChangeIds?.includes(channel.id),
+                )}
+                onPatch={onPatch}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -256,6 +294,7 @@ function RackCell({
   frozen,
   assigneeNames,
   roomMode = false,
+  crewIndex,
   flashing,
   lastChanged,
   onPatch,
@@ -268,6 +307,7 @@ function RackCell({
   frozen: boolean;
   assigneeNames: string[];
   roomMode?: boolean;
+  crewIndex?: number;
   flashing?: boolean;
   lastChanged?: boolean;
   onPatch: (id: string, patch: Patch) => Promise<void>;
@@ -280,7 +320,11 @@ function RackCell({
 
   if (!channel) {
     return (
-      <div className="rack-cell is-empty" role="listitem">
+      <div
+        className="rack-cell is-empty"
+        role="listitem"
+        data-crew-index={crewIndex != null ? String(crewIndex) : undefined}
+      >
         <span className="rack-ch">CH {formatRackSlot(slot)}</span>
         <span className="rack-empty-label">Empty</span>
       </div>
@@ -312,6 +356,8 @@ function RackCell({
       id={`ch-${ch.id}`}
       className={`rack-cell${ch.inUse ? " is-inuse" : " is-spare"}${ch.assignedTo ? " has-who" : ""}${ch.micKind ? ` kind-${ch.micKind}` : ""}${ch.deployed ? " is-deployed" : ""}${flashing ? " is-flash" : ""}${lastChanged ? " is-last-change" : ""}`}
       role="listitem"
+      data-crew-index={crewIndex != null ? String(crewIndex) : undefined}
+      data-channel-id={ch.id}
     >
       <div className="rack-cell-top">
         {slot > 0 ? (

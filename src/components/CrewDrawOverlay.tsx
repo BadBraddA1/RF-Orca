@@ -1,15 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   CREW_DRAW_COLORS,
   CREW_DRAW_WIDTH,
   CREW_STROKE_TTL_MS,
   clamp01,
   colorHex,
+  crewGridRows,
   newStrokeId,
   type CrewAnnotateEvent,
   type CrewDrawColorId,
+  type CrewDrawPoint,
   type CrewDrawStroke,
   type CrewStrokeMsg,
 } from "@/lib/crew-draw";
@@ -19,6 +22,7 @@ type Props = {
   drawing: boolean;
   color: CrewDrawColorId;
   annotateReady: boolean;
+  roomName?: string | null;
   publishStroke: (stroke: CrewStrokeMsg) => void;
   publishClear: () => void;
   subscribeAnnotate: (handler: (event: CrewAnnotateEvent) => void) => () => void;
@@ -26,55 +30,162 @@ type Props = {
   onColorChange: (color: CrewDrawColorId) => void;
 };
 
-type Pt = { x: number; y: number };
+type LiveStroke = {
+  id: string;
+  color: string;
+  width: number;
+  cols: number;
+  rows: number;
+  points: CrewDrawPoint[];
+  pending: Array<[number, number]>;
+  flushTimer: number | null;
+};
 
 function mergeStroke(
   prev: CrewDrawStroke | undefined,
   msg: CrewStrokeMsg,
 ): CrewDrawStroke {
-  const incoming = msg.pts.map(([x, y]) => ({
-    x: clamp01(x),
-    y: clamp01(y),
-  }));
+  const incoming = msg.pts.map(([c, r]) => ({ c, r }));
   const points = prev ? [...prev.points, ...incoming] : incoming;
   return {
     id: msg.id,
     color: msg.color || colorHex("sea"),
     width: typeof msg.width === "number" ? msg.width : CREW_DRAW_WIDTH,
+    cols: msg.cols || prev?.cols || 1,
+    rows: msg.rows || prev?.rows || 1,
     points,
     expiresAt: Date.now() + CREW_STROKE_TTL_MS,
   };
 }
 
-/** Midpoint quadratic path — smoother on sparse iPad touch samples. */
+function readGridMeta(grid: HTMLElement): {
+  cols: number;
+  rows: number;
+  cells: HTMLElement[];
+} {
+  const cells = [
+    ...grid.querySelectorAll<HTMLElement>(".rack-cell[data-crew-index]"),
+  ].sort(
+    (a, b) =>
+      Number(a.dataset.crewIndex ?? 0) - Number(b.dataset.crewIndex ?? 0),
+  );
+  const cols = Math.max(
+    1,
+    Number(grid.dataset.crewCols) ||
+      Number.parseInt(
+        getComputedStyle(grid).getPropertyValue("--crew-cols").trim(),
+        10,
+      ) ||
+      Number.parseInt(
+        getComputedStyle(grid).getPropertyValue("--rack-cols").trim(),
+        10,
+      ) ||
+      1,
+  );
+  const count = Math.max(
+    cells.length,
+    Number(grid.dataset.crewCount) || cells.length,
+  );
+  const rows = crewGridRows(count, cols);
+  return { cols, rows, cells };
+}
+
+/** Map a screen point onto the shared gear matrix (fractional col/row). */
+function clientToMatrix(
+  clientX: number,
+  clientY: number,
+  cells: HTMLElement[],
+  cols: number,
+  rows: number,
+): CrewDrawPoint | null {
+  if (cells.length === 0) return null;
+
+  for (const cell of cells) {
+    const rect = cell.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) continue;
+    if (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    ) {
+      const index = Number(cell.dataset.crewIndex ?? 0);
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      return {
+        c: col + clamp01((clientX - rect.left) / rect.width),
+        r: row + clamp01((clientY - rect.top) / rect.height),
+      };
+    }
+  }
+
+  // Off-cell (gap / padding): nearest cell edge, still matrix-locked.
+  let best: { dist: number; point: CrewDrawPoint } | null = null;
+  for (const cell of cells) {
+    const rect = cell.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) continue;
+    const x = Math.min(rect.right, Math.max(rect.left, clientX));
+    const y = Math.min(rect.bottom, Math.max(rect.top, clientY));
+    const dx = clientX - x;
+    const dy = clientY - y;
+    const dist = dx * dx + dy * dy;
+    const index = Number(cell.dataset.crewIndex ?? 0);
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const point = {
+      c: col + clamp01((x - rect.left) / rect.width),
+      r: row + clamp01((y - rect.top) / rect.height),
+    };
+    if (!best || dist < best.dist) best = { dist, point };
+  }
+  if (best) return best.point;
+
+  return {
+    c: Math.min(cols - 1e-6, Math.max(0, 0)),
+    r: Math.min(rows - 1e-6, Math.max(0, 0)),
+  };
+}
+
+/** Map matrix coords onto this tablet's live cell boxes (pixel-accurate). */
+function matrixToCanvas(
+  point: CrewDrawPoint,
+  cells: HTMLElement[],
+  cols: number,
+  rows: number,
+  canvasRect: DOMRect,
+): { x: number; y: number } | null {
+  if (cells.length === 0) return null;
+  const c = Math.min(cols - 1e-9, Math.max(0, point.c));
+  const r = Math.min(rows - 1e-9, Math.max(0, point.r));
+  const col = Math.min(cols - 1, Math.floor(c));
+  const row = Math.min(rows - 1, Math.floor(r));
+  const u = c - col;
+  const v = r - row;
+  const index = row * cols + col;
+  const cell = cells[Math.min(cells.length - 1, index)];
+  if (!cell) return null;
+  const rect = cell.getBoundingClientRect();
+  return {
+    x: rect.left - canvasRect.left + u * rect.width,
+    y: rect.top - canvasRect.top + v * rect.height,
+  };
+}
+
 function strokePath(
   ctx: CanvasRenderingContext2D,
-  points: Pt[],
-  w: number,
-  h: number,
+  pixels: Array<{ x: number; y: number }>,
 ) {
-  if (points.length === 0) return;
-  const x0 = points[0].x * w;
-  const y0 = points[0].y * h;
+  if (pixels.length === 0) return;
   ctx.beginPath();
-  ctx.moveTo(x0, y0);
-  if (points.length === 1) {
-    ctx.lineTo(x0 + 0.01, y0);
+  ctx.moveTo(pixels[0].x, pixels[0].y);
+  if (pixels.length === 1) {
+    ctx.lineTo(pixels[0].x + 0.25, pixels[0].y);
     return;
   }
-  if (points.length === 2) {
-    ctx.lineTo(points[1].x * w, points[1].y * h);
-    return;
+  // Straight segments — keep arrow tips on the intended cell.
+  for (let i = 1; i < pixels.length; i += 1) {
+    ctx.lineTo(pixels[i].x, pixels[i].y);
   }
-  for (let i = 1; i < points.length - 1; i += 1) {
-    const x = points[i].x * w;
-    const y = points[i].y * h;
-    const nx = points[i + 1].x * w;
-    const ny = points[i + 1].y * h;
-    ctx.quadraticCurveTo(x, y, (x + nx) / 2, (y + ny) / 2);
-  }
-  const last = points[points.length - 1];
-  ctx.lineTo(last.x * w, last.y * h);
 }
 
 export function CrewDrawOverlay({
@@ -82,43 +193,60 @@ export function CrewDrawOverlay({
   drawing,
   color,
   annotateReady,
+  roomName = null,
   publishStroke,
   publishClear,
   subscribeAnnotate,
   onToggleDrawing,
   onColorChange,
 }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   const strokesRef = useRef<Map<string, CrewDrawStroke>>(new Map());
   const localIdsRef = useRef<Set<string>>(new Set());
   const activePointerRef = useRef<number | null>(null);
+  const liveStrokeRef = useRef<LiveStroke | null>(null);
   const drawingRef = useRef(drawing);
   const colorRef = useRef(color);
   const annotateReadyRef = useRef(annotateReady);
   const publishStrokeRef = useRef(publishStroke);
+  const roomRef = useRef(roomName);
   drawingRef.current = drawing;
   colorRef.current = color;
   annotateReadyRef.current = annotateReady;
   publishStrokeRef.current = publishStroke;
+  roomRef.current = roomName;
 
-  const liveStrokeRef = useRef<{
-    id: string;
-    color: string;
-    width: number;
-    points: Pt[];
-    pending: Array<[number, number]>;
-    flushTimer: number | null;
-  } | null>(null);
+  const [plane, setPlane] = useState<HTMLElement | null>(null);
   const [, bump] = useState(0);
+
+  const findPlane = useCallback(() => {
+    if (typeof document === "undefined") return null;
+    return document.querySelector<HTMLElement>("[data-crew-draw-plane]");
+  }, []);
+
+  useEffect(() => {
+    if (!active) {
+      setPlane(null);
+      return;
+    }
+    const sync = () => setPlane(findPlane());
+    sync();
+    const id = window.setInterval(sync, 500);
+    return () => window.clearInterval(id);
+  }, [active, findPlane, roomName]);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
-    const wrap = wrapRef.current;
-    if (!canvas || !wrap) return;
+    const planeEl =
+      canvas?.parentElement ??
+      document.querySelector<HTMLElement>("[data-crew-draw-plane]");
+    const grid = planeEl?.querySelector<HTMLElement>("[data-crew-grid]");
+    if (!canvas || !planeEl || !grid) return;
+
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = wrap.clientWidth;
-    const h = wrap.clientHeight;
+    const w = planeEl.clientWidth;
+    const h = planeEl.clientHeight;
     if (w <= 0 || h <= 0) return;
     if (
       canvas.width !== Math.round(w * dpr) ||
@@ -134,35 +262,62 @@ export function CrewDrawOverlay({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
+    const { cols, rows, cells } = readGridMeta(grid);
+    const canvasRect = canvas.getBoundingClientRect();
     const now = Date.now();
-    const minEdge = Math.min(w, h);
     const live = liveStrokeRef.current;
 
-    for (const stroke of strokesRef.current.values()) {
-      // Live stroke owns the pixels for its id — avoid double-draw / echo glitches.
-      if (live && stroke.id === live.id) continue;
-      if (stroke.points.length < 1) continue;
-      const life = stroke.expiresAt - now;
-      if (life <= 0) continue;
-      const fade = Math.min(1, life / 2800);
-      ctx.globalAlpha = 0.25 + 0.75 * fade;
+    const drawStroke = (stroke: {
+      id: string;
+      color: string;
+      width: number;
+      cols: number;
+      rows: number;
+      points: CrewDrawPoint[];
+      expiresAt?: number;
+    }) => {
+      if (stroke.points.length < 1) return;
+      if (stroke.expiresAt != null) {
+        const life = stroke.expiresAt - now;
+        if (life <= 0) return;
+        const fade = Math.min(1, life / 2800);
+        ctx.globalAlpha = 0.3 + 0.7 * fade;
+      } else {
+        ctx.globalAlpha = 1;
+      }
+      const useCols = stroke.cols || cols;
+      const useRows = stroke.rows || rows;
+      const pixels: Array<{ x: number; y: number }> = [];
+      for (const pt of stroke.points) {
+        const mapped = matrixToCanvas(
+          pt,
+          cells,
+          useCols,
+          useRows,
+          canvasRect,
+        );
+        if (mapped) pixels.push(mapped);
+      }
+      if (pixels.length === 0) return;
+      let minEdge = 24;
+      if (cells[0]) {
+        const r0 = cells[0].getBoundingClientRect();
+        minEdge = Math.min(r0.width, r0.height);
+      }
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = Math.max(2.5, stroke.width * minEdge);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      strokePath(ctx, stroke.points, w, h);
+      strokePath(ctx, pixels);
       ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
+      ctx.globalAlpha = 1;
+    };
 
-    if (live && live.points.length >= 1) {
-      ctx.strokeStyle = live.color;
-      ctx.lineWidth = Math.max(2.5, live.width * minEdge);
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      strokePath(ctx, live.points, w, h);
-      ctx.stroke();
+    for (const stroke of strokesRef.current.values()) {
+      if (live && stroke.id === live.id) continue;
+      drawStroke(stroke);
     }
+    if (live) drawStroke({ ...live, expiresAt: undefined });
   }, []);
 
   useEffect(() => {
@@ -187,13 +342,13 @@ export function CrewDrawOverlay({
   }, [active, paint]);
 
   useEffect(() => {
-    if (!active) return;
-    const wrap = wrapRef.current;
-    if (!wrap || typeof ResizeObserver === "undefined") return;
+    if (!active || !plane) return;
     const ro = new ResizeObserver(() => paint());
-    ro.observe(wrap);
+    ro.observe(plane);
+    const grid = plane.querySelector("[data-crew-grid]");
+    if (grid) ro.observe(grid);
     return () => ro.disconnect();
-  }, [active, paint]);
+  }, [active, plane, paint]);
 
   useEffect(() => {
     if (!active) return;
@@ -207,9 +362,10 @@ export function CrewDrawOverlay({
         bump((n) => n + 1);
         return;
       }
-      // Ignore our own Ably echo — re-appending chunks zigzagged back to the
-      // stroke start on iPad (sparse flushes). Local merge already has the ink.
       if (localIdsRef.current.has(event.stroke.id)) return;
+      const strokeRoom = event.stroke.room ?? null;
+      const here = roomRef.current ?? null;
+      if (strokeRoom && here && strokeRoom !== here) return;
 
       const prev = strokesRef.current.get(event.stroke.id);
       strokesRef.current.set(event.stroke.id, mergeStroke(prev, event.stroke));
@@ -218,22 +374,10 @@ export function CrewDrawOverlay({
     });
   }, [active, subscribeAnnotate, paint]);
 
-  // Native pointer listeners: coalesced events + preventDefault work better on iOS.
   useEffect(() => {
-    if (!active) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    function normFromClient(clientX: number, clientY: number): Pt | null {
-      const el = canvasRef.current;
-      if (!el) return null;
-      const rect = el.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return null;
-      return {
-        x: clamp01((clientX - rect.left) / rect.width),
-        y: clamp01((clientY - rect.top) / rect.height),
-      };
-    }
+    if (!active || !plane || !canvasEl) return;
+    const planeEl = plane;
+    const canvas = canvasEl;
 
     function flushPending(end = false) {
       const live = liveStrokeRef.current;
@@ -248,8 +392,11 @@ export function CrewDrawOverlay({
         id: live.id,
         color: live.color,
         width: live.width,
+        cols: live.cols,
+        rows: live.rows,
         pts,
         end: end || undefined,
+        room: roomRef.current ?? null,
       };
       const prev = strokesRef.current.get(live.id);
       strokesRef.current.set(live.id, mergeStroke(prev, msg));
@@ -257,21 +404,28 @@ export function CrewDrawOverlay({
       paint();
     }
 
-    function appendPoint(pt: Pt) {
+    function appendPoint(pt: CrewDrawPoint) {
       const live = liveStrokeRef.current;
       if (!live) return;
       const last = live.points[live.points.length - 1];
       if (last) {
-        const dx = pt.x - last.x;
-        const dy = pt.y - last.y;
-        // Slightly looser on touch so slow finger drags still register.
-        if (dx * dx + dy * dy < 0.000008) return;
+        const dc = pt.c - last.c;
+        const dr = pt.r - last.r;
+        // ~1.5% of a cell — keeps arrow corners crisp without dumping noise.
+        if (dc * dc + dr * dr < 0.0002) return;
       }
       live.points.push(pt);
-      live.pending.push([pt.x, pt.y]);
+      live.pending.push([pt.c, pt.r]);
       if (live.flushTimer == null) {
-        live.flushTimer = window.setTimeout(() => flushPending(false), 48);
+        live.flushTimer = window.setTimeout(() => flushPending(false), 40);
       }
+    }
+
+    function matrixFromEvent(e: PointerEvent): CrewDrawPoint | null {
+      const grid = planeEl.querySelector<HTMLElement>("[data-crew-grid]");
+      if (!grid) return null;
+      const { cols, rows, cells } = readGridMeta(grid);
+      return clientToMatrix(e.clientX, e.clientY, cells, cols, rows);
     }
 
     function onPointerDown(e: PointerEvent) {
@@ -279,27 +433,28 @@ export function CrewDrawOverlay({
       if (!e.isPrimary) return;
       if (activePointerRef.current != null) return;
       e.preventDefault();
-      const pt = normFromClient(e.clientX, e.clientY);
+      const grid = planeEl.querySelector<HTMLElement>("[data-crew-grid]");
+      if (!grid) return;
+      const { cols, rows } = readGridMeta(grid);
+      const pt = matrixFromEvent(e);
       if (!pt) return;
       activePointerRef.current = e.pointerId;
       const id = newStrokeId();
       localIdsRef.current.add(id);
-      const hex = colorHex(colorRef.current);
       liveStrokeRef.current = {
         id,
-        color: hex,
+        color: colorHex(colorRef.current),
         width: CREW_DRAW_WIDTH,
+        cols,
+        rows,
         points: [pt],
-        pending: [[pt.x, pt.y]],
+        pending: [[pt.c, pt.r]],
         flushTimer: null,
       };
-      // Avoid setPointerCapture on iOS — it can corrupt move coordinates.
-      const coarse =
-        typeof window !== "undefined" &&
-        window.matchMedia?.("(pointer: coarse)").matches;
+      const coarse = window.matchMedia?.("(pointer: coarse)").matches;
       if (!coarse) {
         try {
-          canvasRef.current?.setPointerCapture(e.pointerId);
+          canvas.setPointerCapture(e.pointerId);
         } catch {
           /* unsupported */
         }
@@ -312,13 +467,13 @@ export function CrewDrawOverlay({
       if (!drawingRef.current) return;
       if (activePointerRef.current !== e.pointerId) return;
       e.preventDefault();
-      const coalesced =
-        typeof e.getCoalescedEvents === "function"
+      const batch =
+        typeof e.getCoalescedEvents === "function" &&
+        e.getCoalescedEvents().length > 0
           ? e.getCoalescedEvents()
           : [e];
-      const batch = coalesced.length > 0 ? coalesced : [e];
       for (const ev of batch) {
-        const pt = normFromClient(ev.clientX, ev.clientY);
+        const pt = matrixFromEvent(ev);
         if (pt) appendPoint(pt);
       }
       paint();
@@ -330,10 +485,9 @@ export function CrewDrawOverlay({
       flushPending(true);
       liveStrokeRef.current = null;
       activePointerRef.current = null;
-      const el = canvasRef.current;
       try {
-        if (el?.hasPointerCapture(e.pointerId)) {
-          el.releasePointerCapture(e.pointerId);
+        if (canvas.hasPointerCapture(e.pointerId)) {
+          canvas.releasePointerCapture(e.pointerId);
         }
       } catch {
         /* already released */
@@ -356,7 +510,7 @@ export function CrewDrawOverlay({
       liveStrokeRef.current = null;
       activePointerRef.current = null;
     };
-  }, [active, paint]);
+  }, [active, plane, canvasEl, paint]);
 
   function clearAll() {
     strokesRef.current.clear();
@@ -370,13 +524,22 @@ export function CrewDrawOverlay({
 
   if (!active) return null;
 
+  const surface =
+    plane &&
+    createPortal(
+      <canvas
+        ref={(el) => {
+          canvasRef.current = el;
+          setCanvasEl(el);
+        }}
+        className={`crew-draw-canvas${drawing ? " is-drawing" : ""}`}
+      />,
+      plane,
+    );
+
   return (
-    <div
-      ref={wrapRef}
-      className={`crew-draw${drawing ? " is-drawing" : ""}`}
-      aria-hidden={!drawing}
-    >
-      <canvas ref={canvasRef} className="crew-draw-canvas" />
+    <div className={`crew-draw${drawing ? " is-drawing" : ""}`} aria-hidden={!drawing}>
+      {surface}
       <div className="crew-draw-tools" role="toolbar" aria-label="Shared draw">
         <button
           type="button"
@@ -384,7 +547,7 @@ export function CrewDrawOverlay({
           aria-pressed={drawing}
           title={
             annotateReady
-              ? "Draw on every crew tablet"
+              ? "Draw on the gear grid — marks line up on every Live tablet"
               : "Draw locally until Live connects"
           }
           onClick={onToggleDrawing}

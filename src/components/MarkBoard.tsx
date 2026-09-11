@@ -2107,6 +2107,7 @@ export function MarkBoard({
         drawing={crewDrawing}
         color={crewDrawColor}
         annotateReady={annotateReady}
+        roomName={showRoomGear ? focusRoom : null}
         publishStroke={publishStroke}
         publishClear={publishClear}
         subscribeAnnotate={subscribeAnnotate}
@@ -3535,6 +3536,7 @@ export function MarkBoard({
               : undefined
           }
           fillBusy={rackBusy}
+          crewSynced={crewMode}
         />
       ) : visibleWithRoomFocus.length === 0 ? (
         <div className="empty">
