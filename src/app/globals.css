@@ -2534,6 +2534,98 @@ a {
   margin-top: 0.35rem;
 }
 
+.phone-help-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 72;
+  display: grid;
+  align-items: end;
+}
+
+.phone-help-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in oklab, black 55%, transparent);
+  cursor: pointer;
+}
+
+.phone-help-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  max-height: min(88dvh, 40rem);
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 1.1rem 1.1rem 0 0;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  background: color-mix(in oklab, var(--panel-lift) 96%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.phone-help-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.phone-help-head strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.phone-help-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 0.85rem 1rem calc(1.25rem + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 1rem;
+}
+
+.phone-help-body h3 {
+  margin: 0 0 0.35rem;
+  font-size: var(--text-label);
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sea-bright);
+}
+
+.phone-help-body p,
+.phone-help-body li {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.phone-help-body p strong,
+.phone-help-body li strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.phone-help-body ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
 .progress-hud-top {
   display: flex;
   justify-content: space-between;

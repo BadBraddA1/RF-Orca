@@ -14,6 +14,7 @@ import { BrandLockup } from "@/components/BrandLockup";
 import {
   CheckIcon,
   GearIcon,
+  HelpIcon,
   KeepAwakeIcon,
   SearchIcon,
   ShareIcon,
@@ -422,6 +423,7 @@ export function MarkBoard({
   const wakeLockHandleRef = useRef<KeepAwakeHandle | null>(null);
   const wakeLockWantedRef = useRef(false);
   const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
+  const [phoneHelpOpen, setPhoneHelpOpen] = useState(false);
   const [deployRoomOpen, setDeployRoomOpen] = useState(false);
   const [deployFocus, setDeployFocus] = useState<{
     channelId: string;
@@ -784,6 +786,15 @@ export function MarkBoard({
       document.body.style.overflow = prev;
     };
   }, [isPhone, toolsOpen]);
+
+  useEffect(() => {
+    if (!phoneHelpOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [phoneHelpOpen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -2240,6 +2251,16 @@ export function MarkBoard({
             >
               <GearIcon />
             </button>
+            <button
+              type="button"
+              className={`icon-btn phone-only${phoneHelpOpen ? " active" : ""}`}
+              aria-expanded={phoneHelpOpen}
+              aria-label="How to use this board"
+              title="How to use"
+              onClick={() => setPhoneHelpOpen(true)}
+            >
+              <HelpIcon />
+            </button>
             {wakeLockSupported ? (
               <button
                 type="button"
@@ -3663,6 +3684,88 @@ export function MarkBoard({
                   {room.name}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {phoneHelpOpen ? (
+        <div
+          className="phone-help-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label="How to use this board"
+        >
+          <button
+            type="button"
+            className="phone-help-backdrop"
+            aria-label="Close help"
+            onClick={() => setPhoneHelpOpen(false)}
+          />
+          <div className="phone-help-panel">
+            <div className="phone-help-head">
+              <strong>How to use</strong>
+              <button
+                type="button"
+                className="chip"
+                onClick={() => setPhoneHelpOpen(false)}
+              >
+                Done
+              </button>
+            </div>
+            <div className="phone-help-body">
+              <section>
+                <h3>Deploy next</h3>
+                <p>
+                  Coordinator sets the floor group in Tools. Tap{" "}
+                  <strong>Deploy next</strong>, pick a room if asked, check the
+                  green card (room + Handheld/Lav), then <strong>Press here</strong>.
+                  Hold <strong>Hold to exit</strong> to leave without deploying.
+                </p>
+              </section>
+              <section>
+                <h3>Keep screen on</h3>
+                <p>
+                  The phone icon next to Tools keeps the display awake on a stand.
+                  Tap again when you’re done — it is not a board lock.
+                </p>
+              </section>
+              <section>
+                <h3>Header icons</h3>
+                <ul>
+                  <li>
+                    <strong>Share</strong> — send the crew board link (never the
+                    BO Lead link by mistake).
+                  </li>
+                  <li>
+                    <strong>Search</strong> — find a channel by name or MHz.
+                  </li>
+                  <li>
+                    <strong>Tools</strong> — unlock coordinator options (import,
+                    rooms, groups, Deploy next group).
+                  </li>
+                  <li>
+                    <strong>?</strong> — this help sheet.
+                  </li>
+                </ul>
+              </section>
+              <section>
+                <h3>List sections</h3>
+                <p>
+                  Tap a group or room heading caret to open or close that
+                  section. No extra sort chips on phone.
+                </p>
+              </section>
+              {features.rooms ? (
+                <section>
+                  <h3>My room</h3>
+                  <p>
+                    Optional focus: show channels for one room while you browse
+                    the list. Deploy next still asks for the room when you
+                    deploy.
+                  </p>
+                </section>
+              ) : null}
             </div>
           </div>
         </div>
