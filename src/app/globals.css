@@ -3306,6 +3306,7 @@ a {
   pointer-events: auto;
   touch-action: none;
   cursor: crosshair;
+  z-index: 8;
 }
 
 .mic-rack-draw-host {
@@ -3321,9 +3322,18 @@ a {
   overscroll-behavior: contain;
 }
 
+.board--crew .mic-rack-draw-host.is-drawing {
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
 .mic-rack-draw-plane {
   position: relative;
   min-width: 0;
+}
+
+.mic-rack-draw-plane.is-drawing {
+  touch-action: none;
 }
 
 .board--crew .mic-rack-grid {

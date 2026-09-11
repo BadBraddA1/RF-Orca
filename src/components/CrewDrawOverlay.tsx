@@ -200,11 +200,13 @@ export function CrewDrawOverlay({
   onToggleDrawing,
   onColorChange,
 }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [plane, setPlane] = useState<HTMLElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const strokesRef = useRef<Map<string, CrewDrawStroke>>(new Map());
   const localIdsRef = useRef<Set<string>>(new Set());
   const activePointerRef = useRef<number | null>(null);
+  const activeTypeRef = useRef<string | null>(null);
   const liveStrokeRef = useRef<LiveStroke | null>(null);
   const drawingRef = useRef(drawing);
   const colorRef = useRef(color);
@@ -217,7 +219,6 @@ export function CrewDrawOverlay({
   publishStrokeRef.current = publishStroke;
   roomRef.current = roomName;
 
-  const [plane, setPlane] = useState<HTMLElement | null>(null);
   const [, bump] = useState(0);
 
   const findPlane = useCallback(() => {
@@ -375,9 +376,56 @@ export function CrewDrawOverlay({
   }, [active, subscribeAnnotate, paint]);
 
   useEffect(() => {
+    if (!active || !plane) return;
+    plane.classList.toggle("is-drawing", drawing);
+    const host = plane.closest("[data-crew-draw-host]");
+    host?.classList.toggle("is-drawing", drawing);
+    return () => {
+      plane.classList.remove("is-drawing");
+      host?.classList.remove("is-drawing");
+    };
+  }, [active, plane, drawing]);
+
+  useEffect(() => {
     if (!active || !plane || !canvasEl) return;
     const planeEl = plane;
     const canvas = canvasEl;
+
+    function endStroke() {
+      const live = liveStrokeRef.current;
+      if (live?.flushTimer != null) {
+        window.clearTimeout(live.flushTimer);
+        live.flushTimer = null;
+      }
+      if (live && live.pending.length > 0) {
+        const pts = live.pending.splice(0, live.pending.length);
+        const msg: CrewStrokeMsg = {
+          id: live.id,
+          color: live.color,
+          width: live.width,
+          cols: live.cols,
+          rows: live.rows,
+          pts,
+          end: true,
+          room: roomRef.current ?? null,
+        };
+        const prev = strokesRef.current.get(live.id);
+        strokesRef.current.set(live.id, mergeStroke(prev, msg));
+        if (annotateReadyRef.current) publishStrokeRef.current(msg);
+      } else if (live) {
+        const prev = strokesRef.current.get(live.id);
+        if (prev) {
+          strokesRef.current.set(live.id, {
+            ...prev,
+            expiresAt: Date.now() + CREW_STROKE_TTL_MS,
+          });
+        }
+      }
+      liveStrokeRef.current = null;
+      activePointerRef.current = null;
+      activeTypeRef.current = null;
+      paint();
+    }
 
     function flushPending(end = false) {
       const live = liveStrokeRef.current;
@@ -411,13 +459,14 @@ export function CrewDrawOverlay({
       if (last) {
         const dc = pt.c - last.c;
         const dr = pt.r - last.r;
-        // ~1.5% of a cell — keeps arrow corners crisp without dumping noise.
-        if (dc * dc + dr * dr < 0.0002) return;
+        // Tighter for pen, looser for finger.
+        const min = activeTypeRef.current === "pen" ? 0.00005 : 0.0002;
+        if (dc * dc + dr * dr < min) return;
       }
       live.points.push(pt);
       live.pending.push([pt.c, pt.r]);
       if (live.flushTimer == null) {
-        live.flushTimer = window.setTimeout(() => flushPending(false), 40);
+        live.flushTimer = window.setTimeout(() => flushPending(false), 32);
       }
     }
 
@@ -428,17 +477,14 @@ export function CrewDrawOverlay({
       return clientToMatrix(e.clientX, e.clientY, cells, cols, rows);
     }
 
-    function onPointerDown(e: PointerEvent) {
-      if (!drawingRef.current) return;
-      if (!e.isPrimary) return;
-      if (activePointerRef.current != null) return;
-      e.preventDefault();
+    function startStroke(e: PointerEvent) {
       const grid = planeEl.querySelector<HTMLElement>("[data-crew-grid]");
       if (!grid) return;
       const { cols, rows } = readGridMeta(grid);
       const pt = matrixFromEvent(e);
       if (!pt) return;
       activePointerRef.current = e.pointerId;
+      activeTypeRef.current = e.pointerType || "mouse";
       const id = newStrokeId();
       localIdsRef.current.add(id);
       liveStrokeRef.current = {
@@ -451,16 +497,40 @@ export function CrewDrawOverlay({
         pending: [[pt.c, pt.r]],
         flushTimer: null,
       };
-      const coarse = window.matchMedia?.("(pointer: coarse)").matches;
-      if (!coarse) {
-        try {
-          canvas.setPointerCapture(e.pointerId);
-        } catch {
-          /* unsupported */
-        }
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {
+        /* unsupported */
       }
       flushPending(false);
       paint();
+    }
+
+    function onPointerDown(e: PointerEvent) {
+      if (!drawingRef.current) return;
+
+      // Palm / non-primary touch — let Apple Pencil through.
+      if (e.pointerType === "touch" && !e.isPrimary) return;
+
+      // Pencil preempts an in-progress finger stroke (common with palm rest).
+      if (e.pointerType === "pen") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (
+          activePointerRef.current != null &&
+          activePointerRef.current !== e.pointerId
+        ) {
+          endStroke();
+        }
+        startStroke(e);
+        return;
+      }
+
+      if (!e.isPrimary) return;
+      if (activePointerRef.current != null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      startStroke(e);
     }
 
     function onPointerMove(e: PointerEvent) {
@@ -476,6 +546,20 @@ export function CrewDrawOverlay({
         const pt = matrixFromEvent(ev);
         if (pt) appendPoint(pt);
       }
+      // Predicted points (Safari / Pencil) — smoother without waiting.
+      const predicted =
+        typeof (e as PointerEvent & { getPredictedEvents?: () => PointerEvent[] })
+          .getPredictedEvents === "function"
+          ? (
+              e as PointerEvent & {
+                getPredictedEvents: () => PointerEvent[];
+              }
+            ).getPredictedEvents()
+          : [];
+      for (const ev of predicted) {
+        const pt = matrixFromEvent(ev);
+        if (pt) appendPoint(pt);
+      }
       paint();
     }
 
@@ -485,6 +569,7 @@ export function CrewDrawOverlay({
       flushPending(true);
       liveStrokeRef.current = null;
       activePointerRef.current = null;
+      activeTypeRef.current = null;
       try {
         if (canvas.hasPointerCapture(e.pointerId)) {
           canvas.releasePointerCapture(e.pointerId);
@@ -495,20 +580,23 @@ export function CrewDrawOverlay({
       paint();
     }
 
+    function onLostCapture() {
+      if (liveStrokeRef.current) endStroke();
+    }
+
     canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
     canvas.addEventListener("pointermove", onPointerMove, { passive: false });
     canvas.addEventListener("pointerup", onPointerUp, { passive: false });
     canvas.addEventListener("pointercancel", onPointerUp, { passive: false });
+    canvas.addEventListener("lostpointercapture", onLostCapture);
 
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerUp);
-      const live = liveStrokeRef.current;
-      if (live?.flushTimer != null) window.clearTimeout(live.flushTimer);
-      liveStrokeRef.current = null;
-      activePointerRef.current = null;
+      canvas.removeEventListener("lostpointercapture", onLostCapture);
+      if (liveStrokeRef.current) endStroke();
     };
   }, [active, plane, canvasEl, paint]);
 
@@ -517,6 +605,7 @@ export function CrewDrawOverlay({
     localIdsRef.current.clear();
     liveStrokeRef.current = null;
     activePointerRef.current = null;
+    activeTypeRef.current = null;
     paint();
     if (annotateReady) publishClear();
     bump((n) => n + 1);
@@ -530,7 +619,7 @@ export function CrewDrawOverlay({
       <canvas
         ref={(el) => {
           canvasRef.current = el;
-          setCanvasEl(el);
+          setCanvasEl((prev) => (prev === el ? prev : el));
         }}
         className={`crew-draw-canvas${drawing ? " is-drawing" : ""}`}
       />,
