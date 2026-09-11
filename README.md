@@ -17,7 +17,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 - Home → **New Show** + **Happening now** (shows created in the last 10 days; older ones drop off the list but are not deleted)
 - Create with an **admin password**
 - Crews open the show link → **mark view** (stage room + Deploy), no login
-- Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms
+- Quiet **Coordinator / Tools** control unlocks import, hand-entry, groups, rooms. On phone the gear opens a **full-screen Tools page** (Done to return to the board) so coordinators aren’t fighting the channel list.
 - **BO Lead link** — Tools → Copy BO Lead link; floor lead can undeploy and change staged rooms without the coordinator password (no Tools). Regenerate invalidates old links
 - **Undo** — with Tools unlocked, header **Undo** (or ⌘Z / Ctrl+Z) reverses the last channel edit, bulk stage room, or bulk group (session stack; deletes aren’t undoable)
 - **Rename show** — Tools → Show name → Rename (share link stays the same)

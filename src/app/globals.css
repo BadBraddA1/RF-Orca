@@ -2603,6 +2603,14 @@ a {
   box-shadow: var(--shadow);
 }
 
+.tools-panel-scroll {
+  display: contents;
+}
+
+.tools-sheet-bar {
+  display: none;
+}
+
 .tools-whisper {
   margin: 0;
   font-size: var(--text-label);
@@ -3887,6 +3895,55 @@ a {
 
   .tools-panel {
     padding: 0.85rem;
+  }
+
+  .tools-panel--sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--navy);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tools-panel--sheet .tools-sheet-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex: 0 0 auto;
+    padding: max(0.65rem, env(safe-area-inset-top)) 0.85rem 0.65rem;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in oklab, var(--panel-lift) 96%, transparent);
+  }
+
+  .tools-panel--sheet .tools-sheet-bar strong {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .tools-panel--sheet .tools-panel-scroll {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 0.85rem 0.85rem calc(1.25rem + env(safe-area-inset-bottom));
+  }
+
+  .tools-panel--sheet .tools-body {
+    display: grid;
+    gap: 1rem;
   }
 
   .site-footer {

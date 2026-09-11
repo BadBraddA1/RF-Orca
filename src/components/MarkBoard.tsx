@@ -772,6 +772,15 @@ export function MarkBoard({
   }, [phoneSearchOpen]);
 
   useEffect(() => {
+    if (!isPhone || !toolsOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isPhone, toolsOpen]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
     const bo = url.searchParams.get("bo");
@@ -2756,7 +2765,25 @@ export function MarkBoard({
       ) : null}
 
       {!crewMode && toolsOpen ? (
-        <aside className="tools-panel" aria-label="Coordinator tools">
+        <aside
+          className={`tools-panel${isPhone ? " tools-panel--sheet" : ""}`}
+          aria-label="Coordinator tools"
+          role={isPhone ? "dialog" : undefined}
+          aria-modal={isPhone ? true : undefined}
+        >
+          {isPhone ? (
+            <div className="tools-sheet-bar">
+              <strong>{admin ? "Tools" : "Coordinator"}</strong>
+              <button
+                type="button"
+                className="chip"
+                onClick={() => setToolsOpen(false)}
+              >
+                Done
+              </button>
+            </div>
+          ) : null}
+          <div className="tools-panel-scroll">
           {!admin ? (
             <form className="tools-unlock" onSubmit={(e) => void unlock(e)}>
               <p className="tools-whisper">Unlock coordinator tools</p>
@@ -3293,6 +3320,7 @@ export function MarkBoard({
               </div>
             </div>
           )}
+          </div>
         </aside>
       ) : null}
 
