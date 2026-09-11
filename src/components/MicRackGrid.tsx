@@ -148,137 +148,129 @@ export function MicRackGrid({
     mode === "room" ? roomChannels.filter((c) => c.deployed).length : 0;
 
   if (mode === "room") {
+    const roomCols = crewGridCols(roomChannels.length);
     return (
-      <div className="mic-rack mic-rack--room">
-        <div className="mic-rack-hud" role="status">
-          <div className="mic-rack-hud-main">
-            <strong>{roomName}</strong>
-            <span>
-              {roomChannels.length} gear
-              {features.deploy
-                ? ` · ${deployedCount} deployed`
-                : ""}
-              {features.assignments ? ` · ${inUseCount} in use` : ""}
-            </span>
-          </div>
-          {onChangeRoom ? (
-            <button type="button" className="chip" onClick={onChangeRoom}>
-              Change room
-            </button>
-          ) : null}
-        </div>
-
-        {roomChannels.length === 0 ? (
-          <div className="empty">
-            Nothing staged or deployed in {roomName} yet.
-            {admin
-              ? " Stage channels to this room from List, then come back."
-              : ""}
-          </div>
-        ) : (
-          <div className="mic-rack-draw-host" data-crew-draw-host>
-            <div className="mic-rack-draw-plane" data-crew-draw-plane>
-              <div
-                className={`mic-rack-grid mic-rack-grid--room${crewSynced ? " mic-rack-grid--crew" : ""}`}
-                role="list"
-                aria-label={`Gear in ${roomName}`}
-                data-crew-grid=""
-                data-crew-cols={String(crewGridCols(roomChannels.length))}
-                data-crew-count={String(roomChannels.length)}
-                data-crew-room={roomName ?? ""}
-                style={
-                  crewSynced
-                    ? ({
-                        ["--crew-cols"]: String(
-                          crewGridCols(roomChannels.length),
-                        ),
-                      } as CSSProperties)
-                    : undefined
-                }
-              >
-                {roomChannels.map((channel, index) => (
-                  <RackCell
-                    key={channel.id}
-                    slot={channel.rackSlot ?? 0}
-                    channel={channel}
-                    features={features}
-                    admin={admin}
-                    elevated={canMark}
-                    frozen={features.crewLocked && !canMark}
-                    assigneeNames={assigneeNames}
-                    roomMode
-                    crewIndex={index}
-                    flashing={Boolean(flashIds?.[channel.id])}
-                    lastChanged={Boolean(lastChangeIds?.includes(channel.id))}
-                    onPatch={onPatch}
-                  />
-                ))}
-              </div>
+      <div
+        className="mic-rack mic-rack--room mic-rack-draw-host"
+        data-crew-draw-host=""
+      >
+        <div className="mic-rack-draw-plane" data-crew-draw-plane="">
+          <div className="mic-rack-hud" role="status">
+            <div className="mic-rack-hud-main">
+              <strong>{roomName}</strong>
+              <span>
+                {roomChannels.length} gear
+                {features.deploy ? ` · ${deployedCount} deployed` : ""}
+                {features.assignments ? ` · ${inUseCount} in use` : ""}
+              </span>
             </div>
+            {onChangeRoom ? (
+              <button type="button" className="chip" onClick={onChangeRoom}>
+                Change room
+              </button>
+            ) : null}
           </div>
-        )}
+
+          {roomChannels.length === 0 ? (
+            <div className="empty">
+              Nothing staged or deployed in {roomName} yet.
+              {admin
+                ? " Stage channels to this room from List, then come back."
+                : ""}
+            </div>
+          ) : (
+            <div
+              className={`mic-rack-grid mic-rack-grid--room${crewSynced ? " mic-rack-grid--crew" : ""}`}
+              role="list"
+              aria-label={`Gear in ${roomName}`}
+              data-crew-grid=""
+              data-crew-cols={String(roomCols)}
+              data-crew-count={String(roomChannels.length)}
+              data-crew-room={roomName ?? ""}
+              style={
+                crewSynced
+                  ? ({ ["--crew-cols"]: String(roomCols) } as CSSProperties)
+                  : undefined
+              }
+            >
+              {roomChannels.map((channel, index) => (
+                <RackCell
+                  key={channel.id}
+                  slot={channel.rackSlot ?? 0}
+                  channel={channel}
+                  features={features}
+                  admin={admin}
+                  elevated={canMark}
+                  frozen={features.crewLocked && !canMark}
+                  assigneeNames={assigneeNames}
+                  roomMode
+                  crewIndex={index}
+                  flashing={Boolean(flashIds?.[channel.id])}
+                  lastChanged={Boolean(lastChangeIds?.includes(channel.id))}
+                  onPatch={onPatch}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mic-rack">
-      <div className="mic-rack-hud" role="status">
-        <strong>
-          {rackCols}×{rackRows} · {size} ch · {inUseCount} in use
-        </strong>
-        {emptyCount > 0 && admin && onFillEmpty ? (
-          <button
-            type="button"
-            className="btn-quiet"
-            disabled={fillBusy}
-            onClick={() => void onFillEmpty()}
-          >
-            Fill {emptyCount} empty
-          </button>
-        ) : emptyCount > 0 ? (
-          <span>{emptyCount} empty</span>
-        ) : null}
-      </div>
+    <div className="mic-rack mic-rack-draw-host" data-crew-draw-host="">
+      <div className="mic-rack-draw-plane" data-crew-draw-plane="">
+        <div className="mic-rack-hud" role="status">
+          <strong>
+            {rackCols}×{rackRows} · {size} ch · {inUseCount} in use
+          </strong>
+          {emptyCount > 0 && admin && onFillEmpty ? (
+            <button
+              type="button"
+              className="btn-quiet"
+              disabled={fillBusy}
+              onClick={() => void onFillEmpty()}
+            >
+              Fill {emptyCount} empty
+            </button>
+          ) : emptyCount > 0 ? (
+            <span>{emptyCount} empty</span>
+          ) : null}
+        </div>
 
-      <div className="mic-rack-draw-host" data-crew-draw-host>
-        <div className="mic-rack-draw-plane" data-crew-draw-plane>
-          <div
-            className={`mic-rack-grid${crewSynced ? " mic-rack-grid--crew" : ""}`}
-            style={
-              {
-                ["--rack-cols"]: String(rackCols),
-                ...(crewSynced
-                  ? { ["--crew-cols"]: String(rackCols) }
-                  : null),
-              } as CSSProperties
-            }
-            role="list"
-            aria-label={`${rackCols} by ${rackRows} mic rack`}
-            data-crew-grid=""
-            data-crew-cols={String(rackCols)}
-            data-crew-count={String(size)}
-            data-crew-room=""
-          >
-            {slots.map(({ slot, channel }, index) => (
-              <RackCell
-                key={slot}
-                slot={slot}
-                channel={channel}
-                features={features}
-                admin={admin}
-                elevated={canMark}
-                frozen={features.crewLocked && !canMark}
-                assigneeNames={assigneeNames}
-                crewIndex={index}
-                flashing={Boolean(channel && flashIds?.[channel.id])}
-                lastChanged={Boolean(
-                  channel && lastChangeIds?.includes(channel.id),
-                )}
-                onPatch={onPatch}
-              />
-            ))}
-          </div>
+        <div
+          className={`mic-rack-grid${crewSynced ? " mic-rack-grid--crew" : ""}`}
+          style={
+            {
+              ["--rack-cols"]: String(rackCols),
+              ...(crewSynced ? { ["--crew-cols"]: String(rackCols) } : null),
+            } as CSSProperties
+          }
+          role="list"
+          aria-label={`${rackCols} by ${rackRows} mic rack`}
+          data-crew-grid=""
+          data-crew-cols={String(rackCols)}
+          data-crew-count={String(size)}
+          data-crew-room=""
+        >
+          {slots.map(({ slot, channel }, index) => (
+            <RackCell
+              key={slot}
+              slot={slot}
+              channel={channel}
+              features={features}
+              admin={admin}
+              elevated={canMark}
+              frozen={features.crewLocked && !canMark}
+              assigneeNames={assigneeNames}
+              crewIndex={index}
+              flashing={Boolean(channel && flashIds?.[channel.id])}
+              lastChanged={Boolean(
+                channel && lastChangeIds?.includes(channel.id),
+              )}
+              onPatch={onPatch}
+            />
+          ))}
         </div>
       </div>
     </div>

@@ -3314,9 +3314,12 @@ a {
   min-width: 0;
 }
 
+.board--crew .mic-rack.mic-rack-draw-host,
 .board--crew .mic-rack-draw-host {
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -3330,10 +3333,35 @@ a {
 .mic-rack-draw-plane {
   position: relative;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fill the open navy area under short gear rows so ink works there too. */
+.board--crew .mic-rack-draw-plane {
+  flex: 1 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .mic-rack-draw-plane.is-drawing {
   touch-action: none;
+}
+
+.board--crew .mic-rack-draw-plane > .mic-rack-hud {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 9;
+}
+
+.board--crew .mic-rack-draw-plane > .mic-rack-grid {
+  flex: 0 0 auto;
+}
+
+.board--crew .mic-rack-draw-plane > .empty {
+  flex: 0 0 auto;
 }
 
 .board--crew .mic-rack-grid {

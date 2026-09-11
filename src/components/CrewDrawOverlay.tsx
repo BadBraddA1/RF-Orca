@@ -244,9 +244,36 @@ export function CrewDrawOverlay({
 
   useEffect(() => {
     if (!active || !plane) return;
-    const ro = new ResizeObserver(() => paint());
+    const host = plane.closest("[data-crew-draw-host]") as HTMLElement | null;
+
+    function syncPlaneSize() {
+      if (!host) {
+        plane.style.minHeight = "";
+        return;
+      }
+      // Cover the full open rack area, not just the gear row height.
+      const hostH = host.clientHeight;
+      const contentH = Math.max(
+        plane.scrollHeight,
+        [...plane.children].reduce((sum, el) => {
+          if ((el as HTMLElement).tagName === "CANVAS") return sum;
+          return sum + (el as HTMLElement).offsetHeight;
+        }, 0),
+      );
+      plane.style.minHeight = `${Math.max(hostH, contentH)}px`;
+      paint();
+    }
+
+    syncPlaneSize();
+    const ro = new ResizeObserver(() => syncPlaneSize());
+    ro.observe(host ?? plane);
     ro.observe(plane);
-    return () => ro.disconnect();
+    window.addEventListener("resize", syncPlaneSize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", syncPlaneSize);
+      plane.style.minHeight = "";
+    };
   }, [active, plane, paint]);
 
   useEffect(() => {
