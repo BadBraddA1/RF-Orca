@@ -157,6 +157,11 @@ export type Show = {
   /** Saved names (talent / wearers) for drop-in assignment. */
   people: Person[];
   features: ShowFeatures;
+  /**
+   * Coordinator-picked channel group for floor “Deploy next”.
+   * Crew works through undeployed channels in this group without filtering.
+   */
+  deployGroupName: string | null;
   /** A2 rack columns (width of the grid). */
   rackCols: number;
   /** A2 rack rows (height of the grid). */

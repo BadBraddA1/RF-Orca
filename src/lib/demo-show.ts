@@ -88,6 +88,7 @@ export function buildDemoShow(): ShowPublic {
       assignments: true,
       status: true,
     },
+    deployGroupName: "Vocals",
     rackCols: DEFAULT_RACK_LAYOUT.cols,
     rackRows: DEFAULT_RACK_LAYOUT.rows,
     people: [

@@ -402,6 +402,13 @@ export function MarkBoard({
     { id: string; message: string }[]
   >([]);
   const seenActivityIdRef = useRef<string | null>(null);
+  const [wakeLockOn, setWakeLockOn] = useState(false);
+  const [wakeLockSupported, setWakeLockSupported] = useState(false);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const wakeLockWantedRef = useRef(false);
+  const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
+  const [deployRoomOpen, setDeployRoomOpen] = useState(false);
+  const [deployNextBusy, setDeployNextBusy] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [rackBusy, setRackBusy] = useState(false);
@@ -665,6 +672,63 @@ export function MarkBoard({
   }, [isPhone, boardView]);
 
   useEffect(() => {
+    setWakeLockSupported(
+      typeof navigator !== "undefined" && "wakeLock" in navigator,
+    );
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    const current = wakeLockRef.current;
+    wakeLockRef.current = null;
+    if (!current) {
+      setWakeLockOn(false);
+      return;
+    }
+    try {
+      await current.release();
+    } catch {
+      /* already released */
+    }
+    setWakeLockOn(false);
+  }, []);
+
+  const requestWakeLock = useCallback(async () => {
+    if (typeof navigator === "undefined" || !("wakeLock" in navigator)) {
+      setWakeLockSupported(false);
+      return false;
+    }
+    try {
+      const sentinel = await navigator.wakeLock.request("screen");
+      wakeLockRef.current = sentinel;
+      setWakeLockOn(true);
+      sentinel.addEventListener("release", () => {
+        if (wakeLockRef.current === sentinel) {
+          wakeLockRef.current = null;
+          setWakeLockOn(false);
+        }
+      });
+      return true;
+    } catch {
+      setWakeLockOn(false);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState !== "visible") return;
+      if (!wakeLockWantedRef.current) return;
+      void requestWakeLock();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      wakeLockWantedRef.current = false;
+      void releaseWakeLock();
+    };
+  }, [requestWakeLock, releaseWakeLock]);
+
+  useEffect(() => {
     const latest = show.activity?.[0];
     if (!latest) return;
     if (seenActivityIdRef.current === null) {
@@ -692,6 +756,12 @@ export function MarkBoard({
     setActivityToasts((prev) => [...incoming, ...prev].slice(0, 3));
   }, [show.activity, isPhone]);
 
+
+  useEffect(() => {
+    if (!phoneSearchOpen) return;
+    const id = window.setTimeout(() => searchInputRef.current?.focus(), 30);
+    return () => window.clearTimeout(id);
+  }, [phoneSearchOpen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1081,6 +1151,101 @@ export function MarkBoard({
     } finally {
       setSettingsBusy(false);
     }
+  }
+
+  async function patchDeployGroup(groupName: string | null) {
+    if (!admin || settingsBusy) return;
+    setSettingsBusy(true);
+    try {
+      const res = await fetch(`/api/shows/${token}/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deployGroupName: groupName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not save deploy group");
+        return;
+      }
+      applyShow(data.show);
+    } finally {
+      setSettingsBusy(false);
+    }
+  }
+
+  async function toggleWakeLock() {
+    if (wakeLockOn || wakeLockRef.current) {
+      wakeLockWantedRef.current = false;
+      await releaseWakeLock();
+      return;
+    }
+    wakeLockWantedRef.current = true;
+    const ok = await requestWakeLock();
+    if (!ok) {
+      wakeLockWantedRef.current = false;
+      alert("Could not keep the screen on on this device.");
+    }
+  }
+
+  function findNextUndeployed(): Channel | null {
+    const group = show.deployGroupName?.trim() || null;
+    for (const channel of show.channels) {
+      if (channel.deployed) continue;
+      if (group && channel.groupName !== group) continue;
+      return channel;
+    }
+    return null;
+  }
+
+  function focusChannel(channelId: string) {
+    setHighlightId(channelId);
+    const el = document.getElementById(`ch-${channelId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => setHighlightId(null), 1600);
+  }
+
+  async function deployNextIntoRoom(roomName: string | null) {
+    if (deployNextBusy || !features.deploy) return;
+    const next = findNextUndeployed();
+    if (!next) {
+      alert(
+        show.deployGroupName
+          ? `No open channels left in ${show.deployGroupName}.`
+          : "No open channels left to deploy.",
+      );
+      setDeployRoomOpen(false);
+      return;
+    }
+    setDeployNextBusy(true);
+    try {
+      const patch: ChannelUndoPatch = { deployed: true };
+      if (roomName) patch.roomName = roomName;
+      await patchChannel(next.id, patch, { undoToast: true });
+      if (roomName) ensureSectionOpen("room", roomName);
+      if (next.groupName) ensureSectionOpen("group", next.groupName);
+      focusChannel(next.id);
+      setDeployRoomOpen(false);
+    } finally {
+      setDeployNextBusy(false);
+    }
+  }
+
+  function startDeployNext() {
+    if (!features.deploy || deployNextBusy) return;
+    const next = findNextUndeployed();
+    if (!next) {
+      alert(
+        show.deployGroupName
+          ? `No open channels left in ${show.deployGroupName}.`
+          : "No open channels left to deploy.",
+      );
+      return;
+    }
+    if (features.rooms && show.rooms.length > 0) {
+      setDeployRoomOpen(true);
+      return;
+    }
+    void deployNextIntoRoom(null);
   }
 
   async function patchRack(body: {
@@ -1952,6 +2117,22 @@ export function MarkBoard({
             >
               <GearIcon />
             </button>
+            {wakeLockSupported ? (
+              <button
+                type="button"
+                className={`icon-btn phone-only wake-lock-btn${wakeLockOn ? " active" : ""}`}
+                onClick={() => void toggleWakeLock()}
+                aria-pressed={wakeLockOn}
+                aria-label={
+                  wakeLockOn ? "Always-on display on" : "Keep screen on"
+                }
+                title={
+                  wakeLockOn ? "Always-on display on" : "Keep screen on"
+                }
+              >
+                <WakeLockIcon active={wakeLockOn} />
+              </button>
+            ) : null}
           </div>
         </header>
       )}
@@ -1960,7 +2141,11 @@ export function MarkBoard({
         <div className="board-desk">
           <aside className="board-rail" aria-label="Board overview">
       {!crewMode && features.deploy ? (
-        <div className="progress-hud" role="status" ref={progressHudRef}>
+        <div
+          className={`progress-hud${isPhone ? " progress-hud--phone" : ""}`}
+          role="status"
+          ref={progressHudRef}
+        >
           <div className="progress-hud-top">
             <strong>
               {counts.deployed}/{counts.all} deployed
@@ -1973,7 +2158,35 @@ export function MarkBoard({
               style={{ transform: `scaleX(${pct / 100})` }}
             />
           </div>
-          {features.assignments ? (
+          {isPhone && features.deploy ? (
+            <div className="progress-phone-actions">
+              <button
+                type="button"
+                className="deploy-next-btn"
+                disabled={
+                  deployNextBusy || (features.crewLocked && !elevated)
+                }
+                onClick={() => startDeployNext()}
+              >
+                {deployNextBusy
+                  ? "Deploying…"
+                  : show.deployGroupName
+                    ? `Deploy next · ${show.deployGroupName}`
+                    : "Deploy next"}
+              </button>
+              {groupProgress.length > 0 ? (
+                <button
+                  type="button"
+                  className="progress-groups-more"
+                  aria-expanded={groupsExpanded}
+                  onClick={() => setGroupsExpanded((v) => !v)}
+                >
+                  {groupsExpanded ? "Hide groups" : "Groups"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {features.assignments && !isPhone ? (
             <div className="progress-assign">
               <strong>
                 {counts.inuse}/{counts.all} in use · {counts.assigned} assigned
@@ -1981,7 +2194,7 @@ export function MarkBoard({
               <span>{usePct}%</span>
             </div>
           ) : null}
-          {groupProgress.length > 0 ? (
+          {groupProgress.length > 0 && (!isPhone || groupsExpanded) ? (
             <div
               className="progress-groups"
               data-expanded={groupsExpanded ? "true" : undefined}
@@ -1995,7 +2208,7 @@ export function MarkBoard({
                   </span>
                 </span>
               ))}
-              {hiddenGroupCount > 0 ? (
+              {!isPhone && hiddenGroupCount > 0 ? (
                 <button
                   type="button"
                   className="progress-groups-more"
@@ -2359,7 +2572,25 @@ export function MarkBoard({
 
       {!crewMode ? (
       <div className="board-toolbar">
-        <label className="search-field desk-only">
+        <button
+          type="button"
+          className={`icon-btn phone-only${phoneSearchOpen || search ? " active" : ""}`}
+          aria-expanded={phoneSearchOpen}
+          aria-label={phoneSearchOpen ? "Hide search" : "Search channels"}
+          title="Search"
+          onClick={() => {
+            setPhoneSearchOpen((open) => {
+              const next = !open;
+              if (!next) setSearch("");
+              return next;
+            });
+          }}
+        >
+          <SearchIcon />
+        </button>
+        <label
+          className={`search-field${isPhone ? (phoneSearchOpen ? "" : " desk-only") : ""}`}
+        >
           <span className="sr-only">Search channels</span>
           <input
             ref={searchInputRef}
@@ -2555,6 +2786,24 @@ export function MarkBoard({
                   </label>
                 ))}
               </div>
+
+              {features.groups && features.deploy ? (
+                <div className="deploy-group-tools" aria-label="Floor deploy group">
+                  <p className="tools-whisper">Floor deploy group</p>
+                  <p className="form-hint">
+                    Crew taps Deploy next and walks undeployed channels in this
+                    group. With rooms on, they pick the room first, then deploy.
+                  </p>
+                  <ChoiceMenu
+                    label="Deploy group"
+                    value={show.deployGroupName}
+                    options={savedGroupNames}
+                    emptyLabel="All groups"
+                    allowAdd={false}
+                    onPick={(name) => void patchDeployGroup(name)}
+                  />
+                </div>
+              ) : null}
 
               <div className="bo-lead-tools" aria-label="BO Lead link">
                 <p className="tools-whisper">BO Lead link</p>
@@ -3236,6 +3485,49 @@ export function MarkBoard({
         </div>
       ) : null}
 
+      {deployRoomOpen ? (
+        <div className="deploy-room-sheet" role="dialog" aria-modal="true" aria-label="Pick room to deploy">
+          <button
+            type="button"
+            className="deploy-room-backdrop"
+            aria-label="Cancel"
+            onClick={() => setDeployRoomOpen(false)}
+          />
+          <div className="deploy-room-panel">
+            <div className="deploy-room-head">
+              <strong>
+                {show.deployGroupName
+                  ? `Deploy next · ${show.deployGroupName}`
+                  : "Deploy next"}
+              </strong>
+              <button
+                type="button"
+                className="chip"
+                onClick={() => setDeployRoomOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
+            <p className="form-hint">
+              Pick the room — next open channel deploys there.
+            </p>
+            <div className="deploy-room-list">
+              {show.rooms.map((room) => (
+                <button
+                  key={room.id}
+                  type="button"
+                  className="deploy-room-option"
+                  disabled={deployNextBusy}
+                  onClick={() => void deployNextIntoRoom(room.name)}
+                >
+                  {room.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showSelectionDock ? (
         <div
           className="selection-dock"
@@ -3601,6 +3893,72 @@ function ShareIcon() {
         strokeWidth="1.85"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle
+        cx="11"
+        cy="11"
+        r="6.5"
+        stroke="currentColor"
+        strokeWidth="1.85"
+      />
+      <path
+        d="M16.5 16.5 21 21"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function WakeLockIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      className={`wake-lock-icon${active ? " is-on" : ""}`}
+    >
+      <circle
+        className="wake-lock-ring wake-lock-ring--outer"
+        cx="12"
+        cy="12"
+        r="9"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        opacity="0.35"
+      />
+      <circle
+        className="wake-lock-ring wake-lock-ring--mid"
+        cx="12"
+        cy="12"
+        r="6.25"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        opacity="0.55"
+      />
+      <circle
+        className="wake-lock-core"
+        cx="12"
+        cy="12"
+        r="2.6"
+        fill="currentColor"
+      />
+      <path
+        d="M12 2.75v2.1M12 19.15v2.1M2.75 12h2.1M19.15 12h2.1M5.05 5.05l1.5 1.5M17.45 17.45l1.5 1.5M18.95 5.05l-1.5 1.5M6.55 17.45l-1.5 1.5"
+        stroke="currentColor"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+        className="wake-lock-rays"
       />
     </svg>
   );

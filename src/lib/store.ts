@@ -36,7 +36,7 @@ import {
 
 type StoreMode = "memory" | "turso";
 
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 type GlobalStore = {
   shows: Map<string, Show>;
@@ -178,6 +178,11 @@ async function ensureSchema(): Promise<void> {
     "bo_lead_token",
     `ALTER TABLE shows ADD COLUMN bo_lead_token TEXT`,
   );
+  await ensureColumn(
+    "shows",
+    "deploy_group_name",
+    `ALTER TABLE shows ADD COLUMN deploy_group_name TEXT`,
+  );
   await db.query(
     `CREATE INDEX IF NOT EXISTS channels_show_id_idx ON channels(show_id)`,
   );
@@ -287,6 +292,7 @@ async function persistShowMeta(show: Show): Promise<void> {
       groups = ${JSON.stringify(show.groups)},
       people = ${JSON.stringify(show.people)},
       features = ${JSON.stringify(show.features)},
+      deploy_group_name = ${show.deployGroupName},
       rack_cols = ${show.rackCols},
       rack_rows = ${show.rackRows},
       rack_size = ${rackSlotCount(show)},
@@ -317,6 +323,7 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
           boLeadToken: show.boLeadToken || "",
           features: parseFeatures(show.features ?? DEFAULT_SHOW_FEATURES),
           people: parseJsonList<Person>((show as Show).people ?? []),
+          deployGroupName: show.deployGroupName?.trim() || null,
           rackCols: layout.cols,
           rackRows: layout.rows,
           revision: show.revision ?? 0,
@@ -330,8 +337,8 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
   const db = getSql();
   const rows = await db`
     SELECT id, name, share_token, admin_password_hash, bo_lead_token, rooms,
-           groups, people, features, rack_size, rack_cols, rack_rows, revision,
-           activity, created_at
+           groups, people, features, deploy_group_name, rack_size, rack_cols,
+           rack_rows, revision, activity, created_at
     FROM shows WHERE share_token = ${shareToken} LIMIT 1
   `;
   const row = rows[0];
@@ -351,6 +358,10 @@ async function getShowByToken(shareToken: string): Promise<Show | null> {
     groups: parseJsonList<ChannelGroup>(row.groups),
     people: parseJsonList<Person>(row.people),
     features: parseFeatures(row.features),
+    deployGroupName:
+      typeof row.deploy_group_name === "string" && row.deploy_group_name.trim()
+        ? row.deploy_group_name.trim()
+        : null,
     rackCols: layout.cols,
     rackRows: layout.rows,
     revision: Number(row.revision ?? 0),
@@ -427,6 +438,7 @@ export async function createShow(input: {
     groups: [],
     people: [],
     features: { ...DEFAULT_SHOW_FEATURES },
+    deployGroupName: null,
     rackCols: DEFAULT_RACK_LAYOUT.cols,
     rackRows: DEFAULT_RACK_LAYOUT.rows,
     revision: 0,
@@ -445,8 +457,8 @@ export async function createShow(input: {
   await db`
     INSERT INTO shows (
       id, name, share_token, admin_password_hash, bo_lead_token, rooms, groups,
-      people, features, rack_size, rack_cols, rack_rows, revision, activity,
-      created_at
+      people, features, deploy_group_name, rack_size, rack_cols, rack_rows,
+      revision, activity, created_at
     )
     VALUES (
       ${show.id},
@@ -458,6 +470,7 @@ export async function createShow(input: {
       ${JSON.stringify(show.groups)},
       ${JSON.stringify(show.people)},
       ${JSON.stringify(show.features)},
+      ${show.deployGroupName},
       ${rackSlotCount(show)},
       ${show.rackCols},
       ${show.rackRows},
@@ -1238,6 +1251,32 @@ export async function updateShowFeatures(
     return toPublic(nextShow, await getChannels(show.id));
   }
 
+  await finishMutation(nextShow);
+  return toPublic(nextShow, await getChannels(show.id));
+}
+
+/** Coordinator sets which channel group the floor “Deploy next” button walks. */
+export async function updateDeployGroup(
+  shareToken: string,
+  deployGroupName: string | null,
+): Promise<ShowPublic | null> {
+  const show = await getShowByToken(shareToken);
+  if (!show) return null;
+  const nextName = deployGroupName?.trim() || null;
+  if (nextName === show.deployGroupName) {
+    return toPublic(show, await getChannels(show.id));
+  }
+  let nextShow: Show = { ...show, deployGroupName: nextName };
+  if (nextName) {
+    nextShow = withGroupCatalog(nextShow, nextName);
+  }
+  nextShow = touchShow(
+    nextShow,
+    "settings",
+    nextName
+      ? `Floor deploy group → ${nextName}`
+      : "Cleared floor deploy group",
+  );
   await finishMutation(nextShow);
   return toPublic(nextShow, await getChannels(show.id));
 }

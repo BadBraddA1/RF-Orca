@@ -2122,6 +2122,191 @@ a {
   backdrop-filter: blur(10px);
 }
 
+.progress-hud--phone {
+  padding: 0.4rem 0.55rem;
+  gap: 0.28rem;
+}
+
+.progress-hud--phone .progress-hud-top {
+  font-size: 0.9rem;
+}
+
+.progress-hud--phone .progress-track {
+  height: 0.35rem;
+}
+
+.progress-phone-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.deploy-next-btn {
+  flex: 1 1 auto;
+  min-height: var(--touch-min);
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--signal) 45%, var(--line));
+  background: color-mix(in oklab, var(--signal) 22%, transparent);
+  color: var(--signal-hot);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 750;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+}
+
+.deploy-next-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.deploy-next-btn:focus-visible {
+  outline: 2px solid var(--sea-bright);
+  outline-offset: 2px;
+}
+
+.wake-lock-btn.active {
+  color: var(--signal-hot);
+}
+
+.wake-lock-icon.is-on .wake-lock-ring {
+  animation: wake-ring 1.8s ease-out infinite;
+}
+
+.wake-lock-icon.is-on .wake-lock-ring--mid {
+  animation-delay: 0.35s;
+}
+
+.wake-lock-icon.is-on .wake-lock-rays {
+  animation: wake-rays 1.6s ease-in-out infinite;
+  transform-origin: 12px 12px;
+}
+
+.wake-lock-icon.is-on .wake-lock-core {
+  animation: wake-core 1.6s ease-in-out infinite;
+}
+
+@keyframes wake-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes wake-rays {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes wake-core {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wake-lock-icon.is-on .wake-lock-ring,
+  .wake-lock-icon.is-on .wake-lock-rays,
+  .wake-lock-icon.is-on .wake-lock-core {
+    animation: none;
+  }
+}
+
+.deploy-room-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  align-items: end;
+}
+
+.deploy-room-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in oklab, black 55%, transparent);
+  cursor: pointer;
+}
+
+.deploy-room-panel {
+  position: relative;
+  z-index: 1;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  border-radius: 1.1rem 1.1rem 0 0;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  background: color-mix(in oklab, var(--panel-lift) 96%, transparent);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0.65rem;
+  max-height: min(70dvh, 28rem);
+}
+
+.deploy-room-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.deploy-room-list {
+  display: grid;
+  gap: 0.45rem;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.deploy-room-option {
+  min-height: var(--touch-min);
+  border-radius: 0.85rem;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  cursor: pointer;
+}
+
+.deploy-room-option:hover,
+.deploy-room-option:focus-visible {
+  border-color: color-mix(in oklab, var(--sea) 55%, transparent);
+  color: var(--sea-bright);
+}
+
+.deploy-room-option:focus-visible {
+  outline: 2px solid var(--sea-bright);
+  outline-offset: 2px;
+}
+
+.deploy-group-tools {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
 .progress-hud-top {
   display: flex;
   justify-content: space-between;
@@ -3238,6 +3423,22 @@ a {
     width: 2.65rem;
     height: 2.65rem;
     min-height: var(--touch-min);
+  }
+
+  .board-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .board-toolbar .search-field {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .progress-hud {
+    top: calc(0.35rem + env(safe-area-inset-top));
   }
 
   .filters,

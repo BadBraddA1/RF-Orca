@@ -10,7 +10,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 - Compact header brand + **New show** form above the fold. Below that, **Happening now** lists shows created in the last **10 days** (name, deploy progress, age). Older shows stay in the database and remain reachable by share link — they just leave the home list.
 
-**Floor networks:** phones use a solid navy paint (no fixed multi-layer background), fewer font files, poll-first live sync (Ably loads after), and deferred PostHog so the board stays usable on weak venue wifi/cell.
+**Floor networks:** phones use a solid navy paint (no fixed multi-layer background), fewer font files, poll-first live sync (Ably loads after), and deferred PostHog so the board stays usable on weak venue wifi/cell. Phone board: slim sticky HUD with **Deploy next**, optional search icon, **always-on display** (Wake Lock) next to the gear, top activity toasts, and Add to Home Screen / standalone web app meta so Safari chrome can drop away.
 
 ## Access model
 
@@ -26,7 +26,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 - **Delete show** — Tools → Danger zone; type the show name to confirm (permanent)
 - **Show options** (toggles): Deploy, Rooms, Groups on by default; **Mic rack assignments** off until you need it; **Allow/Block** parked for now; **Lock after deploy** on; **Lock after stage** on; **Lock board for crew** off
 - Tools → rack presets / custom **cols × rows** + **Fill empty** (when Mic rack assignments is on)
-- Schema v8: `bo_lead_token`, plus v7 `people` / rack fields. Channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`
+- Schema v9: `deploy_group_name` (floor **Deploy next** group); v8 `bo_lead_token`; v7 `people` / rack fields. Channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`
 - Rack grids up to **20×20** (200 slots) so large Workbench imports fit; import grows the rack automatically
 
 **Lock after deploy** (on by default): once a channel is Deployed, crew cannot undeploy or change the room after a short **undo grace** (~8s / toast Undo). Coordinator (Tools unlocked) or **BO Lead** can still change anytime.
@@ -37,6 +37,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 ## Floor speed features
 
+- **Deploy next** — Tools → **Floor deploy group** (coordinator picks which group the floor walks). Phone HUD **Deploy next**: with rooms set up, pick a room then the next undeployed channel in that group deploys there; without rooms, deploys the next open channel directly
 - **Share view links** — the show URL keeps current **view / sort / My room / Filters** (`?sort=room&room=Ballroom+A&filter=staged…`). **Copy link** pastes that view for crew
 - **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
 - **Band filters** — tap **Filters** for a popup (bands / groups); summary stays on the board so you don’t scroll to change scope
@@ -73,7 +74,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 - With `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`: durable shared shows (production)
 - Without them: in-memory demo store (local only; resets on cold start)
-- Schema v8: `bo_lead_token` on shows; `people` roster, `rack_cols` / `rack_rows`, channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
+- Schema v9: `deploy_group_name` on shows; `bo_lead_token`; `people` roster, `rack_cols` / `rack_rows`, channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
 
 ## Develop
 
@@ -109,7 +110,7 @@ NEXT_PUBLIC_POSTHOG_UI_HOST=https://us.posthog.com
 
 Transparent logo assets in `public/brand/` (navy plate removed). Favicon / apple icon use the emblem mark only.
 
-**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Desktop mark board uses a full-width **desk** layout (left rail for progress/filters, multi-column channel grid) in the spirit of BraddCorp admin dash — phone stays single-column for a later floor-first pass.
+**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Desktop mark board uses a full-width **desk** layout (left rail for progress/filters, multi-column channel grid) in the spirit of BraddCorp admin dash — phone stays single-column with a slimmer sticky HUD and Deploy next.
 
 ## Site chrome
 

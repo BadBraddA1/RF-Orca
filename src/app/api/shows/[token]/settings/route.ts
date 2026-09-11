@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminUnlocked } from "@/lib/admin";
-import { updateShowFeatures } from "@/lib/store";
+import { updateDeployGroup, updateShowFeatures } from "@/lib/store";
 
 const bodySchema = z.object({
   deploy: z.boolean().optional(),
@@ -12,6 +12,8 @@ const bodySchema = z.object({
   lockDeployed: z.boolean().optional(),
   lockStaged: z.boolean().optional(),
   crewLocked: z.boolean().optional(),
+  /** null clears; omit leaves unchanged */
+  deployGroupName: z.string().max(80).nullable().optional(),
 });
 
 export async function PUT(
@@ -29,9 +31,26 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid settings." }, { status: 400 });
   }
 
-  const show = await updateShowFeatures(token, parsed.data);
+  const { deployGroupName, ...featurePatch } = parsed.data;
+  const hasFeatures = Object.keys(featurePatch).length > 0;
+
+  let show = null;
+  if (hasFeatures) {
+    show = await updateShowFeatures(token, featurePatch);
+    if (!show) {
+      return NextResponse.json({ error: "Show not found." }, { status: 404 });
+    }
+  }
+
+  if (deployGroupName !== undefined) {
+    show = await updateDeployGroup(token, deployGroupName);
+    if (!show) {
+      return NextResponse.json({ error: "Show not found." }, { status: 404 });
+    }
+  }
+
   if (!show) {
-    return NextResponse.json({ error: "Show not found." }, { status: 404 });
+    return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   }
   return NextResponse.json({ show });
 }

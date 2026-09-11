@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { IBM_Plex_Mono, Source_Sans_3, Syne } from "next/font/google";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -38,6 +38,15 @@ const ibmPlexMono = IBM_Plex_Mono({
   preload: false,
 });
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#06101f" },
+    { media: "(prefers-color-scheme: light)", color: "#06101f" },
+  ],
+  colorScheme: "dark",
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -47,6 +56,21 @@ export const metadata: Metadata = {
   description: siteDescription,
   applicationName: siteName,
   keywords: [...siteKeywords],
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: siteName,
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
