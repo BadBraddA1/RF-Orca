@@ -408,6 +408,10 @@ export function MarkBoard({
   const wakeLockWantedRef = useRef(false);
   const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
   const [deployRoomOpen, setDeployRoomOpen] = useState(false);
+  const [deployFocus, setDeployFocus] = useState<{
+    channelId: string;
+    roomName: string | null;
+  } | null>(null);
   const [deployNextBusy, setDeployNextBusy] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
@@ -1204,8 +1208,8 @@ export function MarkBoard({
     window.setTimeout(() => setHighlightId(null), 1600);
   }
 
-  async function deployNextIntoRoom(roomName: string | null) {
-    if (deployNextBusy || !features.deploy) return;
+  function openDeployFocus(roomName: string | null) {
+    if (!features.deploy || deployNextBusy) return;
     const next = findNextUndeployed();
     if (!next) {
       alert(
@@ -1216,22 +1220,15 @@ export function MarkBoard({
       setDeployRoomOpen(false);
       return;
     }
-    setDeployNextBusy(true);
-    try {
-      const patch: ChannelUndoPatch = { deployed: true };
-      if (roomName) patch.roomName = roomName;
-      await patchChannel(next.id, patch, { undoToast: true });
-      if (roomName) ensureSectionOpen("room", roomName);
-      if (next.groupName) ensureSectionOpen("group", next.groupName);
-      focusChannel(next.id);
-      setDeployRoomOpen(false);
-    } finally {
-      setDeployNextBusy(false);
-    }
+    setDeployRoomOpen(false);
+    setDeployFocus({
+      channelId: next.id,
+      roomName: roomName ?? next.roomName,
+    });
   }
 
   function startDeployNext() {
-    if (!features.deploy || deployNextBusy) return;
+    if (!features.deploy || deployNextBusy || deployFocus) return;
     const next = findNextUndeployed();
     if (!next) {
       alert(
@@ -1245,8 +1242,35 @@ export function MarkBoard({
       setDeployRoomOpen(true);
       return;
     }
-    void deployNextIntoRoom(null);
+    openDeployFocus(next.roomName);
   }
+
+  async function confirmDeployFocus() {
+    if (!deployFocus || deployNextBusy || !features.deploy) return;
+    const channel = show.channels.find((c) => c.id === deployFocus.channelId);
+    if (!channel || channel.deployed) {
+      setDeployFocus(null);
+      return;
+    }
+    setDeployNextBusy(true);
+    try {
+      const patch: ChannelUndoPatch = { deployed: true };
+      if (deployFocus.roomName) patch.roomName = deployFocus.roomName;
+      await patchChannel(channel.id, patch, { undoToast: true });
+      if (deployFocus.roomName) {
+        ensureSectionOpen("room", deployFocus.roomName);
+      }
+      if (channel.groupName) ensureSectionOpen("group", channel.groupName);
+      setDeployFocus(null);
+      focusChannel(channel.id);
+    } finally {
+      setDeployNextBusy(false);
+    }
+  }
+
+  const deployFocusChannel = deployFocus
+    ? show.channels.find((c) => c.id === deployFocus.channelId) ?? null
+    : null;
 
   async function patchRack(body: {
     cols?: number;
@@ -3509,7 +3533,7 @@ export function MarkBoard({
               </button>
             </div>
             <p className="form-hint">
-              Pick the room — next open channel deploys there.
+              Pick the room for the next open channel.
             </p>
             <div className="deploy-room-list">
               {show.rooms.map((room) => (
@@ -3518,12 +3542,76 @@ export function MarkBoard({
                   type="button"
                   className="deploy-room-option"
                   disabled={deployNextBusy}
-                  onClick={() => void deployNextIntoRoom(room.name)}
+                  onClick={() => openDeployFocus(room.name)}
                 >
                   {room.name}
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deployFocus && deployFocusChannel ? (
+        <div
+          className="deploy-focus"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Deploy ${deployFocusChannel.name}`}
+        >
+          <div className="deploy-focus-flash" aria-hidden />
+          <div className="deploy-focus-flash deploy-focus-flash--late" aria-hidden />
+          <div className="deploy-focus-card">
+            <p className="deploy-focus-kicker">Ready to deploy</p>
+            <h2 className="deploy-focus-name">{deployFocusChannel.name}</h2>
+            <p className="deploy-focus-freq">
+              {deployFocusChannel.band ? `${deployFocusChannel.band} · ` : ""}
+              {deployFocusChannel.frequencyMhz.toFixed(3)} MHz
+            </p>
+            <dl className="deploy-focus-meta">
+              <div>
+                <dt>Room</dt>
+                <dd>{deployFocus.roomName || "No room"}</dd>
+              </div>
+              <div>
+                <dt>Pair</dt>
+                <dd>
+                  {deployFocusChannel.micKind === "handheld"
+                    ? "Handheld"
+                    : deployFocusChannel.micKind === "lav"
+                      ? "Lav"
+                      : "Mic type not set"}
+                </dd>
+              </div>
+              {deployFocusChannel.assignedTo ? (
+                <div>
+                  <dt>Who</dt>
+                  <dd>{deployFocusChannel.assignedTo}</dd>
+                </div>
+              ) : null}
+              {deployFocusChannel.groupName ? (
+                <div>
+                  <dt>Group</dt>
+                  <dd>{deployFocusChannel.groupName}</dd>
+                </div>
+              ) : null}
+            </dl>
+            <button
+              type="button"
+              className="deploy-focus-go"
+              disabled={deployNextBusy}
+              onClick={() => void confirmDeployFocus()}
+            >
+              {deployNextBusy ? "Deploying…" : "Press here"}
+            </button>
+            <button
+              type="button"
+              className="deploy-focus-cancel"
+              disabled={deployNextBusy}
+              onClick={() => setDeployFocus(null)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       ) : null}
