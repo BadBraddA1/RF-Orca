@@ -299,7 +299,7 @@ export function CrewDrawOverlay({
         window.matchMedia?.("(pointer: coarse)").matches;
       if (!coarse) {
         try {
-          canvas.setPointerCapture(e.pointerId);
+          canvasRef.current?.setPointerCapture(e.pointerId);
         } catch {
           /* unsupported */
         }
@@ -330,9 +330,10 @@ export function CrewDrawOverlay({
       flushPending(true);
       liveStrokeRef.current = null;
       activePointerRef.current = null;
+      const el = canvasRef.current;
       try {
-        if (canvas.hasPointerCapture(e.pointerId)) {
-          canvas.releasePointerCapture(e.pointerId);
+        if (el?.hasPointerCapture(e.pointerId)) {
+          el.releasePointerCapture(e.pointerId);
         }
       } catch {
         /* already released */
