@@ -1,23 +1,63 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type Ably from "ably";
+import { getAblyClientId } from "@/lib/ably-client-id";
+import type { CrewAnnotateEvent, CrewClearMsg, CrewStrokeMsg } from "@/lib/crew-draw";
 
 /**
  * Prefer Ably push for show board updates; fall back to revision polling.
- * Starts on poll so weak cell/wifi get live updates without waiting on Ably's
- * WebSocket + SDK download; upgrades to Ably when the network allows.
+ * Also opens the annotate channel for Audio Crew shared drawing.
  */
 export function useShowLive(
   token: string,
   onInvalidate: () => void,
-): { live: boolean; transport: "ably" | "poll" | "offline" } {
+): {
+  live: boolean;
+  transport: "ably" | "poll" | "offline";
+  annotateReady: boolean;
+  publishStroke: (stroke: CrewStrokeMsg) => void;
+  publishClear: () => void;
+  subscribeAnnotate: (handler: (event: CrewAnnotateEvent) => void) => () => void;
+} {
   const [live, setLive] = useState(false);
   const [transport, setTransport] = useState<"ably" | "poll" | "offline">(
     "offline",
   );
+  const [annotateReady, setAnnotateReady] = useState(false);
   const onInvalidateRef = useRef(onInvalidate);
   onInvalidateRef.current = onInvalidate;
+
+  const annotateChannelRef = useRef<Ably.RealtimeChannel | null>(null);
+  const annotateHandlersRef = useRef(
+    new Set<(event: CrewAnnotateEvent) => void>(),
+  );
+
+  const publishStroke = useCallback((stroke: CrewStrokeMsg) => {
+    const channel = annotateChannelRef.current;
+    if (!channel) return;
+    void channel.publish("stroke", stroke);
+  }, []);
+
+  const publishClear = useCallback(() => {
+    const channel = annotateChannelRef.current;
+    if (!channel) return;
+    const payload: CrewClearMsg = {
+      clear: true,
+      at: new Date().toISOString(),
+    };
+    void channel.publish("clear", payload);
+  }, []);
+
+  const subscribeAnnotate = useCallback(
+    (handler: (event: CrewAnnotateEvent) => void) => {
+      annotateHandlersRef.current.add(handler);
+      return () => {
+        annotateHandlersRef.current.delete(handler);
+      };
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +65,16 @@ export function useShowLive(
     let pollId: number | null = null;
     let revision = -1;
     let usingAbly = false;
+
+    function emitAnnotate(event: CrewAnnotateEvent) {
+      for (const handler of annotateHandlersRef.current) {
+        try {
+          handler(event);
+        } catch {
+          /* ignore listener errors */
+        }
+      }
+    }
 
     async function pollOnce() {
       if (usingAbly) return;
@@ -66,18 +116,17 @@ export function useShowLive(
 
     async function tryAbly() {
       try {
-        const probe = await fetch(
-          `/api/ably-auth?show=${encodeURIComponent(token)}`,
-          { cache: "no-store" },
-        );
+        const clientId = getAblyClientId();
+        const authUrl = `/api/ably-auth?show=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
+        const probe = await fetch(authUrl, { cache: "no-store" });
         if (!probe.ok || cancelled) return;
 
-        // Dynamic import keeps Ably off the critical first-paint path.
         const { default: AblyCtor } = await import("ably");
         if (cancelled) return;
 
         const client = new AblyCtor.Realtime({
-          authUrl: `/api/ably-auth?show=${encodeURIComponent(token)}`,
+          clientId,
+          authUrl,
         });
         ably = client;
 
@@ -87,21 +136,28 @@ export function useShowLive(
           stopPoll();
           setLive(true);
           setTransport("ably");
+          setAnnotateReady(true);
         });
         client.connection.on("disconnected", () => {
           if (cancelled) return;
           usingAbly = false;
+          setAnnotateReady(false);
+          annotateChannelRef.current = null;
           setLive(false);
           startPoll();
         });
         client.connection.on("closed", () => {
           if (cancelled) return;
           usingAbly = false;
+          setAnnotateReady(false);
+          annotateChannelRef.current = null;
           setLive(false);
         });
         client.connection.on("failed", () => {
           if (cancelled) return;
           usingAbly = false;
+          setAnnotateReady(false);
+          annotateChannelRef.current = null;
           try {
             client.close();
           } catch {
@@ -115,12 +171,26 @@ export function useShowLive(
         channel.subscribe("update", () => {
           onInvalidateRef.current();
         });
+
+        const annotate = client.channels.get(`show:${token}:annotate`);
+        annotateChannelRef.current = annotate;
+        annotate.subscribe("stroke", (message) => {
+          const data = message.data as CrewStrokeMsg | undefined;
+          if (!data?.id || !Array.isArray(data.pts)) return;
+          emitAnnotate({ type: "stroke", stroke: data });
+        });
+        annotate.subscribe("clear", (message) => {
+          const data = message.data as CrewClearMsg | undefined;
+          emitAnnotate({
+            type: "clear",
+            at: data?.at ?? new Date().toISOString(),
+          });
+        });
       } catch {
         if (!cancelled) startPoll();
       }
     }
 
-    // Poll first so the board stays fresh on bad networks; Ably upgrades later.
     startPoll();
     const ablyDelay = window.setTimeout(() => {
       void tryAbly();
@@ -130,6 +200,8 @@ export function useShowLive(
       cancelled = true;
       window.clearTimeout(ablyDelay);
       stopPoll();
+      annotateChannelRef.current = null;
+      setAnnotateReady(false);
       if (ably) {
         try {
           ably.connection.off();
@@ -142,5 +214,12 @@ export function useShowLive(
     };
   }, [token]);
 
-  return { live, transport };
+  return {
+    live,
+    transport,
+    annotateReady,
+    publishStroke,
+    publishClear,
+    subscribeAnnotate,
+  };
 }

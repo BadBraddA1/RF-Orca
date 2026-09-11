@@ -8,6 +8,11 @@ export function showChannelName(shareToken: string): string {
   return `show:${shareToken}`;
 }
 
+/** Ephemeral crew markup (FaceTime-style draw) — not persisted. */
+export function annotateChannelName(shareToken: string): string {
+  return `show:${shareToken}:annotate`;
+}
+
 let restClient: Ably.Rest | null = null;
 
 function getRest(): Ably.Rest | null {
@@ -20,14 +25,18 @@ function getRest(): Ably.Rest | null {
 /** Issue a TokenRequest so browsers can subscribe (never ship the API key). */
 export async function createShowTokenRequest(
   shareToken: string,
+  clientId: string,
 ): Promise<Ably.TokenRequest> {
   const rest = getRest();
   if (!rest) throw new Error("Ably is not configured");
   const channel = showChannelName(shareToken);
+  const annotate = annotateChannelName(shareToken);
+  const id = clientId.trim() || `orca-${shareToken.slice(0, 10)}`;
   return rest.auth.createTokenRequest({
-    clientId: `orca-${shareToken.slice(0, 10)}`,
+    clientId: id,
     capability: {
       [channel]: ["subscribe"],
+      [annotate]: ["publish", "subscribe"],
     },
     ttl: 60 * 60 * 1000,
   });

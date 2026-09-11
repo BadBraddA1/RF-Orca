@@ -3,8 +3,8 @@ import { ablyConfigured, createShowTokenRequest } from "@/lib/ably";
 import { getShowRevision } from "@/lib/store";
 
 /**
- * Ably token auth for a single show channel.
- * GET /api/ably-auth?show=<shareToken>
+ * Ably token auth for a single show channel (+ annotate publish).
+ * GET /api/ably-auth?show=<shareToken>&clientId=<id>
  */
 export async function GET(request: Request) {
   if (!ablyConfigured()) {
@@ -14,7 +14,8 @@ export async function GET(request: Request) {
     );
   }
 
-  const showToken = new URL(request.url).searchParams.get("show")?.trim();
+  const url = new URL(request.url);
+  const showToken = url.searchParams.get("show")?.trim();
   if (!showToken) {
     return NextResponse.json(
       { error: "Missing show token." },
@@ -27,8 +28,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Show not found." }, { status: 404 });
   }
 
+  const clientId =
+    url.searchParams.get("clientId")?.trim() ||
+    `orca-${showToken.slice(0, 10)}`;
+
   try {
-    const tokenRequest = await createShowTokenRequest(showToken);
+    const tokenRequest = await createShowTokenRequest(showToken, clientId);
     return NextResponse.json(tokenRequest);
   } catch (error) {
     const message =

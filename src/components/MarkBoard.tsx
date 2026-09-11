@@ -20,6 +20,7 @@ import {
   ShareIcon,
   UndoIcon,
 } from "@/components/BoardChromeIcons";
+import { CrewDrawOverlay } from "@/components/CrewDrawOverlay";
 import { MicRackGrid } from "@/components/MicRackGrid";
 import { ChoiceMenu, RoomAssign } from "@/components/WhoAssign";
 import { withinDeployGrace } from "@/lib/board-helpers";
@@ -30,6 +31,7 @@ import {
   syncBoardShareUrl,
 } from "@/lib/board-share";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
+import type { CrewDrawColorId } from "@/lib/crew-draw";
 import {
   keepAwakeAvailable,
   requestKeepAwake,
@@ -448,9 +450,9 @@ export function MarkBoard({
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [crewMode, setCrewMode] = useState(false);
   const [flashIds, setFlashIds] = useState<Record<string, number>>({});
-  const [pingIds, setPingIds] = useState<Record<string, number>>({});
   const [lastChangeIds, setLastChangeIds] = useState<string[]>([]);
-  const [crewPingToast, setCrewPingToast] = useState<string | null>(null);
+  const [crewDrawing, setCrewDrawing] = useState(false);
+  const [crewDrawColor, setCrewDrawColor] = useState<CrewDrawColorId>("sea");
   const revisionRef = useRef(initialShow.revision ?? 0);
   const channelsRef = useRef(initialShow.channels);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -634,27 +636,6 @@ export function MarkBoard({
     return () => window.clearTimeout(id);
   }, [flashIds]);
 
-  useEffect(() => {
-    const ids = Object.keys(pingIds);
-    if (ids.length === 0) return;
-    const id = window.setTimeout(() => {
-      const cutoff = Date.now() - 1800;
-      setPingIds((prev) => {
-        const next: Record<string, number> = {};
-        for (const [k, at] of Object.entries(prev)) {
-          if (at > cutoff) next[k] = at;
-        }
-        return next;
-      });
-    }, 1900);
-    return () => window.clearTimeout(id);
-  }, [pingIds]);
-
-  useEffect(() => {
-    if (!crewPingToast) return;
-    const id = window.setTimeout(() => setCrewPingToast(null), 2400);
-    return () => window.clearTimeout(id);
-  }, [crewPingToast]);
 
   const applyShow = useCallback(
     (next: ShowPublic, nextAdmin?: boolean, nextBoLead?: boolean) => {
@@ -699,6 +680,7 @@ export function MarkBoard({
 
   function exitCrewMode() {
     setCrewMode(false);
+    setCrewDrawing(false);
     exitElFullscreen();
   }
 
@@ -711,7 +693,14 @@ export function MarkBoard({
     });
   }, [token, applyShow]);
 
-  const { live, transport } = useShowLive(token, () => {
+  const {
+    live,
+    transport,
+    annotateReady,
+    publishStroke,
+    publishClear,
+    subscribeAnnotate,
+  } = useShowLive(token, () => {
     void refreshFromServer();
   });
 
@@ -775,48 +764,17 @@ export function MarkBoard({
       return;
     }
     if (latest.id === seenActivityIdRef.current) return;
-    const fresh: {
-      id: string;
-      message: string;
-      kind: string;
-      channelId?: string | null;
-    }[] = [];
+    const fresh: { id: string; message: string }[] = [];
     for (const event of show.activity ?? []) {
       if (event.id === seenActivityIdRef.current) break;
       fresh.push({
         id: event.id,
         message: formatActivityMsg(event.message),
-        kind: event.kind,
-        channelId: event.channelId,
       });
     }
     seenActivityIdRef.current = latest.id;
-    if (fresh.length === 0) return;
-
-    const pingAt = Date.now();
-    const pinged = fresh.filter((e) => e.kind === "ping" && e.channelId);
-    if (pinged.length > 0) {
-      setPingIds((prev) => {
-        const merged = { ...prev };
-        for (const event of pinged) {
-          if (event.channelId) merged[event.channelId] = pingAt;
-        }
-        return merged;
-      });
-      const topPing = pinged[0];
-      if (crewMode && topPing) {
-        setCrewPingToast(topPing.message);
-        if (topPing.channelId) {
-          const el = document.getElementById(`ch-${topPing.channelId}`);
-          el?.scrollIntoView({ block: "nearest", inline: "nearest" });
-        }
-      }
-    }
-
-    if (!isPhone) return;
-    const incoming = fresh
-      .map(({ id, message }) => ({ id, message }))
-      .reverse();
+    if (!isPhone || fresh.length === 0) return;
+    const incoming = fresh.reverse();
     for (const toast of incoming) {
       const toastId = toast.id;
       window.setTimeout(() => {
@@ -824,7 +782,7 @@ export function MarkBoard({
       }, 3200);
     }
     setActivityToasts((prev) => [...incoming, ...prev].slice(0, 3));
-  }, [show.activity, isPhone, crewMode]);
+  }, [show.activity, isPhone]);
 
 
   useEffect(() => {
@@ -2144,11 +2102,17 @@ export function MarkBoard({
           </div>
         </div>
       ) : null}
-      {crewPingToast ? (
-        <div className="crew-ping-toast" aria-live="polite" role="status">
-          {crewPingToast}
-        </div>
-      ) : null}
+      <CrewDrawOverlay
+        active={crewMode}
+        drawing={crewDrawing}
+        color={crewDrawColor}
+        annotateReady={annotateReady}
+        publishStroke={publishStroke}
+        publishClear={publishClear}
+        subscribeAnnotate={subscribeAnnotate}
+        onToggleDrawing={() => setCrewDrawing((v) => !v)}
+        onColorChange={setCrewDrawColor}
+      />
       {crewMode ? (
         <header className="crew-bar">
           <div className="crew-bar-main">
@@ -3554,7 +3518,6 @@ export function MarkBoard({
                   : "all"
           }
           flashIds={flashIds}
-          pingIds={pingIds}
           lastChangeIds={lastChangeIds}
           mode={showRoomGear ? "room" : "physical"}
           roomName={showRoomGear ? focusRoom : null}
@@ -3566,25 +3529,6 @@ export function MarkBoard({
           onPatch={async (id, patch) => {
             await patchChannel(id, patch);
           }}
-          onPing={
-            crewMode
-              ? async (id) => {
-                  const res = await fetch(`/api/shows/${token}/ping`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ channelId: id }),
-                  });
-                  if (!res.ok) return;
-                  const data = await res.json().catch(() => null);
-                  setPingIds((prev) => ({ ...prev, [id]: Date.now() }));
-                  if (data?.show) {
-                    startTransition(() => {
-                      applyShow(data.show as ShowPublic);
-                    });
-                  }
-                }
-              : undefined
-          }
           onFillEmpty={
             admin && !crewMode && showPhysicalRack
               ? async () => patchRack({ fillEmpty: true })

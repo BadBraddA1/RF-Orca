@@ -3267,25 +3267,8 @@ a {
   background: color-mix(in oklab, var(--sea) 12%, transparent);
 }
 
-.crew-ping-toast {
-  position: fixed;
-  top: calc(0.75rem + env(safe-area-inset-top));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  max-width: min(24rem, calc(100vw - 2rem));
-  padding: 0.55rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--signal) 45%, var(--line));
-  background: color-mix(in oklab, var(--navy) 88%, var(--signal));
-  color: var(--ink);
-  font-weight: 750;
-  font-size: var(--text-label);
-  box-shadow: 0 8px 28px color-mix(in oklab, black 35%, transparent);
-  pointer-events: none;
-}
-
 .board--crew {
+  position: relative;
   max-width: none;
   width: 100%;
   min-height: 100dvh;
@@ -3299,6 +3282,93 @@ a {
   overflow: hidden;
 }
 
+.crew-draw {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.crew-draw.is-drawing .crew-draw-canvas {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.crew-draw-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.crew-draw-tools {
+  position: absolute;
+  left: 50%;
+  bottom: calc(0.55rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 31;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--sea) 35%, var(--line));
+  background: color-mix(in oklab, var(--navy) 88%, transparent);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.crew-draw-btn {
+  min-height: 2rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--sea) 40%, var(--line));
+  background: color-mix(in oklab, var(--sea) 12%, transparent);
+  color: var(--sea-bright);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.crew-draw-btn.on {
+  background: color-mix(in oklab, var(--signal) 28%, transparent);
+  border-color: color-mix(in oklab, var(--signal) 55%, var(--line));
+  color: var(--signal-hot);
+}
+
+.crew-draw-swatches {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.crew-draw-swatch {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  border: 2px solid color-mix(in oklab, var(--ink) 35%, transparent);
+  padding: 0;
+  cursor: pointer;
+}
+
+.crew-draw-swatch.on {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--sea-bright) 55%, transparent);
+}
+
+.crew-draw-hint {
+  font-size: 0.65rem;
+  color: var(--ink-soft);
+  padding: 0 0.25rem;
+}
+
 .board--crew:fullscreen,
 .board--crew:-webkit-full-screen {
   background: var(--navy);
@@ -3309,6 +3379,8 @@ a {
 
 .board--crew > .crew-bar {
   flex: 0 0 auto;
+  position: relative;
+  z-index: 32;
 }
 
 .board--crew .mic-rack,
@@ -3424,46 +3496,6 @@ a {
   font-size: var(--text-caption);
   padding: 0.22rem 0.4rem;
   min-height: 1.75rem;
-}
-
-.board--crew .rack-ping {
-  min-height: 1.55rem;
-  padding: 0.15rem 0.4rem;
-  font-size: 0.65rem;
-  font-weight: 750;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--sea) 45%, var(--line));
-  background: color-mix(in oklab, var(--sea) 14%, transparent);
-  color: var(--sea-bright);
-  cursor: pointer;
-}
-
-.board--crew .rack-ping:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.board--crew .rack-cell.is-ping {
-  animation: rack-ping-pulse 0.9s ease-out 2;
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--sea-bright) 65%, transparent);
-}
-
-@keyframes rack-ping-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--sea-bright) 35%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 4px color-mix(in oklab, var(--signal) 55%, transparent);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .board--crew .rack-cell.is-ping {
-    animation: none;
-  }
 }
 
 @media (max-height: 900px) and (orientation: landscape) {
