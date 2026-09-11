@@ -2305,15 +2305,21 @@ a {
   position: fixed;
   inset: 0;
   z-index: 80;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: max(1rem, env(safe-area-inset-top)) 1rem
     max(1rem, env(safe-area-inset-bottom));
   background: color-mix(in oklab, #04140c 92%, black);
+  touch-action: pan-y;
 }
 
 .deploy-focus-flash {
-  position: absolute;
+  position: fixed;
   inset: -10%;
   border-radius: 50%;
   background: radial-gradient(
@@ -2335,6 +2341,8 @@ a {
   position: relative;
   z-index: 1;
   width: min(100%, 22rem);
+  flex: 0 0 auto;
+  margin-block: auto;
   display: grid;
   gap: 0.65rem;
   padding: 1.35rem 1.25rem 1.15rem;
