@@ -1,4 +1,4 @@
-/** Shared Audio Crew markup — cell-anchored grid coords for cross-device accuracy. */
+/** Shared Audio Crew markup — plane-normalized coords (gaps + cells). */
 
 export const CREW_DRAW_COLORS = [
   { id: "sea", hex: "#5ec8ff" },
@@ -8,15 +8,13 @@ export const CREW_DRAW_COLORS = [
 
 export type CrewDrawColorId = (typeof CREW_DRAW_COLORS)[number]["id"];
 
-/** Fractional column / row within the shared gear matrix (not screen %). */
-export type CrewDrawPoint = { c: number; r: number };
+/** 0–1 across the shared draw plane (full gear area, including gutters). */
+export type CrewDrawPoint = { x: number; y: number };
 
 export type CrewDrawStroke = {
   id: string;
   color: string;
   width: number;
-  cols: number;
-  rows: number;
   points: CrewDrawPoint[];
   /** ms epoch — fade then drop (FaceTime-style). */
   expiresAt: number;
@@ -26,10 +24,9 @@ export type CrewStrokeMsg = {
   id: string;
   color: string;
   width: number;
-  /** Shared matrix width — same formula on every tablet. */
+  /** Shared column count so every tablet lays out the same gear matrix. */
   cols: number;
-  rows: number;
-  /** Fractional (column, row) in the gear matrix. */
+  /** Normalized plane coords (0–1), not locked inside a cell. */
   pts: Array<[number, number]>;
   end?: boolean;
   room?: string | null;
@@ -45,8 +42,8 @@ export type CrewAnnotateEvent =
   | { type: "clear"; at: string };
 
 export const CREW_STROKE_TTL_MS = 14_000;
-/** Stroke width as a fraction of one cell's shorter edge. */
-export const CREW_DRAW_WIDTH = 0.06;
+/** Stroke width as a fraction of the draw-plane shorter edge. */
+export const CREW_DRAW_WIDTH = 0.0045;
 
 export function newStrokeId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -58,6 +55,12 @@ export function newStrokeId(): string {
 export function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0;
   return Math.min(1, Math.max(0, n));
+}
+
+/** Allow a little overshoot so strokes at the lip of the plane aren’t clipped. */
+export function clampPlane(n: number): number {
+  if (Number.isNaN(n)) return 0;
+  return Math.min(1.05, Math.max(-0.05, n));
 }
 
 export function colorHex(id: CrewDrawColorId | string): string {

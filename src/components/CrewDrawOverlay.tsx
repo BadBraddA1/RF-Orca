@@ -6,9 +6,8 @@ import {
   CREW_DRAW_COLORS,
   CREW_DRAW_WIDTH,
   CREW_STROKE_TTL_MS,
-  clamp01,
+  clampPlane,
   colorHex,
-  crewGridRows,
   newStrokeId,
   type CrewAnnotateEvent,
   type CrewDrawColorId,
@@ -35,7 +34,6 @@ type LiveStroke = {
   color: string;
   width: number;
   cols: number;
-  rows: number;
   points: CrewDrawPoint[];
   pending: Array<[number, number]>;
   flushTimer: number | null;
@@ -45,31 +43,26 @@ function mergeStroke(
   prev: CrewDrawStroke | undefined,
   msg: CrewStrokeMsg,
 ): CrewDrawStroke {
-  const incoming = msg.pts.map(([c, r]) => ({ c, r }));
-  const points = prev ? [...prev.points, ...incoming] : incoming;
+  const incoming = msg.pts.map(([x, y]) => ({
+    x: clampPlane(x),
+    y: clampPlane(y),
+  }));
+  // Legacy cell-matrix strokes used large c/r values (e.g. 3.2). Drop those.
+  const sane = incoming.filter((p) => p.x <= 1.2 && p.y <= 1.2 && p.x >= -0.2 && p.y >= -0.2);
+  const points = prev ? [...prev.points, ...sane] : sane;
   return {
     id: msg.id,
     color: msg.color || colorHex("sea"),
     width: typeof msg.width === "number" ? msg.width : CREW_DRAW_WIDTH,
-    cols: msg.cols || prev?.cols || 1,
-    rows: msg.rows || prev?.rows || 1,
     points,
     expiresAt: Date.now() + CREW_STROKE_TTL_MS,
   };
 }
 
-function readGridMeta(grid: HTMLElement): {
-  cols: number;
-  rows: number;
-  cells: HTMLElement[];
-} {
-  const cells = [
-    ...grid.querySelectorAll<HTMLElement>(".rack-cell[data-crew-index]"),
-  ].sort(
-    (a, b) =>
-      Number(a.dataset.crewIndex ?? 0) - Number(b.dataset.crewIndex ?? 0),
-  );
-  const cols = Math.max(
+function readCols(planeEl: HTMLElement): number {
+  const grid = planeEl.querySelector<HTMLElement>("[data-crew-grid]");
+  if (!grid) return 6;
+  return Math.max(
     1,
     Number(grid.dataset.crewCols) ||
       Number.parseInt(
@@ -80,94 +73,21 @@ function readGridMeta(grid: HTMLElement): {
         getComputedStyle(grid).getPropertyValue("--rack-cols").trim(),
         10,
       ) ||
-      1,
+      6,
   );
-  const count = Math.max(
-    cells.length,
-    Number(grid.dataset.crewCount) || cells.length,
-  );
-  const rows = crewGridRows(count, cols);
-  return { cols, rows, cells };
 }
 
-/** Map a screen point onto the shared gear matrix (fractional col/row). */
-function clientToMatrix(
+/** Full draw plane — cells, gutters, and empty margins. */
+function clientToPlane(
   clientX: number,
   clientY: number,
-  cells: HTMLElement[],
-  cols: number,
-  rows: number,
+  planeEl: HTMLElement,
 ): CrewDrawPoint | null {
-  if (cells.length === 0) return null;
-
-  for (const cell of cells) {
-    const rect = cell.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) continue;
-    if (
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom
-    ) {
-      const index = Number(cell.dataset.crewIndex ?? 0);
-      const col = index % cols;
-      const row = Math.floor(index / cols);
-      return {
-        c: col + clamp01((clientX - rect.left) / rect.width),
-        r: row + clamp01((clientY - rect.top) / rect.height),
-      };
-    }
-  }
-
-  // Off-cell (gap / padding): nearest cell edge, still matrix-locked.
-  let best: { dist: number; point: CrewDrawPoint } | null = null;
-  for (const cell of cells) {
-    const rect = cell.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) continue;
-    const x = Math.min(rect.right, Math.max(rect.left, clientX));
-    const y = Math.min(rect.bottom, Math.max(rect.top, clientY));
-    const dx = clientX - x;
-    const dy = clientY - y;
-    const dist = dx * dx + dy * dy;
-    const index = Number(cell.dataset.crewIndex ?? 0);
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    const point = {
-      c: col + clamp01((x - rect.left) / rect.width),
-      r: row + clamp01((y - rect.top) / rect.height),
-    };
-    if (!best || dist < best.dist) best = { dist, point };
-  }
-  if (best) return best.point;
-
+  const rect = planeEl.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
   return {
-    c: Math.min(cols - 1e-6, Math.max(0, 0)),
-    r: Math.min(rows - 1e-6, Math.max(0, 0)),
-  };
-}
-
-/** Map matrix coords onto this tablet's live cell boxes (pixel-accurate). */
-function matrixToCanvas(
-  point: CrewDrawPoint,
-  cells: HTMLElement[],
-  cols: number,
-  rows: number,
-  canvasRect: DOMRect,
-): { x: number; y: number } | null {
-  if (cells.length === 0) return null;
-  const c = Math.min(cols - 1e-9, Math.max(0, point.c));
-  const r = Math.min(rows - 1e-9, Math.max(0, point.r));
-  const col = Math.min(cols - 1, Math.floor(c));
-  const row = Math.min(rows - 1, Math.floor(r));
-  const u = c - col;
-  const v = r - row;
-  const index = row * cols + col;
-  const cell = cells[Math.min(cells.length - 1, index)];
-  if (!cell) return null;
-  const rect = cell.getBoundingClientRect();
-  return {
-    x: rect.left - canvasRect.left + u * rect.width,
-    y: rect.top - canvasRect.top + v * rect.height,
+    x: clampPlane((clientX - rect.left) / rect.width),
+    y: clampPlane((clientY - rect.top) / rect.height),
   };
 }
 
@@ -182,7 +102,6 @@ function strokePath(
     ctx.lineTo(pixels[0].x + 0.25, pixels[0].y);
     return;
   }
-  // Straight segments — keep arrow tips on the intended cell.
   for (let i = 1; i < pixels.length; i += 1) {
     ctx.lineTo(pixels[i].x, pixels[i].y);
   }
@@ -242,8 +161,7 @@ export function CrewDrawOverlay({
     const planeEl =
       canvas?.parentElement ??
       document.querySelector<HTMLElement>("[data-crew-draw-plane]");
-    const grid = planeEl?.querySelector<HTMLElement>("[data-crew-grid]");
-    if (!canvas || !planeEl || !grid) return;
+    if (!canvas || !planeEl) return;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = planeEl.clientWidth;
@@ -263,17 +181,14 @@ export function CrewDrawOverlay({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    const { cols, rows, cells } = readGridMeta(grid);
-    const canvasRect = canvas.getBoundingClientRect();
     const now = Date.now();
     const live = liveStrokeRef.current;
+    const minEdge = Math.min(w, h);
 
     const drawStroke = (stroke: {
       id: string;
       color: string;
       width: number;
-      cols: number;
-      rows: number;
       points: CrewDrawPoint[];
       expiresAt?: number;
     }) => {
@@ -286,25 +201,10 @@ export function CrewDrawOverlay({
       } else {
         ctx.globalAlpha = 1;
       }
-      const useCols = stroke.cols || cols;
-      const useRows = stroke.rows || rows;
-      const pixels: Array<{ x: number; y: number }> = [];
-      for (const pt of stroke.points) {
-        const mapped = matrixToCanvas(
-          pt,
-          cells,
-          useCols,
-          useRows,
-          canvasRect,
-        );
-        if (mapped) pixels.push(mapped);
-      }
-      if (pixels.length === 0) return;
-      let minEdge = 24;
-      if (cells[0]) {
-        const r0 = cells[0].getBoundingClientRect();
-        minEdge = Math.min(r0.width, r0.height);
-      }
+      const pixels = stroke.points.map((pt) => ({
+        x: pt.x * w,
+        y: pt.y * h,
+      }));
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = Math.max(2.5, stroke.width * minEdge);
       ctx.lineCap = "round";
@@ -346,8 +246,6 @@ export function CrewDrawOverlay({
     if (!active || !plane) return;
     const ro = new ResizeObserver(() => paint());
     ro.observe(plane);
-    const grid = plane.querySelector("[data-crew-grid]");
-    if (grid) ro.observe(grid);
     return () => ro.disconnect();
   }, [active, plane, paint]);
 
@@ -359,6 +257,7 @@ export function CrewDrawOverlay({
         localIdsRef.current.clear();
         liveStrokeRef.current = null;
         activePointerRef.current = null;
+        activeTypeRef.current = null;
         paint();
         bump((n) => n + 1);
         return;
@@ -404,7 +303,6 @@ export function CrewDrawOverlay({
           color: live.color,
           width: live.width,
           cols: live.cols,
-          rows: live.rows,
           pts,
           end: true,
           room: roomRef.current ?? null,
@@ -441,7 +339,6 @@ export function CrewDrawOverlay({
         color: live.color,
         width: live.width,
         cols: live.cols,
-        rows: live.rows,
         pts,
         end: end || undefined,
         room: roomRef.current ?? null,
@@ -457,31 +354,24 @@ export function CrewDrawOverlay({
       if (!live) return;
       const last = live.points[live.points.length - 1];
       if (last) {
-        const dc = pt.c - last.c;
-        const dr = pt.r - last.r;
-        // Tighter for pen, looser for finger.
-        const min = activeTypeRef.current === "pen" ? 0.00005 : 0.0002;
-        if (dc * dc + dr * dr < min) return;
+        const dx = pt.x - last.x;
+        const dy = pt.y - last.y;
+        const min = activeTypeRef.current === "pen" ? 0.00002 : 0.00008;
+        if (dx * dx + dy * dy < min) return;
       }
       live.points.push(pt);
-      live.pending.push([pt.c, pt.r]);
+      live.pending.push([pt.x, pt.y]);
       if (live.flushTimer == null) {
         live.flushTimer = window.setTimeout(() => flushPending(false), 32);
       }
     }
 
-    function matrixFromEvent(e: PointerEvent): CrewDrawPoint | null {
-      const grid = planeEl.querySelector<HTMLElement>("[data-crew-grid]");
-      if (!grid) return null;
-      const { cols, rows, cells } = readGridMeta(grid);
-      return clientToMatrix(e.clientX, e.clientY, cells, cols, rows);
+    function pointFromEvent(e: PointerEvent): CrewDrawPoint | null {
+      return clientToPlane(e.clientX, e.clientY, planeEl);
     }
 
     function startStroke(e: PointerEvent) {
-      const grid = planeEl.querySelector<HTMLElement>("[data-crew-grid]");
-      if (!grid) return;
-      const { cols, rows } = readGridMeta(grid);
-      const pt = matrixFromEvent(e);
+      const pt = pointFromEvent(e);
       if (!pt) return;
       activePointerRef.current = e.pointerId;
       activeTypeRef.current = e.pointerType || "mouse";
@@ -491,10 +381,9 @@ export function CrewDrawOverlay({
         id,
         color: colorHex(colorRef.current),
         width: CREW_DRAW_WIDTH,
-        cols,
-        rows,
+        cols: readCols(planeEl),
         points: [pt],
-        pending: [[pt.c, pt.r]],
+        pending: [[pt.x, pt.y]],
         flushTimer: null,
       };
       try {
@@ -508,11 +397,8 @@ export function CrewDrawOverlay({
 
     function onPointerDown(e: PointerEvent) {
       if (!drawingRef.current) return;
-
-      // Palm / non-primary touch — let Apple Pencil through.
       if (e.pointerType === "touch" && !e.isPrimary) return;
 
-      // Pencil preempts an in-progress finger stroke (common with palm rest).
       if (e.pointerType === "pen") {
         e.preventDefault();
         e.stopPropagation();
@@ -543,10 +429,9 @@ export function CrewDrawOverlay({
           ? e.getCoalescedEvents()
           : [e];
       for (const ev of batch) {
-        const pt = matrixFromEvent(ev);
+        const pt = pointFromEvent(ev);
         if (pt) appendPoint(pt);
       }
-      // Predicted points (Safari / Pencil) — smoother without waiting.
       const predicted =
         typeof (e as PointerEvent & { getPredictedEvents?: () => PointerEvent[] })
           .getPredictedEvents === "function"
@@ -557,7 +442,7 @@ export function CrewDrawOverlay({
             ).getPredictedEvents()
           : [];
       for (const ev of predicted) {
-        const pt = matrixFromEvent(ev);
+        const pt = pointFromEvent(ev);
         if (pt) appendPoint(pt);
       }
       paint();
@@ -636,7 +521,7 @@ export function CrewDrawOverlay({
           aria-pressed={drawing}
           title={
             annotateReady
-              ? "Draw on the gear grid — marks line up on every Live tablet"
+              ? "Draw anywhere on the gear plane — cells and gaps"
               : "Draw locally until Live connects"
           }
           onClick={onToggleDrawing}
