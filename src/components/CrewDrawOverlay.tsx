@@ -244,35 +244,36 @@ export function CrewDrawOverlay({
 
   useEffect(() => {
     if (!active || !plane) return;
-    const host = plane.closest("[data-crew-draw-host]") as HTMLElement | null;
+    const planeEl = plane;
+    const host = planeEl.closest("[data-crew-draw-host]") as HTMLElement | null;
 
     function syncPlaneSize() {
       if (!host) {
-        plane.style.minHeight = "";
+        planeEl.style.minHeight = "";
         return;
       }
       // Cover the full open rack area, not just the gear row height.
       const hostH = host.clientHeight;
       const contentH = Math.max(
-        plane.scrollHeight,
-        [...plane.children].reduce((sum, el) => {
+        planeEl.scrollHeight,
+        [...planeEl.children].reduce((sum, el) => {
           if ((el as HTMLElement).tagName === "CANVAS") return sum;
           return sum + (el as HTMLElement).offsetHeight;
         }, 0),
       );
-      plane.style.minHeight = `${Math.max(hostH, contentH)}px`;
+      planeEl.style.minHeight = `${Math.max(hostH, contentH)}px`;
       paint();
     }
 
     syncPlaneSize();
     const ro = new ResizeObserver(() => syncPlaneSize());
-    ro.observe(host ?? plane);
-    ro.observe(plane);
+    ro.observe(host ?? planeEl);
+    ro.observe(planeEl);
     window.addEventListener("resize", syncPlaneSize);
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", syncPlaneSize);
-      plane.style.minHeight = "";
+      planeEl.style.minHeight = "";
     };
   }, [active, plane, paint]);
 
