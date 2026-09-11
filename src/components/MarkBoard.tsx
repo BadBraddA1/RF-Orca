@@ -11,6 +11,14 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { BrandLockup } from "@/components/BrandLockup";
+import {
+  CheckIcon,
+  GearIcon,
+  KeepAwakeIcon,
+  SearchIcon,
+  ShareIcon,
+  UndoIcon,
+} from "@/components/BoardChromeIcons";
 import { MicRackGrid } from "@/components/MicRackGrid";
 import { ChoiceMenu, RoomAssign } from "@/components/WhoAssign";
 import { withinDeployGrace } from "@/lib/board-helpers";
@@ -21,6 +29,11 @@ import {
   syncBoardShareUrl,
 } from "@/lib/board-share";
 import { channelMatchesQuery, downloadShowCsv } from "@/lib/export-csv";
+import {
+  keepAwakeAvailable,
+  requestKeepAwake,
+  type KeepAwakeHandle,
+} from "@/lib/keep-awake";
 import { useShowLive } from "@/hooks/useShowLive";
 import type {
   Channel,
@@ -405,7 +418,8 @@ export function MarkBoard({
   const seenActivityIdRef = useRef<string | null>(null);
   const [wakeLockOn, setWakeLockOn] = useState(false);
   const [wakeLockSupported, setWakeLockSupported] = useState(false);
-  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const [wakeLockMsg, setWakeLockMsg] = useState<string | null>(null);
+  const wakeLockHandleRef = useRef<KeepAwakeHandle | null>(null);
   const wakeLockWantedRef = useRef(false);
   const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
   const [deployRoomOpen, setDeployRoomOpen] = useState(false);
@@ -680,53 +694,38 @@ export function MarkBoard({
   }, [isPhone, boardView]);
 
   useEffect(() => {
-    setWakeLockSupported(
-      typeof navigator !== "undefined" && "wakeLock" in navigator,
-    );
+    setWakeLockSupported(keepAwakeAvailable());
   }, []);
 
   const releaseWakeLock = useCallback(async () => {
-    const current = wakeLockRef.current;
-    wakeLockRef.current = null;
-    if (!current) {
-      setWakeLockOn(false);
-      return;
-    }
-    try {
-      await current.release();
-    } catch {
-      /* already released */
+    const handle = wakeLockHandleRef.current;
+    wakeLockHandleRef.current = null;
+    if (handle) {
+      try {
+        await handle.release();
+      } catch {
+        /* already released */
+      }
     }
     setWakeLockOn(false);
   }, []);
 
-  const requestWakeLock = useCallback(async () => {
-    if (typeof navigator === "undefined" || !("wakeLock" in navigator)) {
-      setWakeLockSupported(false);
-      return false;
-    }
-    try {
-      const sentinel = await navigator.wakeLock.request("screen");
-      wakeLockRef.current = sentinel;
-      setWakeLockOn(true);
-      sentinel.addEventListener("release", () => {
-        if (wakeLockRef.current === sentinel) {
-          wakeLockRef.current = null;
-          setWakeLockOn(false);
-        }
-      });
-      return true;
-    } catch {
+  const acquireWakeLock = useCallback(async () => {
+    const handle = await requestKeepAwake();
+    if (!handle) {
       setWakeLockOn(false);
       return false;
     }
+    wakeLockHandleRef.current = handle;
+    setWakeLockOn(true);
+    return true;
   }, []);
 
   useEffect(() => {
     function onVisibility() {
       if (document.visibilityState !== "visible") return;
       if (!wakeLockWantedRef.current) return;
-      void requestWakeLock();
+      void acquireWakeLock();
     }
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
@@ -734,7 +733,13 @@ export function MarkBoard({
       wakeLockWantedRef.current = false;
       void releaseWakeLock();
     };
-  }, [requestWakeLock, releaseWakeLock]);
+  }, [acquireWakeLock, releaseWakeLock]);
+
+  useEffect(() => {
+    if (!wakeLockMsg) return;
+    const id = window.setTimeout(() => setWakeLockMsg(null), 2800);
+    return () => window.clearTimeout(id);
+  }, [wakeLockMsg]);
 
   useEffect(() => {
     const latest = show.activity?.[0];
@@ -1203,17 +1208,20 @@ export function MarkBoard({
   }
 
   async function toggleWakeLock() {
-    if (wakeLockOn || wakeLockRef.current) {
+    if (wakeLockOn || wakeLockHandleRef.current) {
       wakeLockWantedRef.current = false;
       await releaseWakeLock();
+      setWakeLockMsg("Screen can sleep again");
       return;
     }
     wakeLockWantedRef.current = true;
-    const ok = await requestWakeLock();
+    const ok = await acquireWakeLock();
     if (!ok) {
       wakeLockWantedRef.current = false;
-      alert("Could not keep the screen on on this device.");
+      setWakeLockMsg("Couldn’t keep the screen on here");
+      return;
     }
+    setWakeLockMsg("Screen stays on");
   }
 
   function findNextUndeployed(): Channel | null {
@@ -2063,6 +2071,13 @@ export function MarkBoard({
           ))}
         </div>
       ) : null}
+      {wakeLockMsg ? (
+        <div className="activity-toasts phone-only" aria-live="polite">
+          <div className="activity-toast" role="status">
+            {wakeLockMsg}
+          </div>
+        </div>
+      ) : null}
       {crewMode ? (
         <header className="crew-bar">
           <div className="crew-bar-main">
@@ -2232,13 +2247,13 @@ export function MarkBoard({
                 onClick={() => void toggleWakeLock()}
                 aria-pressed={wakeLockOn}
                 aria-label={
-                  wakeLockOn ? "Always-on display on" : "Keep screen on"
+                  wakeLockOn ? "Screen stays on — tap to allow sleep" : "Keep screen on"
                 }
                 title={
-                  wakeLockOn ? "Always-on display on" : "Keep screen on"
+                  wakeLockOn ? "Screen stays on — tap to allow sleep" : "Keep screen on"
                 }
               >
-                <WakeLockIcon active={wakeLockOn} />
+                <KeepAwakeIcon active={wakeLockOn} />
               </button>
             ) : null}
           </div>
@@ -4087,125 +4102,5 @@ function ChannelRow({
         </div>
       ) : null}
     </li>
-  );
-}
-
-function ShareIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <path d="m8.59 13.51 6.82 3.98" />
-      <path d="m15.41 6.51-6.82 3.98" />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
-function WakeLockIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className={`wake-lock-icon${active ? " is-on" : ""}`}
-    >
-      <circle cx="12" cy="12" r="4" className="wake-lock-core" />
-      <path
-        className="wake-lock-rays"
-        d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
-      />
-    </svg>
-  );
-}
-
-function GearIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function UndoIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M3 7v6h6" />
-      <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6.7 3L3 13" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
   );
 }
