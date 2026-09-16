@@ -39,7 +39,7 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 - **Deploy next** — Tools → **Floor deploy group**. Phone HUD **Deploy next**: with rooms on, pick a room → full-screen green focus card (room, Handheld/Lav, Who) → **Press here** to deploy; **Hold to exit** (~0.9s) leaves without deploying. Without rooms, same focus card. Returns to the board ready for the next one.
 - **Share view links** — the show URL keeps current **view / sort / My room / Filters** (`?sort=room&room=Ballroom+A&filter=staged…`). **Copy link** pastes that view for crew
-- **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down); Live pill in the header
+- **Live sync** — Ably push on channel `show:{token}` (falls back to revision poll if Ably is down or channel attach times out); subscribe promises are awaited/caught so attach failures don’t become unhandled rejections; Live pill in the header shows Live / Live · poll / Reconnecting
 - **Band filters** — tap **Filters** for a popup (bands / groups); summary stays on the board so you don’t scroll to change scope
 - **Select → group** — unlock Tools, tap the circle on channels (or Select all in the rail); bulk **Set group / Stage room / Delete** appear in a centered one-row dock using the same custom pick menus as Stage room / Who
 - **Delete frequencies** — with Tools unlocked: **Delete freq** on a channel, or select → **Delete N** in the bottom dock (confirms first)
@@ -74,6 +74,8 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 - With `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`: durable shared shows (production)
 - Without them: in-memory demo store (local only; resets on cold start)
+- Turso queries use an ~8s timeout + one retry on transient connect/timeout errors; a hung DB no longer pins SSR forever
+- Home **Happening now** soft-fails if Turso is unreachable — create form and share links still work; list shows a short degraded message instead of a 500
 - Schema v9: `deploy_group_name` on shows; `bo_lead_token`; `people` roster, `rack_cols` / `rack_rows`, channels have `assigned_to`, `in_use`, `mic_kind`, `rack_slot`. Each show has a monotonic `revision` and newest-first `activity` log (capped at 40). Board mutations bump revision + append an activity event so clients can poll for live updates. Public show payloads also include frequency `conflicts` (same freq deployed in more than one place).
 
 ## Develop

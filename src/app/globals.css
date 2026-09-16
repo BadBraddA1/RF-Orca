@@ -340,6 +340,10 @@ a {
   font-size: var(--text-mono);
 }
 
+.active-shows-degraded {
+  color: var(--ink);
+}
+
 .active-shows-list {
   list-style: none;
   margin: 0;

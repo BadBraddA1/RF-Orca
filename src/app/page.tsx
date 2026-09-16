@@ -2,12 +2,33 @@ import Link from "next/link";
 import { BrandLockup } from "@/components/BrandLockup";
 import { NewShowForm } from "@/components/NewShowForm";
 import { listActiveShows } from "@/lib/store";
-import { ACTIVE_SHOW_HOME_DAYS } from "@/lib/types";
+import { ACTIVE_SHOW_HOME_DAYS, type ActiveShowSummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+type ActiveShowsResult =
+  | { ok: true; shows: ActiveShowSummary[] }
+  | { ok: false; shows: [] };
+
+/**
+ * Homepage must stay up when Turso blips (RF-ORCA-4). Create form still works
+ * client-side against the API; only the “Happening now” list is soft-failed.
+ */
+async function loadActiveShows(): Promise<ActiveShowsResult> {
+  try {
+    const shows = await listActiveShows(ACTIVE_SHOW_HOME_DAYS);
+    return { ok: true, shows };
+  } catch (error) {
+    console.error(
+      "[home] listActiveShows failed; rendering without active list",
+      error instanceof Error ? error.message : error,
+    );
+    return { ok: false, shows: [] };
+  }
+}
+
 export default async function HomePage() {
-  const active = await listActiveShows(ACTIVE_SHOW_HOME_DAYS);
+  const active = await loadActiveShows();
 
   return (
     <main className="hero hero-create">
@@ -41,13 +62,18 @@ export default async function HomePage() {
             <h2>Happening now</h2>
             <p>Created in the last {ACTIVE_SHOW_HOME_DAYS} days</p>
           </div>
-          {active.length === 0 ? (
+          {!active.ok ? (
+            <p className="active-shows-empty active-shows-degraded" role="status">
+              Couldn’t load active shows right now — create above or open a
+              share link. Refresh in a moment.
+            </p>
+          ) : active.shows.length === 0 ? (
             <p className="active-shows-empty">
               No active shows yet — create one above.
             </p>
           ) : (
             <ul className="active-shows-list">
-              {active.map((show) => (
+              {active.shows.map((show) => (
                 <li key={show.shareToken}>
                   <Link href={`/s/${show.shareToken}`} className="active-show-card">
                     <span className="active-show-name">{show.name}</span>

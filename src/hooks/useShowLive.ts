@@ -5,9 +5,15 @@ import type Ably from "ably";
 import { getAblyClientId } from "@/lib/ably-client-id";
 import type { CrewAnnotateEvent, CrewClearMsg, CrewStrokeMsg } from "@/lib/crew-draw";
 
+const ABLY_ATTACH_RETRIES = 2;
+
 /**
  * Prefer Ably push for show board updates; fall back to revision polling.
  * Also opens the annotate channel for Audio Crew shared drawing.
+ *
+ * Channel `subscribe()` implicitly attaches and returns a Promise that rejects
+ * on attach timeout (90007) — those must be caught or they become unhandled
+ * rejections (RF-ORCA-5). Attach failures fall back to poll so the board stays usable.
  */
 export function useShowLive(
   token: string,
@@ -36,7 +42,9 @@ export function useShowLive(
   const publishStroke = useCallback((stroke: CrewStrokeMsg) => {
     const channel = annotateChannelRef.current;
     if (!channel) return;
-    void channel.publish("stroke", stroke);
+    void channel.publish("stroke", stroke).catch(() => {
+      /* annotate publish is best-effort on weak venue wifi */
+    });
   }, []);
 
   const publishClear = useCallback(() => {
@@ -46,7 +54,9 @@ export function useShowLive(
       clear: true,
       at: new Date().toISOString(),
     };
-    void channel.publish("clear", payload);
+    void channel.publish("clear", payload).catch(() => {
+      /* best-effort */
+    });
   }, []);
 
   const subscribeAnnotate = useCallback(
@@ -65,6 +75,7 @@ export function useShowLive(
     let pollId: number | null = null;
     let revision = -1;
     let usingAbly = false;
+    let ablyAbandoned = false;
 
     function emitAnnotate(event: CrewAnnotateEvent) {
       for (const handler of annotateHandlersRef.current) {
@@ -114,7 +125,106 @@ export function useShowLive(
       }
     }
 
+    function markAblyLive() {
+      if (cancelled || ablyAbandoned) return;
+      usingAbly = true;
+      stopPoll();
+      setLive(true);
+      setTransport("ably");
+    }
+
+    function fallBackToPoll(reason?: string) {
+      if (cancelled) return;
+      usingAbly = false;
+      setAnnotateReady(false);
+      annotateChannelRef.current = null;
+      if (reason) {
+        console.warn("[ably] falling back to poll:", reason);
+      }
+      startPoll();
+    }
+
+    function abandonAbly(reason: string) {
+      if (cancelled || ablyAbandoned) return;
+      ablyAbandoned = true;
+      fallBackToPoll(reason);
+      if (ably) {
+        try {
+          ably.connection.off();
+          ably.close();
+        } catch {
+          /* expected on teardown */
+        }
+        ably = null;
+      }
+    }
+
+    /** Await attach via subscribe; retry a couple times, then give up. */
+    async function subscribeWithRetry(
+      channel: Ably.RealtimeChannel,
+      event: string,
+      listener: (message: Ably.Message) => void,
+    ): Promise<boolean> {
+      let lastError: unknown;
+      for (let attempt = 0; attempt <= ABLY_ATTACH_RETRIES; attempt++) {
+        if (cancelled || ablyAbandoned) return false;
+        try {
+          await channel.subscribe(event, listener);
+          return true;
+        } catch (err) {
+          lastError = err;
+          // Explicit retry — SDK also auto-retries suspended channels, but we
+          // want a bounded recover path before abandoning push for this session.
+          if (attempt < ABLY_ATTACH_RETRIES) {
+            try {
+              await channel.attach();
+            } catch {
+              /* attach may reject again; loop retries subscribe */
+            }
+          }
+        }
+      }
+      const message =
+        lastError instanceof Error
+          ? lastError.message
+          : "channel attach failed";
+      console.warn("[ably] subscribe/attach failed:", message);
+      return false;
+    }
+
+    function watchChannelLifecycle(
+      channel: Ably.RealtimeChannel,
+      opts: { critical: boolean; onAttached?: () => void },
+    ) {
+      channel.on((change) => {
+        if (cancelled || ablyAbandoned) return;
+        const state = change.current;
+        if (state === "attached") {
+          opts.onAttached?.();
+          return;
+        }
+        if (state === "suspended") {
+          // Non-fatal: keep poll as backup until Ably reattaches.
+          usingAbly = false;
+          startPoll();
+          if (opts.critical) setAnnotateReady(false);
+          return;
+        }
+        if (state === "failed") {
+          const reason =
+            change.reason?.message ?? channel.errorReason?.message ?? "failed";
+          if (opts.critical) {
+            abandonAbly(`channel failed: ${reason}`);
+          } else {
+            setAnnotateReady(false);
+            annotateChannelRef.current = null;
+          }
+        }
+      });
+    }
+
     async function tryAbly() {
+      if (ablyAbandoned) return;
       try {
         const clientId = getAblyClientId();
         const authUrl = `/api/ably-auth?show=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
@@ -122,7 +232,7 @@ export function useShowLive(
         if (!probe.ok || cancelled) return;
 
         const { default: AblyCtor } = await import("ably");
-        if (cancelled) return;
+        if (cancelled || ablyAbandoned) return;
 
         const client = new AblyCtor.Realtime({
           clientId,
@@ -131,23 +241,16 @@ export function useShowLive(
         ably = client;
 
         client.connection.on("connected", () => {
-          if (cancelled) return;
-          usingAbly = true;
-          stopPoll();
-          setLive(true);
-          setTransport("ably");
-          setAnnotateReady(true);
+          if (cancelled || ablyAbandoned) return;
+          // Stay on poll until the show channel is attached — connection alone
+          // is not enough (attach timeout left boards stuck "Live" with no push).
         });
         client.connection.on("disconnected", () => {
-          if (cancelled) return;
-          usingAbly = false;
-          setAnnotateReady(false);
-          annotateChannelRef.current = null;
-          setLive(false);
-          startPoll();
+          if (cancelled || ablyAbandoned) return;
+          fallBackToPoll("connection disconnected");
         });
         client.connection.on("closed", () => {
-          if (cancelled) return;
+          if (cancelled || ablyAbandoned) return;
           usingAbly = false;
           setAnnotateReady(false);
           annotateChannelRef.current = null;
@@ -155,39 +258,76 @@ export function useShowLive(
         });
         client.connection.on("failed", () => {
           if (cancelled) return;
-          usingAbly = false;
-          setAnnotateReady(false);
-          annotateChannelRef.current = null;
-          try {
-            client.close();
-          } catch {
-            /* Ably close can reject with "Connection closed" */
-          }
-          ably = null;
-          startPoll();
+          abandonAbly("connection failed");
+        });
+        client.connection.on("suspended", () => {
+          if (cancelled || ablyAbandoned) return;
+          fallBackToPoll("connection suspended");
         });
 
         const channel = client.channels.get(`show:${token}`);
-        channel.subscribe("update", () => {
-          onInvalidateRef.current();
+        watchChannelLifecycle(channel, {
+          critical: true,
+          onAttached: () => {
+            markAblyLive();
+          },
         });
 
+        const showOk = await subscribeWithRetry(channel, "update", () => {
+          onInvalidateRef.current();
+        });
+        if (!showOk || cancelled || ablyAbandoned) {
+          if (!ablyAbandoned) abandonAbly("show channel attach timed out");
+          return;
+        }
+        markAblyLive();
+
         const annotate = client.channels.get(`show:${token}:annotate`);
-        annotateChannelRef.current = annotate;
-        annotate.subscribe("stroke", (message) => {
-          const data = message.data as CrewStrokeMsg | undefined;
-          if (!data?.id || !Array.isArray(data.pts)) return;
-          emitAnnotate({ type: "stroke", stroke: data });
+        watchChannelLifecycle(annotate, {
+          critical: false,
+          onAttached: () => {
+            if (cancelled || ablyAbandoned) return;
+            annotateChannelRef.current = annotate;
+            setAnnotateReady(true);
+          },
         });
-        annotate.subscribe("clear", (message) => {
-          const data = message.data as CrewClearMsg | undefined;
-          emitAnnotate({
-            type: "clear",
-            at: data?.at ?? new Date().toISOString(),
+
+        const strokeOk = await subscribeWithRetry(
+          annotate,
+          "stroke",
+          (message) => {
+            const data = message.data as CrewStrokeMsg | undefined;
+            if (!data?.id || !Array.isArray(data.pts)) return;
+            emitAnnotate({ type: "stroke", stroke: data });
+          },
+        );
+        if (!strokeOk || cancelled || ablyAbandoned) {
+          setAnnotateReady(false);
+          annotateChannelRef.current = null;
+          // Show channel still works; annotate is optional.
+          return;
+        }
+
+        await annotate
+          .subscribe("clear", (message) => {
+            const data = message.data as CrewClearMsg | undefined;
+            emitAnnotate({
+              type: "clear",
+              at: data?.at ?? new Date().toISOString(),
+            });
+          })
+          .catch(() => {
+            /* already attached; second subscribe shouldn't fail attach */
           });
-        });
-      } catch {
-        if (!cancelled) startPoll();
+
+        if (!cancelled && !ablyAbandoned) {
+          annotateChannelRef.current = annotate;
+          setAnnotateReady(true);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "ably init failed";
+        if (!cancelled) abandonAbly(message);
+        else startPoll();
       }
     }
 
