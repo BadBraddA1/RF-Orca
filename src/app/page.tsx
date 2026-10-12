@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { BrandLockup } from "@/components/BrandLockup";
 import { NewShowForm } from "@/components/NewShowForm";
-import { listActiveShows } from "@/lib/store";
 import { ACTIVE_SHOW_HOME_DAYS, type ActiveShowSummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +12,21 @@ type ActiveShowsResult =
 /**
  * Homepage must stay up when Turso blips (RF-ORCA-4). Create form still works
  * client-side against the API; only the “Happening now” list is soft-failed.
+ * Skip store import when Turso env is absent (CF Workers proof / cold memory)
+ * so @libsql/Ably never load into the home SSR graph.
  */
 async function loadActiveShows(): Promise<ActiveShowsResult> {
   try {
+    const tursoUrl = (
+      process.env.TURSO_DATABASE_URL ||
+      process.env.TURSO_URL ||
+      process.env.LIBSQL_URL ||
+      ""
+    ).trim();
+    if (!tursoUrl) {
+      return { ok: true, shows: [] };
+    }
+    const { listActiveShows } = await import("@/lib/store");
     const shows = await listActiveShows(ACTIVE_SHOW_HOME_DAYS);
     return { ok: true, shows };
   } catch (error) {

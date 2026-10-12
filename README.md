@@ -2,7 +2,7 @@
 
 Crew-facing RF mark board — nickname **Orca**. After frequency coordination is done (e.g. Shure Wireless Workbench), share one link so the floor can group channels and mark what’s deployed by room.
 
-**Live:** https://rforca.com · https://rforca.braddcorp.com · https://rf-orca.vercel.app
+**Live:** https://rforca.com · https://rforca.braddcorp.com · https://rf-orca.vercel.app · CF proof: https://rf-orca.badbradda1.workers.dev
 
 ## Demo
 

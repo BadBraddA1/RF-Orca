@@ -6,7 +6,6 @@ import {
 } from "./crypto";
 import { mergeFeatures, parseFeatures } from "./features";
 import { findFreqConflicts, parseActivity } from "./board-helpers";
-import { publishShowUpdate } from "./ably";
 import { assignActivityMessage, defaultSlotName, nextOpenRackSlot, nameForMicKind, shouldAutonameForMicKind } from "./rack";
 import type {
   ActivityEvent,
@@ -305,7 +304,12 @@ async function persistShowMeta(show: Show): Promise<void> {
 /** Persist show meta and ping Ably subscribers (no-op without ABLY_API_KEY). */
 async function finishMutation(show: Show): Promise<void> {
   await persistShowMeta(show);
-  void publishShowUpdate(show.shareToken, show.revision ?? 0);
+  // Dynamic import: keep Ably out of the home/list SSR module graph on Workers.
+  void import("./ably")
+    .then(({ publishShowUpdate }) =>
+      publishShowUpdate(show.shareToken, show.revision ?? 0),
+    )
+    .catch(() => {});
 }
 
 async function getShowByToken(shareToken: string): Promise<Show | null> {
