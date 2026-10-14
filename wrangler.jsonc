@@ -6,6 +6,10 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "account_id": "3b39955f13b1fc5364775d978622d3e1",
   "workers_dev": true,
+  "routes": [
+    { "pattern": "rforca.com/*", "zone_name": "rforca.com" },
+    { "pattern": "www.rforca.com/*", "zone_name": "rforca.com" }
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -16,9 +20,6 @@
       "service": "rf-orca"
     }
   ],
-  "images": {
-    "binding": "IMAGES"
-  },
   "observability": {
     "enabled": true
   }
