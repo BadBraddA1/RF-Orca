@@ -1,0 +1,196 @@
+{
+  "title": "Choose RF Orca’s new mark-board world",
+  "question": "The roll assigned Broadcast Patch Bay. Keep it, take an alternate, or re-roll — then we build clickable phone / iPad / desktop explorers.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Broadcast Patch Bay",
+      "kicker": "THE ROLL",
+      "lineage": "broadcast / live-sound patch bays — labeled jacks, numbered rows, punch-down clarity",
+      "thesis": "The mark board is a patch field: every channel is a labeled jack, Deploy+Room is the cord you punch.",
+      "palette": ["#0c0e12", "#1a1f2a", "#e8e4d8", "#f0a202", "#2ec4b6", "#c1121f"],
+      "materials": ["anodized panel", "silk-screen legends", "jack bezels", "status LEDs"],
+      "viewport": "Phone: dense labeled channel strips with Deploy+Room as the punch action; empty groups gone; Who tucked behind setup.",
+      "risk": "Can feel industrial-cold if labels outrank the Deploy action.",
+      "raised": [
+        {
+          "from": "Busytown labels",
+          "raise": "Every control wears a printed label — nothing unlabeled on the floor."
+        },
+        {
+          "from": "WPA flat inks",
+          "raise": "Deployed / Staged / Open are flat ink fields, not muddy washes."
+        }
+      ],
+      "comp": ".impeccable/mocks/decision/assigned.webp",
+      "wireframe": {
+        "cols": 12,
+        "rows": 14,
+        "regions": [
+          {"label": "show + live", "x": 0, "y": 0, "w": 12, "h": 2},
+          {"label": "gauge totals", "x": 0, "y": 2, "w": 12, "h": 2, "accent": true},
+          {"label": "active groups only", "x": 0, "y": 4, "w": 12, "h": 1},
+          {"label": "channel jack row", "x": 0, "y": 5, "w": 12, "h": 3, "accent": true},
+          {"label": "Deploy + Room", "x": 0, "y": 8, "w": 12, "h": 2, "accent": true},
+          {"label": "more channels", "x": 0, "y": 10, "w": 12, "h": 4}
+        ]
+      }
+    },
+    {
+      "id": "model-pick",
+      "label": "Flight Deck Gauges",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "aircraft instrument panel — calm bezels, arcs, status you glance",
+      "thesis": "Airplane-gauge calm: progress and Deploy read as instruments you trust without hunting.",
+      "palette": ["#0b1220", "#1c2a3f", "#d9e2ec", "#39d0c5", "#f4b942", "#ef5b5b"],
+      "materials": ["matte bezel", "backlit arc", "frosted glass", "soft amber lamp"],
+      "viewport": "Phone: primary Deploy gauge + room destination; MHz as secondary readout; Who off-stage.",
+      "risk": "Also the direction most runs land on for this brief — familiar, effective.",
+      "comp": ".impeccable/mocks/decision/model-pick.webp",
+      "wireframe": {
+        "cols": 12,
+        "rows": 14,
+        "regions": [
+          {"label": "bezel header", "x": 0, "y": 0, "w": 12, "h": 2},
+          {"label": "deploy arc gauge", "x": 1, "y": 2, "w": 10, "h": 4, "accent": true},
+          {"label": "room destination", "x": 0, "y": 6, "w": 12, "h": 2, "accent": true},
+          {"label": "channel strip", "x": 0, "y": 8, "w": 12, "h": 3},
+          {"label": "secondary MHz", "x": 0, "y": 11, "w": 12, "h": 3}
+        ]
+      }
+    },
+    {
+      "id": "challenger-miura",
+      "label": "Miura Deploy Sheet",
+      "verdict": "competitive",
+      "lineage": "Miura-fold deployable sheets — one pull opens the field",
+      "thesis": "Rooms and channels fold compact for setup, then one Deploy pull opens the floor sheet.",
+      "palette": ["#f7f4ef", "#111111", "#c9a227", "#9bb7c9", "#5a6570"],
+      "materials": ["matte white sheet", "gold foil packet", "scored crease", "pale blue valley"],
+      "viewport": "Phone: compact packet of staged rooms; Deploy unfolds that room’s gear field.",
+      "case": "Owns product clarity on the word Deploy; weaker floor-crew identification than rack/gauge.",
+      "risk": "Paper-fold grammar can feel too light for house-light floor use.",
+      "comp": ".impeccable/mocks/decision/challenger-miura.webp",
+      "hero": "https://impeccable.style/worlds/cards/paper-folds-pleats-deployable-miura-orbit-sheet-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/paper-folds-pleats-deployable-miura-orbit-sheet.webp",
+      "wireframe": {
+        "cols": 12,
+        "rows": 12,
+        "regions": [
+          {"label": "packet header", "x": 0, "y": 0, "w": 12, "h": 2},
+          {"label": "folded rooms", "x": 0, "y": 2, "w": 12, "h": 4, "accent": true},
+          {"label": "Deploy pull", "x": 2, "y": 6, "w": 8, "h": 2, "accent": true},
+          {"label": "unfolded gear", "x": 0, "y": 8, "w": 12, "h": 4}
+        ]
+      }
+    },
+    {
+      "id": "challenger-splitflap",
+      "label": "Split-Flap Concourse",
+      "verdict": "competitive",
+      "lineage": "rail split-flap departure boards",
+      "thesis": "Channels are departure rows; Deploy flips the destination to the room — every head lifts on the cascade.",
+      "palette": ["#1a1a1a", "#f5f5f0", "#c4a035", "#8b1e1e", "#6e7a86"],
+      "materials": ["matte black flaps", "brushed steel frame", "amber delay lamps", "white paint letters"],
+      "viewport": "Phone: ruled channel rows; Deploy cascades room letters; empty destinations omitted.",
+      "case": "Strong live-board clarity and crew identification; denser than calm gauge.",
+      "risk": "Retro novelty if the grid is not strict.",
+      "comp": ".impeccable/mocks/decision/challenger-splitflap.webp",
+      "hero": "https://impeccable.style/worlds/cards/signals-instruments-split-flap-concourse-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/signals-instruments-split-flap-concourse.webp",
+      "wireframe": {
+        "cols": 12,
+        "rows": 12,
+        "regions": [
+          {"label": "board frame", "x": 0, "y": 0, "w": 12, "h": 1},
+          {"label": "CH · NAME · ROOM · DEPLOY", "x": 0, "y": 1, "w": 12, "h": 1, "accent": true},
+          {"label": "row cascade", "x": 0, "y": 2, "w": 12, "h": 10, "accent": true}
+        ]
+      }
+    },
+    {
+      "id": "challenger-depot",
+      "label": "Depot Destination Blind",
+      "verdict": "competitive",
+      "lineage": "transit destination blinds — cloth courses under one window",
+      "thesis": "Room is the destination legend; Deploy steps the course — a fault stops mid-seam.",
+      "palette": ["#0f3d2e", "#f0e6c8", "#e8c547", "#1a1a1a"],
+      "materials": ["bottle-green duck cloth", "chrome-yellow legends", "bleached calico", "eyelet index"],
+      "viewport": "Phone: one fixed window of active groups; Deploy snaps a course to the room name.",
+      "case": "Strong Operate grammar for room destination; less MHz/band native than RF gear.",
+      "risk": "Cloth metaphor can fight frequency-board expectations.",
+      "comp": ".impeccable/mocks/decision/challenger-depot.webp",
+      "hero": "https://impeccable.style/worlds/cards/operate-c-depot-blind-courses-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/operate-c-depot-blind-courses.webp",
+      "wireframe": {
+        "cols": 12,
+        "rows": 12,
+        "regions": [
+          {"label": "fixed window", "x": 1, "y": 1, "w": 10, "h": 3, "accent": true},
+          {"label": "course: room", "x": 1, "y": 4, "w": 10, "h": 2, "accent": true},
+          {"label": "channel strip", "x": 0, "y": 7, "w": 12, "h": 5}
+        ]
+      }
+    },
+    {
+      "id": "challenger-alphabet",
+      "label": "Alphabet Storm",
+      "verdict": "declined",
+      "lineage": "surreal letter-weather",
+      "palette": ["#ffffff", "#111111", "#c0c0c0"],
+      "materials": ["paper white", "storm-letter black"],
+      "case": "Loses audience ID and Operate clarity — weather grammar fights floor marking.",
+      "kept": "Snap state changes that leave a readable word throughout.",
+      "hero": "https://impeccable.style/worlds/cards/dream-surreal-impossible-worlds-alphabet-storm-hero.webp"
+    },
+    {
+      "id": "challenger-wpa",
+      "label": "WPA Park Poster",
+      "verdict": "declined",
+      "lineage": "WPA silkscreen travel posters",
+      "palette": ["#2a9d8f", "#264653", "#e9c46a", "#f4f1de"],
+      "materials": ["flat silkscreen inks", "cream stock"],
+      "case": "Loses both axes — poster scene, not a mark instrument.",
+      "kept": "Flat ink state planes (raised into Patch Bay).",
+      "hero": "https://impeccable.style/worlds/cards/posters-covers-sleeves-wpa-park-poster-hero.webp"
+    },
+    {
+      "id": "challenger-busytown",
+      "label": "Busytown Cutaway",
+      "verdict": "declined",
+      "lineage": "labeled cross-section spreads",
+      "palette": ["#ffffff", "#c44536", "#f0c808", "#3a7d44"],
+      "materials": ["gouache flats", "warm brown outline"],
+      "case": "Loses both axes — toy-town tone wrong for house lights.",
+      "kept": "Relentless printed labels (raised into Patch Bay).",
+      "hero": "https://impeccable.style/worlds/cards/graphic-worlds-publishing-busytown-cross-section-hero.webp"
+    }
+  ],
+  "reroll": {
+    "registers": ["safer", "bolder"]
+  },
+  "buildPath": {
+    "value": "code",
+    "toggle": true
+  },
+  "canon": true,
+  "canonCard": {
+    "label": "Dark RF dashboard (category standard)",
+    "thesis": "What RF / AV mark tools usually ship: dark panel, neon accents, dense tables.",
+    "palette": ["#0b1220", "#111827", "#22d3ee", "#f97316", "#e5e7eb"],
+    "materials": ["glass panels", "glow edges", "pill chips"],
+    "viewport": "Familiar dark dashboard with Deploy and channel list at full craft.",
+    "risk": "Indistinguishable from every other dark ops tool by design.",
+    "comp": ".impeccable/mocks/decision/canon.webp",
+    "wireframe": {
+      "cols": 12,
+      "rows": 10,
+      "regions": [
+        {"label": "header", "x": 0, "y": 0, "w": 12, "h": 1},
+        {"label": "rail progress", "x": 0, "y": 1, "w": 3, "h": 9, "accent": true},
+        {"label": "channel list", "x": 3, "y": 1, "w": 9, "h": 9}
+      ]
+    }
+  },
+  "steer": true
+}
