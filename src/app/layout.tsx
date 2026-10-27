@@ -88,6 +88,10 @@ export const metadata: Metadata = {
   },
 };
 
+const isCloudflareWorkerd =
+  typeof (globalThis as { WebSocketPair?: unknown }).WebSocketPair !==
+  "undefined";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -100,7 +104,8 @@ export default function RootLayout({
       >
         <div className="app-shell">{children}</div>
         <SiteFooter />
-        <Analytics />
+        {/* Vercel Analytics is a no-op / noisy on Cloudflare Workers */}
+        {isCloudflareWorkerd ? null : <Analytics />}
       </body>
     </html>
   );

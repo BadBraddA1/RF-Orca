@@ -1,14 +1,10 @@
 import * as Sentry from "@sentry/nextjs"
-import type { Integration } from "@sentry/core"
-import { nodeProfilingIntegration } from "@sentry/profiling-node"
 
+// No @sentry/profiling-node — native .node binaries break OpenNext/Workers bundling.
+// Profiling stays available on Vercel via Document-Policy js-profiling + client SDK.
 Sentry.init({
-  // npm can nest a second @sentry/core under profiling-node; cast avoids false TS mismatch.
-  integrations: [nodeProfilingIntegration() as Integration],
   dsn: process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN,
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
-  profileSessionSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
-  profileLifecycle: "trace",
   includeLocalVariables: true,
   enableLogs: true,
   environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "development",

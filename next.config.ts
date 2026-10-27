@@ -4,7 +4,7 @@ import { withSentryConfig } from "@sentry/nextjs/config"
 const longCache = "public, max-age=31536000, immutable"
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@sentry/profiling-node", "ably"],
+  // Do not externalize `ably` — OpenNext/workerd cannot resolve Node externals at runtime.
   async headers() {
     return [
       {
