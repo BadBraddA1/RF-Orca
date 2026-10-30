@@ -1,5 +1,4 @@
-import Link from "next/link"
-import { siteName } from "@/lib/site-metadata"
+import { siteName } from "@/lib/site-metadata";
 
 export function SiteFooter() {
   return (
@@ -12,8 +11,10 @@ export function SiteFooter() {
         </a>
       </span>
       <nav aria-label="Legal">
-        <Link href="/privacy">Privacy</Link>
+        <a href="/privacy">Privacy</a>
       </nav>
     </footer>
-  )
+  );
 }
+
+export default SiteFooter;

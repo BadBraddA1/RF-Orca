@@ -1,25 +1,20 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "rf-orca",
-  "main": ".open-next/worker.js",
+  "main": "./dist/_worker.js/index.js",
   "compatibility_date": "2026-10-11",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "account_id": "3b39955f13b1fc5364775d978622d3e1",
   "workers_dev": true,
+  "upload_source_maps": true,
   "routes": [
     { "pattern": "rforca.com/*", "zone_name": "rforca.com" },
     { "pattern": "www.rforca.com/*", "zone_name": "rforca.com" }
   ],
   "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "directory": "./dist"
   },
-  "services": [
-    {
-      "binding": "WORKER_SELF_REFERENCE",
-      "service": "rf-orca"
-    }
-  ],
   "observability": {
     "enabled": true
   }

@@ -1,2 +1,0 @@
-overrides:
-  "@libsql/isomorphic-ws": "file:vendor/isomorphic-ws"

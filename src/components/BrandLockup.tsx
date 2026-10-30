@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 type BrandLockupProps = {
   size?: "hero" | "header";
   /** @deprecated Tagline removed from product UI — prop kept for call-site compat. */
@@ -10,13 +8,18 @@ type BrandLockupProps = {
 export function BrandLockup({ size = "hero" }: BrandLockupProps) {
   const hero = size === "hero";
   return (
-    <div className={hero ? "brand-lockup brand-lockup-hero" : "brand-lockup brand-lockup-header"}>
-      <Image
+    <div
+      className={
+        hero ? "brand-lockup brand-lockup-hero" : "brand-lockup brand-lockup-header"
+      }
+    >
+      <img
         src={hero ? "/brand/rf-orca-logo.webp" : "/brand/rf-orca-mark.webp"}
         alt="RForca"
         width={hero ? 1200 : 256}
         height={hero ? 1563 : 256}
-        priority={hero}
+        decoding="async"
+        fetchPriority={hero ? "high" : "auto"}
         sizes={hero ? "(max-width: 720px) 88vw, 22rem" : "3.25rem"}
         className="brand-logo"
       />
@@ -30,3 +33,5 @@ export function BrandLockup({ size = "hero" }: BrandLockupProps) {
     </div>
   );
 }
+
+export default BrandLockup;

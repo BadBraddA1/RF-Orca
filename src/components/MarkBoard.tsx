@@ -1,5 +1,3 @@
-"use client";
-
 import {
   useCallback,
   useEffect,
@@ -9,7 +7,6 @@ import {
   useTransition,
   type CSSProperties,
 } from "react";
-import { useRouter } from "next/navigation";
 import { BrandLockup } from "@/components/BrandLockup";
 import {
   CheckIcon,
@@ -362,7 +359,6 @@ export function MarkBoard({
   /** Floor lead cookie — can undeploy / restage without Tools. */
   initialBoLead?: boolean;
 }) {
-  const router = useRouter();
   const [show, setShow] = useState(initialShow);
   const [admin, setAdmin] = useState(initialAdmin);
   const [boLead, setBoLead] = useState(initialBoLead || initialAdmin);
@@ -1628,7 +1624,7 @@ export function MarkBoard({
         setDeleteError(data.error || "Could not delete show");
         return;
       }
-      router.push("/");
+      window.location.assign("/");
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "Could not delete show");
     } finally {

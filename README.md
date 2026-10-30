@@ -2,7 +2,9 @@
 
 Crew-facing RF mark board — nickname **Orca**. After frequency coordination is done (e.g. Shure Wireless Workbench), share one link so the floor can group channels and mark what’s deployed by room.
 
-**Live:** https://rforca.com · https://rforca.braddcorp.com · https://rf-orca.vercel.app · CF proof: https://rf-orca.badbradda1.workers.dev
+**Live:** https://rforca.com · https://rforca.braddcorp.com · Worker: https://rf-orca.badbradda1.workers.dev
+
+**Stack:** Astro (SSR) on Cloudflare Workers + React islands for the interactive mark board (no Next.js / OpenNext).
 
 ## Demo
 
@@ -82,43 +84,48 @@ Crew-facing RF mark board — nickname **Orca**. After frequency coordination is
 
 ```bash
 npm install
-cp .env.example .env.local   # fill Turso URL + token
+cp .env.example .env   # fill Turso URL + token
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Sample CSV: `fixtures/wwb/sample-inventory.csv`.
+Open [http://localhost:4321](http://localhost:4321). Sample CSV: `fixtures/wwb/sample-inventory.csv`.
+
+## Deploy
+
+```bash
+npm run deploy   # astro build && wrangler deploy → Worker rf-orca
+```
+
+Routes: `rforca.com/*`, `www.rforca.com/*`. Secrets stay on the Worker (`TURSO_*`, `ABLY_API_KEY`, …).
 
 ## Env
 
 ```bash
 TURSO_DATABASE_URL=libsql://rf-orca-….turso.io
 TURSO_AUTH_TOKEN=…
-NEXT_PUBLIC_SITE_URL=https://rforca.com
+PUBLIC_SITE_URL=https://rforca.com          # NEXT_PUBLIC_SITE_URL still accepted
 ABLY_API_KEY=…   # Ably app “RF Orca” server key (token auth via /api/ably-auth)
 
-# Observability
-NEXT_PUBLIC_SENTRY_DSN=…   # Sentry project rf-orca (also set SENTRY_DSN)
-SENTRY_AUTH_TOKEN=…        # source maps upload on Vercel build
-NEXT_PUBLIC_POSTHOG_KEY=…  # shared Default PostHog project; product super-property rf-orca
-NEXT_PUBLIC_POSTHOG_HOST=https://n.braddcorp.com
-NEXT_PUBLIC_POSTHOG_UI_HOST=https://us.posthog.com
+# Observability (PUBLIC_ preferred; NEXT_PUBLIC_ still accepted on client)
+PUBLIC_SENTRY_DSN=…        # Sentry project rf-orca
+PUBLIC_POSTHOG_KEY=…       # product super-property rf-orca
+PUBLIC_POSTHOG_HOST=https://n.braddcorp.com
+PUBLIC_POSTHOG_UI_HOST=https://us.posthog.com
 ```
 
-**Sentry** — client + server + edge init (`src/instrumentation*.ts`, `sentry.*.config.ts`), `global-error` capture, tunnel `/monitoring`, no floating Report a Bug widget. Code mappings: `BadBraddA1/RF-Orca`.
+**Sentry** — browser init in `src/scripts/client-analytics.ts` (`@sentry/browser`). Code mappings: `BadBraddA1/RF-Orca`.
 
-**PostHog** — `posthog-js` in `instrumentation-client.ts` (`product: "rf-orca"`); optional server helper `src/lib/posthog-server.ts`. Org is still on one PostHog project (plan limit); filter by `product` until a dedicated `rf-orca` project can be created.
+**PostHog** — deferred `posthog-js` in the same client script (`product: "rf-orca"`); optional server helper `src/lib/posthog-server.ts`.
 
 ## Brand
 
 Transparent logo assets in `public/brand/` (navy plate removed). Favicon / apple icon use the emblem mark only.
 
-**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/app/globals.css`. Desktop mark board uses a full-width **desk** layout (left rail for progress/filters, multi-column channel grid) in the spirit of BraddCorp admin dash — phone stays single-column with a slimmer sticky HUD and Deploy next.
+**Night Watch Desk** design system: `DESIGN.md` + CSS tokens in `src/styles/global.css`. Desktop mark board uses a full-width **desk** layout (left rail for progress/filters, multi-column channel grid) — phone stays single-column with a slimmer sticky HUD and Deploy next.
 
 ## Site chrome
 
-Day-one chrome: `lib/site-metadata.ts`, `/opengraph-image` + `/twitter-image` (1200×630), branded `/not-found`, `/privacy`, `robots.ts`, `sitemap.ts`, Vercel Analytics.
-
-**Per-show OG:** `/s/[token]/opengraph-image` (and twitter) renders the show name + deploy stats for link previews. Spot-check `/s/{token}/opengraph-image` after create.
+Day-one chrome: `lib/site-metadata.ts`, static `/og.png`, branded `404.astro`, `/privacy`, `robots.txt`, `sitemap.xml`. Hosted on Cloudflare Workers (Astro adapter).
 
 ## Plan
 

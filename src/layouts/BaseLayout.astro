@@ -1,0 +1,101 @@
+---
+import { SiteFooter } from "../components/SiteFooter";
+import {
+  ogImageAlt,
+  ogImagePath,
+  siteDescription,
+  siteKeywords,
+  siteName,
+  siteTitle,
+  siteUrl,
+  twitterImagePath,
+} from "../lib/site-metadata";
+import "../styles/global.css";
+
+type Props = {
+  title?: string;
+  description?: string;
+  canonicalPath?: string;
+  noIndex?: boolean;
+};
+
+const {
+  title,
+  description = siteDescription,
+  canonicalPath = "/",
+  noIndex = false,
+} = Astro.props;
+
+const pageTitle = title ? `${title} · ${siteName}` : siteTitle;
+const canonical = new URL(canonicalPath, siteUrl).toString();
+const ogImage = new URL(ogImagePath, siteUrl).toString();
+const twitterImage = new URL(twitterImagePath, siteUrl).toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="theme-color"
+      content="#06101f"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta
+      name="theme-color"
+      content="#06101f"
+      media="(prefers-color-scheme: light)"
+    />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="application-name" content={siteName} />
+    <meta name="keywords" content={siteKeywords.join(", ")} />
+    {noIndex ? <meta name="robots" content="noindex, nofollow" /> : null}
+    <link rel="canonical" href={canonical} />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content={siteName} />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={ogImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={twitterImage} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Source+Sans+3:wght@400;600;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="generator" content={Astro.generator} />
+  </head>
+  <body
+    style="--font-syne: 'Syne', 'Avenir Next', sans-serif; --font-source-sans: 'Source Sans 3', sans-serif; --font-ibm-plex-mono: 'IBM Plex Mono', ui-monospace, monospace;"
+  >
+    <div class="app-shell">
+      <slot />
+    </div>
+    <SiteFooter />
+    <script>
+      import "../scripts/client-analytics.ts";
+    </script>
+  </body>
+</html>

@@ -1,6 +1,3 @@
-"use client"
-
-import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { BrandLockup } from "@/components/BrandLockup"
 import {
@@ -97,9 +94,9 @@ export function DemoBoard() {
           <button type="button" className="btn-quiet" onClick={replay}>
             Replay
           </button>
-          <Link href="/" className="btn-secondary">
+          <a href="/" className="btn-secondary">
             Create a real show
-          </Link>
+          </a>
         </div>
       </div>
 

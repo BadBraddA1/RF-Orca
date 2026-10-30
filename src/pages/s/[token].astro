@@ -1,0 +1,43 @@
+---
+import { MarkBoard } from "../../components/MarkBoard";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getBoardRole } from "../../lib/admin";
+import { siteName } from "../../lib/site-metadata";
+import { getShowPublic } from "../../lib/store";
+
+const token = Astro.params.token;
+if (!token) {
+  return Astro.redirect("/");
+}
+
+const show = await getShowPublic(token);
+if (!show) {
+  Astro.response.status = 404;
+  return Astro.rewrite("/404");
+}
+
+const role = await getBoardRole(token, Astro.cookies);
+const total = show.channels.length;
+const deployed = show.channels.filter((c) => c.deployed).length;
+const description =
+  total === 0
+    ? `Mark board on ${siteName} — import channels and track deploy.`
+    : `${deployed} of ${total} channels deployed · ${siteName} mark board`;
+---
+
+<BaseLayout
+  title={show.name}
+  description={description}
+  canonicalPath={`/s/${token}`}
+  noIndex
+>
+  <main>
+    <MarkBoard
+      client:load
+      token={token}
+      initialShow={show}
+      initialAdmin={role === "admin"}
+      initialBoLead={role === "boLead" || role === "admin"}
+    />
+  </main>
+</BaseLayout>

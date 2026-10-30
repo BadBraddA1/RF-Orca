@@ -1,0 +1,116 @@
+---
+import { BrandLockup } from "../components/BrandLockup";
+import { NewShowForm } from "../components/NewShowForm";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { ACTIVE_SHOW_HOME_DAYS, type ActiveShowSummary } from "../lib/types";
+
+type ActiveShowsResult =
+  | { ok: true; shows: ActiveShowSummary[] }
+  | { ok: false; shows: [] };
+
+async function loadActiveShows(): Promise<ActiveShowsResult> {
+  try {
+    const tursoUrl = (
+      process.env.TURSO_DATABASE_URL ||
+      process.env.TURSO_URL ||
+      process.env.LIBSQL_URL ||
+      ""
+    ).trim();
+    if (!tursoUrl) {
+      return { ok: true, shows: [] };
+    }
+    const { listActiveShows } = await import("../lib/store");
+    const shows = await listActiveShows(ACTIVE_SHOW_HOME_DAYS);
+    return { ok: true, shows };
+  } catch (error) {
+    console.error(
+      "[home] listActiveShows failed; rendering without active list",
+      error instanceof Error ? error.message : error,
+    );
+    return { ok: false, shows: [] };
+  }
+}
+
+function formatAge(iso: string): string {
+  const ms = Date.now() - Date.parse(iso);
+  if (!Number.isFinite(ms) || ms < 0) return "just now";
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  if (hours < 1) return "just now";
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+}
+
+const active = await loadActiveShows();
+---
+
+<BaseLayout canonicalPath="/">
+  <main class="hero hero-create">
+    <div class="hero-create-inner">
+      <BrandLockup size="header" />
+
+      <div class="hero-create-grid">
+        <div class="hero-copy">
+          <h1>New show</h1>
+          <p class="hero-lead">
+            Share the plan with the floor — one link to group channels and mark
+            what’s deployed.
+          </p>
+          <p class="hero-support">
+            Bring a Workbench CSV or add channels by hand. No accounts. Active
+            shows stay listed here for {ACTIVE_SHOW_HOME_DAYS} days, then drop
+            off (not deleted).
+          </p>
+          <p class="hero-demo-link">
+            <a href="/demo" class="btn-ghost">Watch a live demo</a>
+          </p>
+        </div>
+
+        <NewShowForm client:load />
+      </div>
+
+      <section class="active-shows" aria-label="Shows happening now">
+        <div class="active-shows-head">
+          <h2>Happening now</h2>
+          <p>Created in the last {ACTIVE_SHOW_HOME_DAYS} days</p>
+        </div>
+        {
+          !active.ok ? (
+            <p
+              class="active-shows-empty active-shows-degraded"
+              role="status"
+            >
+              Couldn’t load active shows right now — create above or open a
+              share link. Refresh in a moment.
+            </p>
+          ) : active.shows.length === 0 ? (
+            <p class="active-shows-empty">
+              No active shows yet — create one above.
+            </p>
+          ) : (
+            <ul class="active-shows-list">
+              {active.shows.map((show) => (
+                <li>
+                  <a
+                    href={`/s/${show.shareToken}`}
+                    class="active-show-card"
+                  >
+                    <span class="active-show-name">{show.name}</span>
+                    <span class="active-show-meta">
+                      {show.channelCount === 0
+                        ? "No channels yet"
+                        : `${show.deployedCount}/${show.channelCount} deployed`}
+                      <span class="active-show-age">
+                        · {formatAge(show.createdAt)}
+                      </span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
+    </div>
+  </main>
+</BaseLayout>

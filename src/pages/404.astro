@@ -1,0 +1,25 @@
+---
+import { BrandLockup } from "../components/BrandLockup";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Not found" canonicalPath="/404" noIndex>
+  <main class="hero" style="min-height: 100dvh">
+    <div class="hero-inner">
+      <BrandLockup size="header" />
+      <p class="tools-whisper" style="margin-top: 1.5rem">Error 404</p>
+      <h1
+        style="position: static; width: auto; height: auto; clip: auto; overflow: visible; margin: 0.35rem 0 0; font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.03em;"
+      >
+        Frequency not found
+      </h1>
+      <p class="hero-support">
+        That link doesn’t resolve on Orca. Head home to start a show, or open a
+        share link you already have.
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.65rem">
+        <a href="/" class="btn-primary">Back to home</a>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

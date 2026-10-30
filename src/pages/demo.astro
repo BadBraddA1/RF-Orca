@@ -1,0 +1,15 @@
+---
+import { DemoBoard } from "../components/DemoBoard";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { siteName } from "../lib/site-metadata";
+---
+
+<BaseLayout
+  title="Demo"
+  description={`Watch a simulated ${siteName} show — deploys, progress, activity, and conflict checks with fake floor traffic.`}
+  canonicalPath="/demo"
+>
+  <main>
+    <DemoBoard client:load />
+  </main>
+</BaseLayout>

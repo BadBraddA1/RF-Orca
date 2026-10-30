@@ -1,10 +1,6 @@
-"use client";
-
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 export function NewShowForm() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -30,7 +26,7 @@ export function NewShowForm() {
         setError(data.error || "Could not create show.");
         return;
       }
-      router.push(`/s/${data.show.shareToken}`);
+      window.location.assign(`/s/${data.show.shareToken}`);
     } catch {
       setError("Network error. Try again.");
     } finally {
